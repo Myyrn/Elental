@@ -19,6 +19,8 @@ content/fineness, `trade_infrastructure_level`, Land share bookkeeping and the
 Teaching dead-end rule settled; numeraire for authored relative values is the
 money metal (Refined Precious Metals), not a food unit.
 
+**2026-11-09 designer input**: Government as seller/grantor of goods (Rule 23); numbers-pass calibration target (Rule 24); pool wiring audit flagged open. See Status.
+
 ## Data Structures
 
 ### Resource Tiers (45 goods, 5 tiers)
@@ -73,6 +75,8 @@ through normal channels. Taxation is unchanged (post-cascade). Because it bypass
 **Government as buyer**: absent a Requisition Duty the Government buys
 goods and labour as an ordinary market participant (Ledger Wealth, tariffs,
 throughput, prices) and competes with cells under the usual rules.
+
+**Government as seller / grantor (2026-11-09)**: the Government may (i) **sell** goods from its inventory (requisitioned or bought) into a zone market at the derived price — proceeds to the Ledger, price pressure through scarcity — or (ii) **grant** goods in kind to a cell, scope filter or Nation (a benefit: pain-alleviating if it relieves a need, joy-giving otherwise; no Ledger flow). Both are Event Drafts (goods, quantity, province/zone, target).
 
 ### Non-Material Consumption Channel
 Fed by Culture-good output, satisfies IP's Grievance buckets
@@ -215,18 +219,21 @@ Government inventory: requisitioned goods go to an abstract Government inventory
 20. Raw goods are extracted by an existing labour pool where one fits, otherwise by a placeholder pool.
 21. Processing labour is allocated across feasible recipes by value added (price of output − input cost); the Government's `planning_posture` dial blends this toward Government-demanded goods.
 22. Labour and population spread over the provinces of a Region by the cell's presence share per province.
+23. The Government may sell inventory goods into a zone market at the derived price (proceeds to the Ledger, price pressure through scarcity) or grant goods in kind to a cell, scope filter or Nation (a benefit, no Ledger flow); both are Event Drafts (2026-11-09).
+24. **Calibration target (numbers pass)**: starting numbers must make aggregate labour in food-relevant pools only slightly above what subsistence needs require, so the disposable surplus is a thin margin — medieval societies spend almost all agricultural output on subsistence. A demo run that piles up grain nobody can use fails the target. Spoilage (Warehousing) is the natural sink for excess perishables. No number is changed here (2026-11-09).
 
 
 ## Cross-references
 - **Internal Politics** — Estate economic profiles use this file's vocabulary; unmet consumption feeds Grievance; Local Jurisdiction enables estate-tariffs.
 - **Administration** — consumes envelope output via Control Allocation (targeting layer, not defined here).
-- **World Map** — terrain/adjacency feeds yields and the trade graph; `infrastructure_level` ≠ `trade_infrastructure_level` (see World Map Rule 9).
+- **World Map** — terrain/adjacency feeds yields and the trade graph; `infrastructure_level` ≠ `trade_infrastructure_level` (see World Map Rule 9). Sea provinces (2026-11-09) are unsettleable in alpha and so yield nothing.
 - **Diplomacy** — reads trade capacity; gates cross-Empire edges (TradeAccess/ResourceExportBan axes).
 - **War** — Firearms/Artillery build+use cost; garrison-directed Army labor competes with War's draw on the same pools.
 - **Internal Politics (2026-11-01)** — Fairness bucket reads this file's contribution valuation; Requisition Duty and Government material needs defined there; propaganda directs Culture/Print/Teaching output. **(2026-11-02)** Ledger inflows read State tariffs and minting here; Borrowing creates obligations settled through Wealth Flow channels.
 - **Administration (2026-11-01)** — enforces Requisition scope via Control Allocation; unmet Government upkeep degrades C/C/O.
 - **Internal Politics (2026-11-02)** — Rights checklist gains Lending and Trade-infrastructure construction (default permitted); Wealth debt becomes obligation records; Demotion Duty reads net position.
 - **Diplomacy (2026-11-02)** — cross-Empire edges also gate inter-zone lending; LaborMigrationBan blocks teacher import after pool extinction.
+- **Internal Politics / UI (2026-11-09)** — a Government grant of goods is a benefit (pain-alleviating or joy-giving); the UI Trade Zones lens reads derived membership (`ui__kb.md`).
 
 ## Status
 - Resource tiers, pool list (19), consumption tiers, money standard, trade-zone shape, estate-tariffs, warehousing ownership: **settled**.
@@ -244,3 +251,5 @@ Government inventory: requisitioned goods go to an abstract Government inventory
 - **2026-11-03 (dial pass) — settled**: dual-claim pool splits use the Allocation Dial (floors for administrative/Army claims by priority, production as the sink); Government spending is a standing dial with a reserve floor (Actions, Internal Politics).
 - **2026-11-03 — settled**: cells are actors (credit supply/demand are cell acts, cleared as one derived pass); debt-service position; numeraire scarcity via `price_level` (now in the price formula); cross-zone friction spread; propaganda as directed output; Government purchases funded from the start-of-turn Ledger; Meteomancy revised (rituals are preconditions for crisis-resolving actions, no scarcity market, character-scale post-alpha); Fuel is flexible sourcing, 45 goods.
 - **2026-11-04 — settled**: placeholder pools; extraction-pool map (placeholders aside); production-planning rule; Government inventory.
+- **2026-11-09 — designer input (settled as worded)**: Government as seller/grantor of goods (Rule 23); calibration target for starting numbers (Rule 24; numbers-pass requirement, no number changed).
+- **2026-11-09 — open (pool wiring audit)**: every one of the 19 pools needs at least one live sink — production pools → goods; Meteomancy/Theurgy → rituals (catalogue empty, so no sink yet); Culture → non-material channel/propaganda; Medicine → epidemic burden; Builders → infrastructure/warehouses/fortifications; Diplomacy/Espionage → their action models; Trade/Commerce → trade gravity; Teaching → retraining/propaganda; Bureaucrats → C/C/O; army pools → armies. Playtest 2026-11-09: only Bureaucrats visibly used. Open: which pools are wired in the engine but unfed by demo labour data (the README claims several are wired).
