@@ -63,6 +63,17 @@ layer: `kb/war__kb.md`, `doc/…`, `spec/…`.
    remote URL stored in the repo, or memory. Use them only for the session's
    git operations.
 
+## Task intake order (host-neutral, GitHub or GitLab — 2026-11-09)
+
+1. **Read first**: this file's module row and the top changelog entry only.
+2. **Then**: the module's kb Status block and heading list (`.outline/<file>.json`, or the first ~30 lines).
+3. **Then only the needed `##/###` section** of that kb file. Where the host returns whole files (the GitHub connector does), keep chapters under ~15 KB; **split `internal_politics__kb.md` (51 KB at the time of writing) into chapter files** (planned, not yet done).
+4. **Spec**: only the section the kb cross-reference names. **Code**: only the files that spec section lists; the matching `tests/<module>.test.js` last, for conventions.
+5. **Skip** the doc layer, other modules' kb files unless a cross-reference names them, and `cross_module_notes__kb.md` unless the task is cross-cutting.
+6. **Never trust README status** — confirm "implemented" from `src/` plus a test name.
+7. **Edit flow**: one branch per session; kb → spec → code → tests; changelog entry in `index.md`; no direct commits to the default branch.
+8. **Tooling to build**: `tools/outline.mjs`, `tools/section.mjs`, `tools/check-headers.mjs` (named in the layout and Access rules above, not present in the repo yet; until they exist, use the kb Status block and the connector's file reads).
+
 ## Working mode (GitHub)
 
 - One branch per session: `session/<YYYY-MM-DD>-<topic>`; never commit straight to
@@ -82,18 +93,18 @@ layer: `kb/war__kb.md`, `doc/…`, `spec/…`.
 
 | # | Module | doc | kb | spec | Load for a session on this module (outline first) |
 |---|---|---|---|---|---|
-| 01 | World Map | ✅ populated | ✅ populated | ⬜ | `world_map__kb.md`; 2026-11-02: population growth/migration/settlement shape, Region re-derivation timing; cataclysm post-alpha |
+| 01 | World Map | ✅ populated | ✅ populated | ⬜ | `world_map__kb.md`; 2026-11-02: population growth/migration/settlement shape, Region re-derivation timing; cataclysm post-alpha; 2026-11-09: administrative Regions + Reorganization Event, resettlement/expulsion, Sea provinces (10th terrain) |
 | 02 | World Map (Graphics) | — retired | — | — | **Merged into UI (2026-09-13)** — rendering/lens ownership now lives entirely in `ui__kb.md`; this module no longer exists separately. |
 | 03 | Countries | ✅ populated | ✅ populated | ⬜ | `countries__kb.md`; 2026-11-02: Dependency satisfaction readout, unified axis menu, Confederation, recognition route settled |
-| 04 | Economics | ✅ populated | ✅ populated | ⬜ | `economics__kb.md` — overhaul pass 2026-11-01 (Requisition, contribution valuation, propaganda pools); contribution valuation settled 2026-11-02 (Teaching; Meteomancy rituals at authored relative prices); 2026-11-02 (later): credit as obligation records, prices, minting fineness, `trade_infrastructure_level`, Land share bookkeeping, Teaching permanent loss settled |
-| 05 | Internal Politics | ✅ populated | ✅ populated | ⬜ | `internal_politics__kb.md` — overhauled 2026-11-01 (Fairness bucket, acting issue-scoped Factions, Preference vector/propaganda, Requisition Duty, Government material needs); 2026-11-02: Government and Ledger merged and settled, faction escalation momentum, Region-level Convergence/Mobility/Demotion rules; Lending Right, no anonymous debts, net-position Demotion trigger |
+| 04 | Economics | ✅ populated | ✅ populated | ⬜ | `economics__kb.md` — overhaul pass 2026-11-01 (Requisition, contribution valuation, propaganda pools); contribution valuation settled 2026-11-02 (Teaching; Meteomancy rituals at authored relative prices); 2026-11-02 (later): credit as obligation records, prices, minting fineness, `trade_infrastructure_level`, Land share bookkeeping, Teaching permanent loss settled; 2026-11-09: Government sells/grants goods, calibration target, pool wiring audit (open) |
+| 05 | Internal Politics | ✅ populated | ✅ populated | ⬜ | `internal_politics__kb.md` — overhauled 2026-11-01 (Fairness bucket, acting issue-scoped Factions, Preference vector/propaganda, Requisition Duty, Government material needs); 2026-11-02: Government and Ledger merged and settled, faction escalation momentum, Region-level Convergence/Mobility/Demotion rules; Lending Right, no anonymous debts, net-position Demotion trigger; 2026-11-09: scope ladder + Precedence flag, administrative-Region laws, consultation/petition handling |
 | 06 | Diplomacy | ✅ populated | ✅ populated | ⬜ | `diplomacy__kb.md` — overhaul pass 2026-11-01 (foreign propaganda, Cultural Leverage, kin-state appeal); 2026-11-02: Observation vs. Espionage detection contest; detection = Observation + counter-intelligence Espionage with sender-attribution tier and false flags; 2026-11-02: CB persistence classes, per-observer overreach, binary target-scaled thresholds, DomainVeto axis |
-| 07 | Nations | ✅ populated | ✅ populated | ⬜ | `nations__kb.md`; 2026-11-02: co-titular set, kin-state toolkit dissolved, pool affinity, assimilation transfers |
+| 07 | Nations | ✅ populated | ✅ populated | ⬜ | `nations__kb.md`; 2026-11-02: co-titular set, kin-state toolkit dissolved, pool affinity, assimilation transfers; 2026-11-09: five-Country placeholder world |
 | 08 | War | ✅ populated | ✅ populated | ⬜ | `war__kb.md` — overhaul pass 2026-11-01 (per-cell War Score, derived Exhaustion, internal armed conflict); 2026-11-02: alpha naval scope, soft garrison, rebel Peace Conference, scalar Retinue Right, Troop Training settled |
 | 09 | Characters | 🟡 stub | ⬜ | ⬜ | `characters__doc.md` — **beyond alpha (2026-11-01)**; blocks Diplomacy's Succession/Common Ruler axes and War's named-commander/ransom hooks, all post-alpha |
 | 10 | Administration | 🟡 outdated (superseded) | ✅ populated (2026-09-13) | ⬜ | `administration__kb.md` — Control Allocation settled (shared scope syntax); active slate = Government attention (attention-threshold, no slot formula); proportional upkeep degradation, leaderless defection, Observation-as-detection; Emergency Powers cost derived; Faction spawn/Multiplicity/templates/corruption dissolved (see file's Status); 2026-11-03: Allocation Dial for Control/Observation (floor + priority + surplus ratio; per-cell default, aggregate/group filters) |
 | 11 | Events | 🟡 stub | ⬜ | ⬜ | `events__doc.md` — **beyond alpha (2026-11-01)**; alpha uses a decision-log proxy for causal provenance |
-| 12 | UI | 🟡 stub doc | ✅ populated (2026-09-13) | ⬜ | `ui__kb.md` — now includes former World Map (Graphics) lens/rendering content; 2026-11-03 design pass: shell + five workspaces, global Scope, Lens system, Allocation Dial widget, End Turn Preflight |
+| 12 | UI | 🟡 stub doc | ✅ populated (2026-09-13) | ⬜ | `ui__kb.md` — now includes former World Map (Graphics) lens/rendering content; 2026-11-03 design pass: shell + five workspaces, global Scope, Lens system, Allocation Dial widget, End Turn Preflight; 2026-11-09: Apparatus before Polity, Nations tab, Regions rendering, Message Feed + badges, Laws UI, Trade Zones lens |
 | 13 | AI — Diplomacy | 🟡 stub | ⬜ | ⬜ | `ai_diplomacy__doc.md` — owns Leverage instrument selection and weighting (seeded from the Portrait) per `diplomacy__kb.md`; "Concert" is a metaphor, not an entity |
 | 14 | AI — War | 🟡 stub | ⬜ | ⬜ | `ai_war__doc.md` |
 | 15 | AI — Economics / Internal Politics | 🟡 stub | ⬜ | ⬜ | `ai_econ_politics__doc.md` |
@@ -109,7 +120,7 @@ Legend: ✅ populated/designed · 🟡 stub or outdated · ⬜ not created yet
 - Hosting: GitHub Pages (primary) / Firebase Hosting (alternative)
 - Pure HTML + ES modules, no bundler
 - Hex grid: pointy-top, odd-r offset, 25×20 (gameplay grid — separate from
-  the 157×114 @16px/cell raw terrain grid used for map generation)
+  the 157×114 @16px/cell raw terrain grid used for map generation); every hex is a province (Sea included, 2026-11-09)
 
 ## Design principles to preserve across all modules
 
@@ -159,6 +170,7 @@ Legend: ✅ populated/designed · 🟡 stub or outdated · ⬜ not created yet
    updated; refresh the Project-knowledge copy of this file if it changed.
 
 ## Changelog
+- **2026-11-09 (designer input)**: scope ladder with tech-gated Estate/Empire scopes and a Precedence flag; laws per administrative Region; Region reorganization; forced resettlement and expulsion; consultation/petition handling; sea provinces playable; five-Country placeholder world; Government sells/grants goods; calibration target; UI: Apparatus before Polity, Nations tab, Regions rendering, scope highlight, scope tree below map, Message Feed and badges, predefined law values with narrative text, Back/Forward, 1-100 run slider, bar breakdowns, Trade Zones lens, pending-law lighting; editor Nation lens. Files touched: `internal_politics__kb.md`, `world_map__kb.md`, `economics__kb.md`, `nations__kb.md`, `ui__kb.md`, `spec/scenario_editor__spec.md`, `index.md`. Items tagged **(proposed)** in those files await the designer's OK. Task intake order added.
 - **2026-11-09 (repo mode)**: GitHub monorepo layout (`kb/ doc/ spec/ src/ scenarios/ tests/ tools/ .outline/`); Access rules (outline → section, `Code:`/`Spec:` links, header discipline enforced by `check-headers`); Working mode (session branches, kb → spec → code → tests commit order); session workflow rewritten for repo access; secrets never stored.
 - **2026-11-03 (UI / dial pass)**: `ui__kb.md` rewritten (shell + five workspaces: Map, Polity, Apparatus, Economy, World; global Scope with reorderable slice order and treemap; Lens system with ten domains and map/table/detail renderings; visibility stamps; Threshold Meter; Event Draft; Orders tray, Commitments ledger, Turn Report, End Turn Preflight). **Allocation Dial settled**: floor + priority + surplus ratio (+ cap, sink); per-cell default with aggregate filters and player-named groups as bulk shorthand; surplus auto-fill free; applies to Control, Observation, Government spending (standing dial with reserve floor, sink = keep, replacing "re-chosen every turn") and dual-claim pool splits; garrison priority and other scalar dials stay plain dials. Preflight warnings are advisory (projected Ledger shortfall, floors above produced output, refused events, below-threshold actions). Files touched: `administration__kb.md`, `actions__kb.md`, `internal_politics__kb.md`, `economics__kb.md`, `cross_module_notes__kb.md`, `index.md`, `ui__kb.md`.
 
