@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Elental</title><link rel="stylesheet" href="src/ui/style.css"></head>
+<body>
+<header id="top"><strong class="brand">Elental</strong><span id="scn" class="muted"></span><span>Turn <b id="turn">0</b></span>
+ <label>Country <select id="country"></select></label><nav id="workspaces"></nav><span id="top-actions"></span>
+ <label class="dbg"><input type="checkbox" id="debug"> Debug</label><a class="muted" href="debug.html">raw shell</a>
+ <span class="grow"></span><span id="status" class="muted"></span><button id="run5">Run 5</button><button id="end" class="primary">End Turn</button></header>
+<div id="scope" class="scopebar"></div>
+<div id="body"><main id="main"></main><aside id="dock"></aside></div>
+<footer id="tray"><div class="trayBar"><button id="traytoggle">Orders (0)</button><button id="ledgertoggle">Commitments</button></div><div id="trayBody"></div></footer>
+<div id="draft"></div><div id="modal"></div>
+<script type="module">import { boot } from './src/ui/app.js'; boot().catch(e => { document.getElementById('status').textContent = 'error: ' + e.message; console.error(e) })</script>
+</body></html>
