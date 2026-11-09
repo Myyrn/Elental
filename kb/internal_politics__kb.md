@@ -23,6 +23,8 @@ AI-behaviour driver / player-observed record. Items tagged **(proposed)**
 were put forward in-session and not yet confirmed; untagged additions were
 confirmed by the designer. See Status.
 
+**2026-11-09 designer input**: Region is now the stored administrative Region (World Map); laws are set per Region; the scope ladder (with a Precedence flag) fixes Rights/Duties precedence; Estate/Empire scopes exist only when technology enables them; Question handling gains consultation and petition. Items tagged **(proposed)** await the designer's OK.
+
 **Resolution note**: Actor resolution is `(Nation, Estate, Region)`, not
 per-Country. Estate Convergence/Mobility/Demotion Duty are written below
 (Region-level rules settled 2026-11-02 — see "Scope syntax and Region-level
@@ -31,16 +33,17 @@ Convergence/Mobility/Demotion" below).
 ## Data Structures
 
 ### Actor (base unit)
-`Actor = (Nation, Estate, Region)`. Region is World Map's derived
-attention layer (see `world_map__kb.md`); no coarser or finer actor key
-exists — province is never an IP key directly.
+`Actor = (Nation, Estate, Region)`. Region is the **administrative Region** owned by World Map (a stored, player-reorganizable partition of a Country's provinces; see `world_map__kb.md`, updated 2026-11-09); no coarser or finer actor key
+exists — province is never an IP key directly. Laws are therefore set per Region rather than by Nation/Estate alone.
 
 **Constraint**: `Σ Estate.population(Nation_i, Region_j) = Estate.total_population`
 and `Σ Nation.population(Estate_i, Region_j) = Nation.total_population_in_region`.
 
-**Region fracture/merger**: on partial Region conquest, an Actor cell's
+**Region fracture/merger/reorganization**: on partial Region conquest or a player Reorganization Event (World Map), an Actor cell's
 stocks split proportionally by population share (Nations' data), each
-fragment re-entering Region derivation. Merger reverses.
+fragment re-entering the new Region partition. Merger reverses. A moved cell's effective Rights/Duties are re-resolved under the new Region's laws; any worsening is an **entitlement loss** (existing decaying Fairness modifier).
+
+**Reorganization gating (2026-11-09, proposed: "empire-wide question" read as Country-wide gating)**: a Region reorganization is an Event Draft. Gating consults **every Veto/Council holder (domain: administration) in the whole Country** — it is an empire-wide decision — then the affected cells' stance is self-interest × Preference alignment. If refused, forcing it through Control costs entitlement loss; cells strong enough take the existing escalation ladder (grievance → momentum → rung → armed revolt, War). **Rebellion is not a new mechanic.**
 
 **Attributes per Actor cell:**
 | Attribute | Type | Notes |
@@ -122,8 +125,13 @@ Reversible: yes, via later reform/drift
 Seed mechanic for a possible future medieval→modern class-transition system
 — out of Alpha scope, not designed further.
 
-### Scope syntax and Region-level Convergence/Mobility/Demotion (settled 2026-11-02)
-- **Scope syntax**: Rights/Duties, Requisition and Control share one scope filter (cell, Estate, Nation, Region, Empire). Control and Requisition stack additively; Rights and Duties are states, not amounts, so the **most specific scope wins**.
+### Scope syntax and Region-level Convergence/Mobility/Demotion (settled 2026-11-02; ladder 2026-11-09)
+- **Scope syntax and ladder**: Rights/Duties, Requisition and Control share one scope filter. Control and Requisition stack additively. Rights and Duties are states, so conflicts resolve by the **scope ladder**, narrowest first:
+```
+Cell (Nation,Estate,Region)  <  Nation  <  Regional-Estate (Estate,Region)  <  Region  <  Estate  <  Empire
+```
+  *Reading (proposed):* the **Nation** rung covers a Nation inside a Region and a Nation-wide declaration; **Estate** and **Empire** scopes exist **only when technology allows** them — in alpha (single tech era) the ruleset flag is off and laws are set per Region or finer. Two entries at the same rung: latest declared wins (supersedes the 2026-11-04 tie line "Region broader than Estate/Nation"). Silence is "allowed (default)", not a scope.
+  Default precedence is **Autonomy** (narrower wins); the **Precedence flag** (Rights checklist) can reverse it per entry (Unitarism).
 - **Convergence** is evaluated per (Nation, Region) cell pair; a Nation-wide declaration is the same act applied at wider scope. A merged cell carries a combined Estate label, preserving the population-sum constraint. Trigger unchanged: Rights **and** Duties checklist distance → 0. **Rarity must emerge, never be flagged**: closing the distance takes many gated, entitlement-loss-generating changes, so Convergence is a very unlikely outcome unless the player grinds centralization hard.
 - **Estate Mobility** moves population between Estate-cells inside the same (Nation, Region). Movement between Regions is migration (World Map, Population dynamics). Movers carry their source cell's labour distribution and drift toward the target Profile via Teaching (the Profile stays a target only).
 - **Demotion Duty** follows the same rule; the Prestige gap compares neighbouring cells in the same (Nation, Region).
@@ -255,7 +263,9 @@ administration/retinue/treaty/tax-law, independently grantable) · Local Jurisdi
 not a bypass) · Land ownership (per-cell share of a province's output; Economics, settled 2026-11-02) · Armed retinue (scalar: maximum fraction of the cell's own armed pools that can serve as retinue; settled 2026-11-02) · Marriage/movement autonomy · Legal immunity ·
 Skilled Labor permissions (bitmask) · Market access · Foreign trade
 access · Minting (State-only default; fineness is a parameter of the Mint Event) · Lending (default permitted, forbiddable per scope) · Trade-infrastructure construction (default permitted, forbiddable per scope) · Settlement (default permitted, forbiddable per scope) · Internal/Foreign tariff rate ·
-Tariff-exemption · Corvée (right) · **Estate Mobility** (scalar 0-100%)
+Tariff-exemption · Corvée (right) · **Estate Mobility** (scalar 0-100%) · **Precedence (Autonomy ↔ Unitarism)** (below)
+
+**Precedence (Autonomy ↔ Unitarism) — 2026-11-09 (proposed shape)**: a flag attached to any other Right/Duty entry, declared at a scope. *Autonomy*: the narrower scope's entry wins over wider ones (the ladder as written — the default). *Unitarism*: the wider scope's entry wins over narrower ones. Local = cell, Nation, Estate; the scope at which the flag is declared is the level of autonomy it grants. Changing the flag changes effective Rights/Duties, so holders who lose from it register entitlement loss as usual.
 
 ### Estate Mobility (bottom-up, gradual, individual/family-scale)
 ```
@@ -448,6 +458,19 @@ Council/Parliament seat or Veto covering the act's domain forces approval
 regardless of attention. **Veto strength is not a separate parameter (settled 2026-11-02)**: it is defined by the cell's privileges — the Rights it holds (Veto domain, Council seat, Petition) together with its existing Weight/Control/Pressure state. Nobles holding a Veto can block; a cell with consultation-type rights only, or none (e.g. peasants in a strongly feudal state), can be almost freely ignored, the Government paying only the existing Outcome Asymmetry costs. "Developed institutions" is a Rights
 configuration, not a Country type (derived; no new flag).
 
+### Question handling — consultation and petition (2026-11-09, proposed: modifiers land on the Fairness bucket)
+```
+handling ∈ ignored | consulted | debated
+petition      (cells holding the Petition Right): the Question carries a standing claim to be heard
+  refuse to debate                                  -> large Fairness modifier, slow decay
+  debate, then refuse without concessions of
+  comparable weight                                  -> moderate Fairness modifier, decays
+  concede comparable weight (benefit; a Right counts) -> no modifier
+consultation  (cells WITHOUT Petition, but an existential need): Government-opened hearing;
+  free of refusal penalty; ignoring costs only the existing Outcome Asymmetry
+```
+Debating spends the Government's slate attention (Administration). Both modifiers decay like entitlement loss and never become a stored currency. "Comparable weight" uses the same size measure as `entitlement_loss_size`. Sizes and decay: numbers pass.
+
 ### Government Portrait (Country-level root trait bundle)
 ```
 Portrait(Country) = { axis: {baseline, modifier_stack} }, value ∈ [-1, +1]
@@ -553,22 +576,26 @@ foreign-policy and Fervor↔Secular overlaps the open Faith/Cosmology bucket).
 27. Bloc formation costs Coordination spent by the relevant Nation×Estate cells, never by the Government; cheaper for small concentrated groups.
 28. Spending beyond the Ledger balance is possible only via Borrowing; spending priority is a standing dial re-resolved every turn, with a reserve floor protecting the balance from discretionary spending.
 29. Faction escalation is cached momentum per (cell, need) with banded hysteresis — never stored on a faction; repression lapses the Question but does not erase grievance.
-30. Rights/Duties, Requisition and Control share one scope filter; Control/Requisition stack additively, Rights/Duties resolve to the most specific scope.
+30. Rights/Duties, Requisition and Control share one scope filter; Control/Requisition stack additively, Rights/Duties resolve by the scope ladder (narrowest first; a Precedence flag may reverse it per entry).
 31. Convergence, Mobility and Demotion resolve per (Nation, Region) cell pair; Convergence rarity must emerge from the cost of closing the Rights/Duties gap, never from a flag.
 32. No anonymous debts: every debt is an obligation record with a named creditor; lending is a permission (default allowed), not an action.
 33. Cells are actors; a faction is a derived grouping, never an actor (2026-11-03).
 34. The Government is not a will: an AI Government's values are the amalgam of the most powerful cells' preferences; Government-to-Government standing is derived from the same weights.
+35. Laws are set per administrative Region; the scope ladder fixes precedence; a Precedence flag may reverse it per entry (2026-11-09).
+36. Estate-wide and Empire-wide laws exist only when technology enables them (2026-11-09).
+37. Refusing a petition to be heard is penalized; refusing after a debate without comparable concessions is penalized less; consultation carries no refusal penalty (2026-11-09, proposed).
 
 ## Cross-references
-- **World Map** — Region is the geographic-clustering source for Actor-cell resolution; fracture/merger triggers proportional stock-split and sum (Rule above); Nations' population data is the divisor. `urbanization_rate` is an awareness input (2026-11-01).
+- **World Map** — Region (administrative Region, stored partition, 2026-11-09) is the geographic-clustering source for Actor-cell resolution; fracture/merger/reorganization triggers proportional stock-split and sum (Rule above); Nations' population data is the divisor. `urbanization_rate` is an awareness input (2026-11-01).
 - **Economics** — Skilled Labor pool/Duty vocabulary; Estate Labor Profile reads it as ground truth; land ownership is a per-cell Land Right (Economics, 2026-11-01); Local Jurisdiction enables estate-tariffs. Supplies the contribution valuation (Fairness), pre-cascade Requisition resolution, and the Culture/Print/Teaching pools propaganda draws on. Ledger inflows read Economics' Taxation, State tariffs and minting (2026-11-02).
-- **Administration** — produces and targets Control/Coordination/Observation (Control Allocation lives there); gates Rights-enforcement and Duty-compliance. Active slate = Government attention only; Control Allocation enforces Requisition scope; unmet Government upkeep degrades C/C/O proportionally; leaderless defection rule (2026-11-02).
+- **Administration** — produces and targets Control/Coordination/Observation (Control Allocation lives there); gates Rights-enforcement and Duty-compliance. Active slate = Government attention only; Control Allocation enforces Requisition scope; unmet Government upkeep degrades C/C/O proportionally; leaderless defection rule (2026-11-02); debating a petitioned Question spends slate attention (2026-11-09).
 - **Nations** — Nation tag on every actor; per-Country Sympathy feeds Foreign Standing; titular status survives dependency unless the culture/language axis is ceded. The Preference vector over Portrait axes is the first instance of the open political trait/mentality vocabulary; Reaction Temperament stays magnitude-only.
 - **Countries** — "Empire"="Country"; the Government Triangle is retired (an analogy, not a game rule) and Institutional↔Personalistic is a derived readout, not an input. Supporting another Country's Nation secession bid is CB-generating (bridges to War's escalation pathway).
 - **Diplomacy** — Foreign Standing is a direct input; Questions feed Diplomacy's execution layer. Foreign propaganda writes into cell Preference modifier stacks (Covert Faction Influence re-verified 2026-11-01); Observation vs. the sender's Espionage projection decides detection (2026-11-02).
 - **Characters** — Character-driven standing actions (post-alpha) move Prestige's modifier stack; the alpha Persuasion Event moves Opinion; Character-leaders attach to fractured sub-factions (deferred); acting factions plausibly need leaders (beyond alpha).
 - **War** — Occupation's Actor-cell consequences are recorded in `war__kb.md`, not here. Internal armed conflict (a faction's armed rung) is resolved by War.
 - **Actions** — every executed action writes the Decision Log through the Actions write path (`actions__kb.md`); Borrow/Default Events and the spending Allocation Dial (reserve floor) live there.
+- **UI** — Laws tab columns follow the scope ladder (Estate/Empire columns hidden unless the technology flag enables them); the Value control is generated from ruleset-declared choices (`ui__kb.md`, 2026-11-09).
 - **Events** — causal provenance for attribution (beyond alpha; the Decision Log is the alpha mechanism).
 
 ## Status
@@ -591,4 +618,5 @@ foreign-policy and Fervor↔Secular overlaps the open Faith/Cosmology bucket).
 - **2026-11-02 (War pass) — settled**: Retinue is a scalar Right; Veto strength is defined by cell privileges, not a separate parameter.
 - **2026-11-03 (dial pass) — settled**: spending priority is a standing Allocation Dial (floors by priority, optional surplus share for discretionary entries, sink = keep) with a reserve floor protecting the balance from discretionary spending; the reserve counts as visible unspent Wealth for `visible_alternatives`.
 - **2026-11-03 — settled**: Foreign Standing is Nation Sympathy + cell terms (no reverse aggregation); cells are actors with permitted/granted/defiance action classes; Government values as a Weight-weighted amalgam (AI value source, player readout); Government-to-Government standing (= `RelationState.opinion`); deniability per observer.
-- **2026-11-04 — settled**: the eight psychological needs; scale of grievance severity, compliance and need satisfaction is a shared per-cell 0..1; covert-action concealment tier lives on a `CovertOp` record referenced from the Decision Log entry (log schema unchanged); scope ties: Region broader than Estate/Nation, Estate vs Nation latest-declared-wins.
+- **2026-11-04 — settled**: the eight psychological needs; scale of grievance severity, compliance and need satisfaction is a shared per-cell 0..1; covert-action concealment tier lives on a `CovertOp` record referenced from the Decision Log entry (log schema unchanged); scope ties (Region broader than Estate/Nation; Estate vs Nation latest-declared-wins) — **tie line superseded 2026-11-09 by the scope ladder** (same-rung ties: latest declared wins).
+- **2026-11-09 — designer input**: scope ladder (Cell < Nation < Regional-Estate < Region < Estate < Empire), Precedence flag (Autonomy ↔ Unitarism), administrative-Region laws, Region reorganization gating, consultation/petition handling, Rules 35-37. Tagged **(proposed)** in the text and awaiting the designer's OK: Nation-rung reading, Precedence shape, Country-wide gating reading of "empire-wide question", modifiers landing on the Fairness bucket. **Open**: whether the tech gate also applies to tax law and Requisition scopes (assumed it applies to Rights/Duties states only; tax is a Duty, so tax law would also be Region-level in alpha).
