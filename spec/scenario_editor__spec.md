@@ -6,7 +6,7 @@ tuning numbers — is authored in a separate editor (`editor.html`), saved as a
 **Scenario Package** of JSON documents, validated, and loaded by the engine. Design
 principle from `index.md`: rules first, numbers later — so the editor is also where the
 numbers pass happens (no code edits for balance). **(spec decision)** marks anything
-the kb does not state.
+the kb does not state. **2026-11-09**: Nation lens in the Map editor, Sea terrain (10 types) and sea provinces, and the five-Country placeholder world as the alpha package seed (see Status).
 
 ## Data Structures
 
@@ -60,7 +60,7 @@ Country ||--o{ Relation
 
 | Section | Contents | Source of defaults |
 |---|---|---|
-| `terrain` | 9 types: forestMax/Min, arableCeiling, popDensityCeiling, favored resources ×mult, combat modifiers per pool | kb tables (settled); Grassland forest ceiling **open** (placeholder, flagged) |
+| `terrain` | **10 types incl. Sea (2026-11-09)**: forestMax/Min, arableCeiling, popDensityCeiling, favored resources ×mult, combat modifiers per pool; Sea carries `capability.settleSea` and `traversal.Sea` flags (both false in alpha) | kb tables (settled); Grassland forest ceiling **open** (placeholder, flagged); Sea's Fish yield **open** |
 | `goods` | 45 goods: `tier`, `baseValue` (**in numeraire units; Refined Precious Metals = 1**), `perishable`, `decayRate`, `sourcing` (alternatives: Preserved Food, Draft Animals, Fuel), `recipe` | goods/tiers settled; **baseValue = placeholder until numbers pass** |
 | `pools` | 19 pools: `kind` (civil/army/arcane/admin), `envelope{control,coordination,observation}`, combat envelope for the 6 army pools, traits | pool list settled; coefficients open |
 | `consumption` | per-capita need per tier (Subsistence/Comfort/Luxury) per good/fuel; failure rules | tiers settled; amounts open |
@@ -115,9 +115,9 @@ Severity: **error** blocks export/launch; **warn** allows; **info** hints. Each 
 |---|---|
 | structural | types, ranges, enums, required fields, unknown keys |
 | referential | every `ref` resolves (goods in recipes, pools in envelopes, nations in presence, provinces in edges/ownership, Countries in relations); ids unique |
-| world | every hex has `surface`; water hexes carry no terrain/owner/population; land provinces connected per landmass respecting blocked mountain edges; grid is 25×20 at alpha (warn if different — recostuming/scale-conditional); forestation within terrain ceiling; Wasteland has no population; river/pass/sea-lane edges join adjacent hexes (sea_lane both coastal); fortress only on edges |
+| world | **every hex of the 25×20 grid is a province with a terrain type; Sea provinces are valid provinces (Wasteland unless a capability flag is set, 2026-11-09)**; lake hexes (non-province water) carry no terrain/owner/population — the former "water hexes carry no terrain/owner/population" rule applies to lakes only; land provinces connected per landmass respecting blocked mountain edges; grid is 25×20 at alpha (warn if different — recostuming/scale-conditional); forestation within terrain ceiling (Sea: 0); Wasteland has no population; river/pass/sea-lane edges join adjacent hexes (sea_lane both coastal); fortress only on edges |
 | population | `Σ_estate population(nation, region) = nation total in region` and `Σ_nation = estate total` (kb constraint); province population ≤ `maxPopulationDensity × maxArea` (warn) |
-| ownership | every Country owns ≥1 province and a capital candidate; Regions derivable (6-8 contiguous hexes; warn on components < 6) |
+| ownership | every Country owns ≥1 province and a capital candidate; the administrative Region partition is present and contiguous per Country (6-8 provinces by default; warn on components < 6) |
 | pools | 19 core pools present (warn if not); placeholder pools (`placeholder: true`, e.g. Fishing, Reagent Gathering) allowed and listed in the worklist |
 | economy | exactly one numeraire good with `baseValue = 1`; all base values > 0; Land shares per province ≤ 1; every Estate in alpha has all 19 pool weights ≥ 0 |
 | politics | 4 Estates at alpha (warn otherwise); each Country defines Rights/Duties for each Estate (or inherits template); Retinue/Mobility scalars in [0,1]/[0,100] |
@@ -223,7 +223,7 @@ Rituals · War tables (interaction matrix editor) · Tuning (flat list, search, 
 
 | Tool | Effect (patches on `world.json` / `countries.json` / `nations.json`) |
 |---|---|
-| Terrain brush | sets `terrain`; auto-clamps `forestation` to the new ceiling |
+| Terrain brush | sets `terrain` (10 types incl. Sea); auto-clamps `forestation` to the new ceiling |
 | Forestation brush | sets scalar within ceiling (warn above) |
 | Habitability brush | Wasteland / Frontier / Settled |
 | Edge tool | click a shared hex edge → river / mountain_pass / sea_lane / none; fortress toggle; bridge toggle |
@@ -231,7 +231,9 @@ Rituals · War tables (interaction matrix editor) · Tuning (flat list, search, 
 | Population / Nation presence brush | per-province count per Nation; live check against `maxPopDensity` |
 | Resource override | optional per-province yield tweak on top of the terrain table |
 | Inspector | click province → docked form (same card layout as the game's Province card) |
-Layers/overlays: terrain, forestation, ownership, Regions (derived), edges, population, Nation presence, validation markers. Raw terrain import: PNG/JSON 157×114 @16 px → `terrainSampler` (majority vote / centroid per hex) produces a patch; the full generator pipeline is `worldgen__spec.md`, and any brush stroke marks provinces `manual` (provenance lock).
+Layers/overlays: terrain, forestation, ownership, Regions (derived), edges, population, Nation presence, validation markers.
+**Nation lens (2026-11-09)** — added to the Map editor's lenses/layers: *colour by plurality Nation*; *presence share of a chosen Nation* (heat); *Nation → Country colour*; the **presence brush stays active on the same view**, so presence is painted while the lens is shown. Same data as the game's Cultural lens (`ui__kb.md`), editable.
+Raw terrain import: PNG/JSON 157×114 @16 px → `terrainSampler` (majority vote / centroid per hex) produces a patch; the full generator pipeline is `worldgen__spec.md`, and any brush stroke marks provinces `manual` (provenance lock).
 
 **Generators** (patch-producing, previewable, undoable, seeded — `Generator.run(pkg, params, rng)`):
 
@@ -285,6 +287,9 @@ UI -> Designer : open index.html?scenario=idb:editor:<id>
 
 **Playtest panel**: (1) *Smoke* — one turn, assert invariants; (2) *Headless run* — N turns with AI orders for every Country; reports ledger trajectories, population sums, price drift per good, Questions per tier, wars started; invariant failures link to the offending field; (3) *Launch in game*. Headless runs use the real Engine in a Worker and never touch the package.
 
+### 7. Alpha package seed — five-Country placeholder world (2026-11-09)
+The alpha package's `nations.json`, `countries.json` and `polity.json` are seeded from the placeholder world in `nations__kb.md` (Family, Alatyr, Yuku, Venz, Retlaytiland): Nation/Country Preference baselines (+ = Pole A; order Ruthlessness, Conservatism, Extraction, Homogenizing, Fervor), position and terrain hints for worldgen, two relabelled Estates per Country with their Rights/Duties templates, and placeholder colours. All values carry `status: placeholder`.
+
 ## Rules
 
 1. The Editor is the only way constants enter the game; simulation code contains no coefficient literals (architecture Rule 4).
@@ -296,15 +301,18 @@ UI -> Designer : open index.html?scenario=idb:editor:<id>
 7. The map editor and the game's Terrain lens share one renderer; Regions shown in the editor come from the engine's own `deriveRegions`.
 8. Package documents never contain derived values (Weight, prices, Regions, trade zones, factions); the editor shows them only as read-only previews.
 9. Scale parameters (grid size, Estate count, empire count) are validated as warnings against alpha scope, not hard-coded limits (scale-conditional design).
+10. Sea provinces are valid provinces; only lakes are non-province water (2026-11-09).
+11. The Nation lens and the presence brush work on the same view, with the same data as the game's Cultural lens (2026-11-09).
 
 ## Cross-references
 - `kernel_engine__spec.md` — `ctx.T` keys, `thresholds.*`, `ruleset` consumption; `modules__spec.md` — each module's `schema.js` and `initState`.
-- `world_map__kb.md` (grid, terrain, favor tables, worldgen open), `economics__kb.md` (goods, pools, Prices, Meteomancy authored prices), `internal_politics__kb.md` (Estate templates, seeding rule), `nations__kb.md` (Nation traits), `countries__kb.md` (titular set), `diplomacy__kb.md` (axes, thresholds).
+- `world_map__kb.md` (grid, terrain incl. Sea, favor tables, administrative Regions, worldgen open), `economics__kb.md` (goods, pools, Prices, Meteomancy authored prices), `internal_politics__kb.md` (Estate templates, seeding rule), `nations__kb.md` (Nation traits, five-Country placeholder world), `countries__kb.md` (titular set), `diplomacy__kb.md` (axes, thresholds), `ui__kb.md` (Cultural lens).
 
 ## Status
-- **Settled in kb, encoded**: what is authored vs derived; relative-to-numeraire convention; sum constraints; 4 Estates, 19 pools, 45 goods, 9 terrains, alpha grid; preference seeding rule; thresholds structure.
+- **Settled in kb, encoded**: what is authored vs derived; relative-to-numeraire convention; sum constraints; 4 Estates, 19 pools, 45 goods, 10 terrains (Sea added 2026-11-09), alpha grid; preference seeding rule; thresholds structure.
 - **(spec decision)**: package split into 8 JSON docs + `overrides.json`; `status` tags on numeric fields; JSON-Patch-based history; generator interface; IndexedDB hand-off for "Launch in game"; zip export; headless playtest panel.
 - **Confirmed 2026-11-04**: one shared ruleset; editor ships with editable placeholder numbers; scenarios are built on top of the initial setup via `overrides.json`; worldgen specified (`worldgen__spec.md`); placeholder labour pools allowed where the 19 do not fit.
 - **Open**: ritual catalogue is empty until you author examples (spec allows an empty list).
 
 - **Implemented 2026-11-05 (`src/editor/`, `src/data/schemas`, `src/data/validators`, `editor.html`; 7 editor tests)**: patch engine (add/replace/remove with inverses), `EditorStore` (undo/redo, brush strokes merged by `mergeKey`, validation after each apply), commands (paintTerrain with forestation clamp + `manual` provenance, setSurface that removes province/presence/warehouse/edges, setEdge, setOwner, setPresence, tuning/ruleset edits, addNation/addCountry), generators (`seedCells`, `derivedWaterSource`, `normalisePresence`), validators (structural from schemas, referential, world/population/cell-sum/numeraire/pool invariants; Issue paths drive jump-to), bundle export/import, IndexedDB persistence, `newPackage` template, and the browser shell with tabs Overview / Map (tools: select, terrain, forestation, habitability, owner, surface, presence, edge, fortress; lenses incl. issues) / Tables (schema-driven grids, placeholder cells dotted, tuning edits become `authored`) / Nations & Countries / Generators (shows how many changes each would make) / Validation / Playtest (headless run with invariant check) and **Launch in game** (`index.html?scenario=idb:<name>`). The browser UI has been syntax-checked and served, not exercised in a real browser. Not yet: worldgen stages, raw-grid import, Diff view, global id search, bulk edit, rename-with-remap, Rights/Duties catalogue and Estate-template forms (edit via JSON patches/tables for now).
+- **2026-11-09 — designer input (spec only; code not changed)**: Nation lens added to the Map editor; `terrain` catalogue gains Sea (10 types) with `capability.settleSea` / `traversal.Sea` flags; the world validator drops the "water hexes carry no terrain/owner/population" rule for sea (lakes keep it) and treats every hex as a province; five-Country placeholder world seeded as the alpha package (section 7). **Follow-up in code** (not done here): the 2026-11-05 `setSurface` command removes province/presence/warehouse/edges for water hexes and the `surface` field still exists — both need to follow the sea-province model for Sea; lakes keep that behaviour.
