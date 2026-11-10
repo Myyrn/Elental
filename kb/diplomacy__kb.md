@@ -22,7 +22,7 @@ event-based / structural), per-observer overreach penalty, binary below-threshol
 actions with thresholds scaled by the target object, DomainVeto axis, Confederation
 as a symmetric bundle, Leverage Categories as readouts.
 
-**2026-11-10 designer input**: a Negotiation Session model — no fixed term, either side may withdraw at any time (restart from scratch), a satisfaction meter for the other side, and a decaying Reputational Leverage mark when the stronger Country withdraws. The Diplomacy **action catalogue** (named actions per axis with parameter types) is agreed to be drafted for the designer's approval first and is **not** written here yet. Items tagged **(proposed)** await the designer's OK.
+**2026-11-10 designer input**: a Negotiation Session model — no fixed term, either side may withdraw at any time (restart from scratch), a satisfaction meter for the other side, and a decaying Reputational Leverage mark when the stronger Country withdraws. **The Diplomacy action catalogue is now written (Action Catalogue, below)**: one direction per action, grouped by axis, with Embargo (strength / Country or Regions / goods) and Tariffs replacing Trade Sanctions, separate alliance actions with a Benevolent Neutrality → Defensive Pact → Standing Offensive chain, and Improve Relations as a decaying opinion modifier. Show of Force is not a diplomatic action — it is derived from border deployment (`war__kb.md`). Items tagged **(proposed)** await the designer's OK.
 
 ## Data Structures
 
@@ -52,7 +52,7 @@ support as Facilitation Grants.
 **CB overreach**: `overreach_magnitude = f(gap between CB tier and actual war goals claimed)`. The penalty is applied **per observer** (settled 2026-11-02): each Country's Reputational Leverage stack toward the overreacher takes a hit scaled by the magnitude and by that observer's closeness to the victim (alliance tier, kin ties, trade dependence) — never global. Curve shape: numbers pass. Unilateral Annexation of occupied territory is a forced-annexation act: Sovereignty-tier CB for the victim plus the per-observer overreach penalty — no separate penalty stack (settled 2026-11-03).
 
 **CB persistence classes (settled 2026-11-02)** — all remain diplomatically resolvable:
-- **State-based**: persists while the grounding fact holds, with no timer (an unremedied breach, occupied territory, a blocked edge).
+- **State-based**: persists while the grounding fact holds, with no timer (an unremedied breach, occupied territory, a blocked edge, an uneven tariff relationship).
 - **Event-based**: a decaying modifier stack like Sympathy; **persistence scales with tier** — a Veto break or forced-annexation attempt is event-based but outlasts minor insults (e.g. lingering border tension); Grievance-tier CBs fade fastest.
 - **Structural**: standing and derived, **needing no prior justification**: (a) nationalism / long-lasting claims — derived from a titular or kin Nation's core or presence in foreign provinces (Nations data; `claims` in RelationState); (b) a **militaristic disposition** — an empire that is essentially militaristic, with a tradition of warring against everyone, holds a standing CB against any target. The disposition is derived from the Portrait (Ruthlessness) and the war record in the Decision Log, never stored, and observers already price it through Reputational Leverage.
 
@@ -82,7 +82,7 @@ A Sanction or Coalition is **great-power-backed** when its imposers include a su
 Leverage readouts. "Great-War-chain" means propagation through the alliance/treaty graph only — no global tension metric (cross-module notes).
 
 ### Government-to-Government standing (settled 2026-11-03)
-`RelationState.opinion` = Government-to-Government Foreign Standing (Internal Politics, derived: the Weight-aggregate of the powerful cells' Foreign Standing toward the other Country + alignment between this Government's amalgam and the other's observed Portrait). It is distinct from Reputational Leverage (external belief about conduct) and from Sympathy (Nation × Country).
+`RelationState.opinion` = Government-to-Government Foreign Standing (Internal Politics, derived: the Weight-aggregate of the powerful cells' Foreign Standing toward the other Country + alignment between this Government's amalgam and the other's observed Portrait). It is distinct from Reputational Leverage (external belief about conduct) and from Sympathy (Nation × Country). **Improve Relations** (2026-11-10) adds a decaying modifier term to it — the same baseline-plus-decaying-modifier shape, cached and re-derivable, never spendable.
 
 ### Leverage (general)
 NOT a scalar, not modeled here — a set of typed, granular instruments
@@ -106,9 +106,7 @@ Leverage(A, B or Bloc) = { Economic, Diplomatic(Reputational), Military, Cultura
   to override an otherwise-unfavorable aggregate — e.g. a country with
   poor Economic leverage still goes to war rather than accept erasure.
   Trigger: a core province occupied, or an Existential CB held against the Country (settled 2026-11-03); the threshold value is a numbers-pass item.
-- **Military category feed**: fed in part by War's Troop Training action
-  (see `war__kb.md`) — a decaying modifier from border-adjacent exercises
-  vs. a specific Country/Bloc. Stacks with War Exhaustion and other
+- **Military category feed**: fed in part by War's **Show of Force** (formerly Troop Training, see `war__kb.md`) — a decaying modifier derived from troops deployed in border Regions adjacent to a specific Country/Bloc while no war is ongoing between them. Stacks with War Exhaustion and other
   active-war Military Leverage penalties; does not replace them.
 - **Cultural category (derived — settled 2026-11-01)**: sourced from the
   Country's culture-associated labour pools (Teaching, Culture — printing/
@@ -116,7 +114,7 @@ Leverage(A, B or Bloc) = { Economic, Diplomatic(Reputational), Military, Cultura
   Weight-aggregated alignment of the target's cell Preference vectors to this
   Country's observed Portrait. The other categories likewise read existing
   data: Economic from trade dependency (throughput), Military from War
-  (Troop Training, exhaustion readout), Diplomatic = the Reputational stack.
+  (Show of Force, exhaustion readout), Diplomatic = the Reputational stack.
 - Aggregation formula, per-category computation (beyond Military's War-kb
   feed), country-profile-driven weighting, threshold trigger condition:
   **open, implementation-deferred**.
@@ -132,6 +130,7 @@ Negotiation(A, B) = { terms (each side's proposals; the Peace Conference's are s
 - **Satisfaction** of a side is a derived readout of how well the terms on the table serve its stance (the same stance-times-modifier shape as the rest of the skeleton; in a war it is the side's `peace_evaluation`, `war__kb.md`). When it falls below the side's walk-out threshold that side ends the negotiation. The other side's satisfaction and its walk-out threshold are shown as a **meter**: **exact in alpha**; a **fog-of-war estimate** (stamp `estimated`) once fog-of-war exists (post-alpha).
 - **Withdrawal leaves a decaying mark** when the withdrawing Country is the **stronger** party — stronger by the Leverage-readout comparison at negotiation time (bilateral or bloc-pair scoping, as in Leverage Categories). The mark is a decaying negative modifier on that Country's Reputational Leverage stack toward the other party **(proposed reading: sign negative, on the stronger Country's own stack)**. A weaker Country that withdraws leaves no mark. The mark is cached and re-derivable like any modifier — never a spendable currency.
 - **Scope (proposed reading)**: the session applies to every bilateral diplomatic negotiation, including the Peace Conference (war and internal-conflict terms alike).
+- **Alliance negotiation (2026-11-10)**: a higher link in the alliance chain automatically covers the lower links; the lower actions are **disabled** (greyed out) in that negotiation.
 
 ### Axis Bundle (shared substrate — Sanctions/Dependency/Alliance)
 ```
@@ -145,7 +144,7 @@ AxisGrant = { axis, terms, scope }
 | Culture/language sovereignty | forces titular-Nation status |
 | Military cap | Levy Duty / Army sub-pool ceiling; breach = CB for neighbors |
 | Foreign policy | target can't ratify treaties without grantee consent |
-| Trade access | forced tariff-exemption or embargo vs. third party |
+| Trade access | forced tariff-exemption or embargo vs third party |
 | Succession | approval/veto over ruler selection — post-alpha (Characters beyond alpha) |
 | Fortification | region-set or whole-Country ban-new-construction / forced-dismantlement |
 | Resource export ban | single-good embargo, `throughput_cap → 0` on that edge |
@@ -190,6 +189,75 @@ Investing beyond threshold: no additional benefit.
 - The concealment-tier threshold of a covert action carries the same target scale, so detection thresholds follow it.
 Balance lever is breadth (many simultaneous actions), not depth. Actions with no Region target (settled 2026-11-03): there is no general rule — each action type declares its own target-scale parameter, a derived property of the targeted object, when it is designed. An action type without one is incomplete.
 
+### Action Catalogue (2026-11-10)
+The player-facing list of Diplomacy actions, grouped by axis and phrased in common strategy-game and political language. Conventions:
+- **One direction per action.** Positive and negative actions that affect the same parameter are separate actions (a Trade Agreement is not an Embargo). A positive action takes **0 to 100**, a hostile action **−100 to 0**; some actions use named tiers, and any action may carry a **duration** where one makes sense. Each action follows its own parameter rules.
+- Each action declares its **parameter type, its own target-scale (Rule 20, Action Threshold), a default visibility** and a **narrative paragraph without mechanics** (`narrative` text, content still to be written, as for Laws).
+- **Kinds (proposed)**: an *agreement* needs the counterpart's ratification (Negotiation Session); a *unilateral act* takes effect by itself (it may carry a CB for the target); a *demand* is put to the target, which accepts it, rejects it (Reputational and CB consequences) or is pushed into it by Leverage.
+- Every action writes ordinary state (axes, modifier stacks, treaties); the catalogue adds no new stock.
+
+**Trade (TradeAccess, ResourceExportBan)**
+| Action | Kind | Parameters |
+|---|---|---|
+| Trade Agreement | agreement | access 0–100; duration |
+| Tariff Exemption | agreement | exemption 0–100; goods (all or chosen); duration |
+| Impose Tariff | unilateral | tariff −100–0 (0 none, −100 prohibitive); goods (all or chosen); duration |
+| **Embargo** | unilateral, one or more imposers | strength −100–0; target scope: the **entire Country** or **chosen Regions**; goods: **all of the market** or **chosen goods**; duration |
+
+- **Embargo replaces "Trade Sanctions"** (they were the same thing). It writes a `Sanction` with the TradeAccess or ResourceExportBan axis: strength scales `throughput_cap` toward 0 on the affected edges and goods; a single chosen good at full strength is the old ResourceExportBan. Imposers are ad hoc or great-power-backed as before. Region-targeted embargoes scale their threshold by those Regions' own parameters.
+- **Tariffs replace the Sanction tiers.** Tariff mechanics (rates on goods crossing the border) are Economics' (`economics__kb.md`); this action only sets them diplomatically **(proposed alignment with Economics' Estate-Tariffs/zone tolls)**.
+- **Tariff asymmetry (derived, proposed)**: `tariff_asymmetry(A, B)` is a readout comparing the tariffs each Country imposes on the other, weighted by trade dependency. Uneven tariffs give the disadvantaged side a **Grievance-tier, state-based CB while the asymmetry holds** and an opinion modifier, so mutual tariffs the parties feel are uneven can harm relations; **Embargo is the escalation** the disadvantaged side may choose.
+
+**People (LaborMigrationBan)**
+| Action | Kind | Parameters |
+|---|---|---|
+| Migration Treaty | agreement | freedom 0–100; duration |
+| Migration Ban | unilateral | strictness −100–0; duration |
+
+**Military (MilitaryCap, Fortification, Alliance)**
+| Action | Kind | Parameters |
+|---|---|---|
+| Military Access | agreement | scope (Regions or Country); duration |
+| Demand Disarmament | demand | cap as a share of the target's Levy/Army ceiling; duration |
+| Ban Fortification | demand | scope (chosen Regions or whole Country); mode: ban new construction / force dismantling |
+| *Alliance actions* | agreement | see below |
+
+- **Alliance actions** (a subsection of Military): **Benevolent Neutrality**, **Guarantee**, **Defensive Pact**, **Standing Offensive** and **Coalition** are five separate actions.
+  - **Chain**: Benevolent Neutrality → Defensive Pact → Standing Offensive. Agreeing a higher link automatically covers the lower ones, which are **disabled during that negotiation**.
+  - **Independent** (settled 2026-11-10): **Coalition** (situational offensive for one named conflict; it imitates a Defensive Pact or Standing Offensive but only for that conflict, expires with it, requires and disables nothing) and, taken the same way, **Guarantee** (one-sided; no reciprocal obligation) **(Guarantee's independence is my reading — not stated)**.
+  - **Confederation** is a symmetric Sovereignty bundle (below), not an alliance link.
+- **Declare War** and **Propose Peace** belong to War (`war__kb.md`; peace terms are the Peace Conference stacks); they are listed here only for completeness.
+- **Show of Force is not a diplomatic action** (confirmed 2026-11-10): troops deployed in border Regions adjacent to a Country with no war between the two produce a decaying Military Leverage modifier, derived from the deployment (`war__kb.md`).
+
+**Sovereignty (CultureLanguageSovereignty, ForeignPolicy, DomainVeto)**
+| Action | Kind | Parameters |
+|---|---|---|
+| Impose Cultural Autonomy | demand | option: titular status for Nation X; duration or permanent |
+| Take Over Foreign Policy | demand | option: treaty consent only / consent and veto |
+| Demand a Say in Domestic Law | demand | Veto domain checklist (Internal Politics' domain list); duration |
+| Establish Dependency | demand | bundle of axes chosen from the shared menu |
+| Confederation | agreement | symmetric bundle of the same axes; mutual consent |
+
+**Cooperation**
+| Action | Kind | Parameters |
+|---|---|---|
+| Scientific / Legal Exchange | agreement | cooperation axis; duration |
+| Gift / Facilitation Grant | agreement | specific asset; terms |
+
+**Intelligence (Espionage threshold)**
+| Action | Kind | Parameters |
+|---|---|---|
+| Propaganda (overt) | unilateral | target Region; exports the sender's Portrait |
+| Covert Influence | unilateral | target Region; Portrait axis or chosen point; concealment tier; optional false flag |
+
+**Relations**
+| Action | Kind | Parameters |
+|---|---|---|
+| **Improve Relations** (confirmed 2026-11-10) | unilateral | none beyond the target; the effect decays |
+
+- **Improve Relations** adds a **decaying modifier to the Government-to-Government `opinion`** (talking and showing respect matters as much as direct action). It is a fixed-threshold Diplomacy action, binary below threshold, and it does not touch cells' Foreign Standing (that is propaganda). **Repeating it while a modifier is active refreshes the modifier to full instead of stacking**, so the benefit has a ceiling. It cannot be bought in bulk; the modifier is cached and re-derivable.
+- **Open**: a hostile counterpart (a Denounce / Insult action — the Grievance tier already lists insult as a trigger); whether Improve Relations needs a distinct target-scale (Rule 20); parameters and thresholds for every action (numbers pass).
+
 ### Covert Faction Influence & Foreign Propaganda (settled shape 2026-11-01)
 Espionage-threshold actions per target Region (fixed threshold — breadth,
 not depth, per the Action Threshold model above); fixed magnitude per action,
@@ -233,14 +301,19 @@ deniability cost.
 21. A negotiation has no fixed term; either side may withdraw at any time, and a later negotiation starts completely from scratch (2026-11-10).
 22. The other side's satisfaction and walk-out threshold are shown as a meter — exact in alpha, a fog-of-war estimate once fog-of-war exists (2026-11-10).
 23. Withdrawing leaves a decaying Reputational Leverage mark only when the withdrawing Country is the stronger party by the Leverage-readout comparison; the mark is cached and re-derivable, never spendable (2026-11-10, sign and holder proposed).
+24. Every action in the catalogue has one direction: positive 0–100, hostile −100–0, or named tiers, with optional duration; a positive and a negative action on the same parameter are separate actions (2026-11-10).
+25. Embargo is the single trade-sanction action: strength −100–0, target the entire Country or chosen Regions, goods all or chosen; Tariffs replace the Sanction tiers, and uneven mutual tariffs are a derived relationship readout that can open a Grievance-tier CB (2026-11-10; tariff-asymmetry details proposed).
+26. Alliance actions are separate: Benevolent Neutrality → Defensive Pact → Standing Offensive form a chain in which a higher link covers and disables the lower ones during negotiation; Coalition (and Guarantee) are independent (2026-11-10).
+27. Improve Relations adds a decaying modifier to the Government-to-Government `opinion`; repeating it refreshes the modifier to full and never stacks; it is not propaganda (2026-11-10).
+28. Show of Force is not a diplomatic action; it is derived from troop deployment (`war__kb.md`, 2026-11-10).
 
 ## Cross-references
-- **Internal Politics** — Ratification/Veto reads IP's `treaty` Veto domain directly; Foreign Standing is a per-(cell, foreign Country) derived value (Nation Sympathy + cell-specific terms); propaganda and covert influence write into the cell-specific terms; nothing aggregates back into Sympathy.
+- **Internal Politics** — Ratification/Veto reads IP's `treaty` Veto domain directly; Foreign Standing is a per-(cell, foreign Country) derived value (Nation Sympathy + cell-specific terms); propaganda and covert influence write into the cell-specific terms; nothing aggregates back into Sympathy. The Domain checklist of Demand a Say in Domestic Law reads IP's Veto domain list.
 - **Nations** — kin-state Sympathy baseline (non-decaying, live-recomputed off titular declaration); spent-resource soft power is a decaying standing-modifier. The kin-state toolkit has no separate mechanic (2026-11-02).
-- **Economics** — TradeAccess/ResourceExportBan read `throughput_cap` directly; LaborMigrationBan exposes the open "external pool recruitment" question.
+- **Economics** — TradeAccess/ResourceExportBan read `throughput_cap` directly (Embargo scales it); Impose Tariff / Tariff Exemption set tariff rates whose mechanics Economics owns (alignment proposed); LaborMigrationBan exposes the open "external pool recruitment" question.
 - **Administration** — Covert Faction Influence targets the settled Actor-cell model (`administration__kb.md` + `internal_politics__kb.md`) — re-verified 2026-11-01; Observation there contributes additively with counter-intelligence Espionage to detection (2026-11-02).
-- **War** — Troop Training feeds this file's Military Leverage category; the Peace Conference reuses the Negotiation Session and builds proposal stacks inside it; see `war__kb.md`.
-- **UI** — the negotiation meter and the Withdraw warning render this file's Negotiation Session (`ui__kb.md`, 2026-11-10).
+- **War** — Show of Force (formerly Troop Training) feeds this file's Military Leverage category; the Peace Conference reuses the Negotiation Session and builds proposal stacks inside it; Declare War / Propose Peace are War's; see `war__kb.md`.
+- **UI** — the negotiation meter and the Withdraw warning render this file's Negotiation Session; the action catalogue renders in the Treaties tab (`ui__kb.md`, 2026-11-10).
 - **Characters** — Succession axis, Common Ruler axis, ruler-deposition event: post-alpha (Characters beyond alpha).
 - **AI — Diplomacy** — owns Leverage instrument selection/combination, weighting from the Portrait, coalition-backing relevance.
 - **Fog of war** — deliberately deferred as a separate turn-flow layer; the negotiation meter is its first consumer here (exact in alpha).
@@ -257,4 +330,5 @@ deniability cost.
 - **2026-11-02 — settled**: detection = Observation + counter-intelligence Espionage (additive); sender revealed at a higher separate threshold; false flags possible for strong-Espionage countries. False-flag exposure costs Reputational Leverage and a CB; no limits on the implicated party (confirmed). **Open**: thresholds (numbers pass).
 - **2026-11-02 (Countries/Diplomacy pass) — settled**: CB persistence classes; per-observer overreach penalty; binary below-threshold with target-scaled thresholds; DomainVeto axis; Confederation as a symmetric bundle with no teeth; Leverage Categories as readouts.
 - **2026-11-03 — settled**: Concert as a derived great-power-backing predicate; Government-to-Government standing (`opinion`); Leverage weights from the Portrait with the override trigger; militaristic-disposition derivation; per-action target-scale parameter; Annexation as a forced-annexation CB; per-observer attribution.
-- **2026-11-10 — designer input (settled as answered)**: negotiations have no fixed term and either side may withdraw at any time, after which negotiation restarts from scratch; the other side's satisfaction is shown as a meter (exact now, fog-of-war estimate post-alpha); withdrawal leaves a decaying mark that feeds Reputational Leverage of the stronger Country when it is the one that withdraws. **Proposed (awaiting OK)**: the mark's sign (negative) and holder (the stronger Country's own stack toward the other party); the session covering the Peace Conference too. **Agreed, not yet written**: the Diplomacy action catalogue — a named action per axis in common strategy-game and political language, each with its own parameter type (0-100, -100-100, -100-0, strength tiers, duration) and rules — will be drafted for the designer's approval before it goes into this file. **Open**: satisfaction function details and walk-out threshold values (numbers pass).
+- **2026-11-10 — designer input (settled as answered)**: negotiations have no fixed term and either side may withdraw at any time, after which negotiation restarts from scratch; the other side's satisfaction is shown as a meter (exact now, fog-of-war estimate post-alpha); withdrawal leaves a decaying mark that feeds Reputational Leverage of the stronger Country when it is the one that withdraws. **Proposed (awaiting OK)**: the mark's sign (negative) and holder (the stronger Country's own stack toward the other party); the session covering the Peace Conference too. **Open**: satisfaction function details and walk-out threshold values (numbers pass).
+- **2026-11-10 (later) — Action Catalogue, designer input (settled as answered)**: one direction per action (positive 0–100, hostile −100–0, tiers, duration), positive and negative split into separate actions; **Embargo** (strength, entire Country or chosen Regions, all goods or chosen goods) replaces Trade Sanctions; **Tariffs** replace the Sanction tiers and uneven mutual tariffs can turn into grievances; Alliance actions as a Military subsection, five separate actions with the Benevolent Neutrality → Defensive Pact → Standing Offensive chain (higher covers and disables lower in negotiation) and **Coalition independent**; **Improve Relations** confirmed (decaying opinion modifier; repeating refreshes, never stacks); **Show of Force** confirmed as non-diplomatic (derived from deployment). **Proposed (awaiting OK)**: the agreement / unilateral / demand kinds; Guarantee as independent; the tariff-asymmetry readout and its state-based Grievance CB; alignment of Impose Tariff / Tariff Exemption with Economics' tariff mechanics; Embargo and tariffs as the same Sanction record. **Open**: a hostile counterpart to Improve Relations; Improve Relations' target-scale; every parameter value and threshold (numbers pass); `narrative` text for each action.

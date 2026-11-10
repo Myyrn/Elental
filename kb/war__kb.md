@@ -29,7 +29,9 @@ Government may compensate); Mobilization is scoped (cell / Region / Empire); the
 Retinue Right also scales a cell's contribution to Army pools except Artillery and
 Meteomancy/Theurgy (pool output only, never a Fairness term); Peace Conference
 proposals are obligatory/optional stacks; every battle emits a per-round Battle
-Report; occupation and siege expose derived readouts for the UI (no rule change).
+Report; occupation and siege expose derived readouts for the UI (confirmed, no rule
+change). **Later 2026-11-10: Troop Training is replaced by Show of Force, a Military
+Leverage modifier derived from border deployment (no longer a commitment).**
 Items tagged **(proposed)** await the designer's OK. See Status.
 
 ## Data Structures
@@ -261,14 +263,17 @@ combat, Supply, Siege and Occupation machinery.
   (Countries Formation via Nations' Statehood Pathway).
 - **Settled 2026-11-02**: Retinue Right sizing, rebel Peace Conference and civil-war martial law (see Internal armed conflict — sizing and resolution, below).
 
-### Troop Training (settled 2026-11-02)
+### Show of Force (formerly Troop Training — 2026-11-10)
+Not a diplomatic action and no longer a commitment: it is **derived from deployment**. There is no separate order — positioning armies is the action.
 ```
-Training(army, target_Country_or_Bloc) = decaying_modifier → Diplomacy's
+show_of_force(this Country, target Country/Bloc) = decaying modifier → Diplomacy's
   Military Leverage category, keyed (this Country, target Country/Bloc)
+  fed while: own armies are stationed in border Regions adjacent to the target
+             AND no war is ongoing between the two
 ```
-- A **commitment** (persistent claim, renewed or released), **public** by default visibility, distinct from the existing Army Tactics — the army must be positioned in a border Region adjacent to the target Country/Bloc.
-- Magnitude scales with troop count/efficiency committed.
-- **Inherits Garrison/Hold's supply draw** while training (settled; no separate supply rule).
+- Magnitude scales with the troop count/efficiency stationed there; the modifier is cached and decays after the armies withdraw or a war begins.
+- **Public** by default (derived from observable positions, under the visibility stamp).
+- **Inherits Garrison/Hold's supply draw** while stationed (no separate supply rule).
 - Recomputed at Diplomacy negotiation time against the target's own Military Leverage plus its Alliance-tier partners' (bloc-pair scoping, `diplomacy__kb.md`).
 - Stacks additively with War Exhaustion and other active-war Military Leverage penalties — never replaces them.
 - Decay rate, magnitude/efficiency curve, troop-count weighting: numbers pass.
@@ -286,7 +291,7 @@ receive an `occupation` modifier:
 ### Occupation garrison (soft, substitutable — settled 2026-11-02)
 There is no fixed garrison number and no hard requirement. An occupation garrison is a recurring claim like any other, and **troops and Control are interchangeable ways to hold a province**. Sizing is derived from the occupied cells' population and grievance. An unmet garrison raises martial-law Control cost and lowers the uprising-trigger threshold.
 
-### Occupation and siege readouts (2026-11-10, proposed — no rule change)
+### Occupation and siege readouts (2026-11-10, confirmed — no rule change)
 The designer found no way to see who controls a province during a war or how a siege is going. These are **derived readouts** over existing state (nothing new is stored), exposed for the UI (`ui__kb.md`):
 ```
 control_state(province) = { owner, controller (Country or rebelling bloc), contested: bool }
@@ -384,15 +389,15 @@ Stack(side) = list of Proposals defined by that side; no size limit
 15. War Exhaustion is a derived per-cell readout of war-attributable grievance; the general Question trigger can spawn a peace Question regardless of original stance/Veto status.
 16. Peace conference weighs continuation-capability; WarScore is context only.
 17. Gunpowder bonus is conditional on live ammunition Supply.
-18. Troop Training only accrues its Military Leverage modifier when the training army is positioned in a border Region adjacent to the specific target Country/Bloc.
-19. Troop Training's Leverage modifier stacks with War Exhaustion / active-war Military Leverage penalties, never substitutes for them.
+18. Show of Force only accrues its Military Leverage modifier while armies are stationed in a border Region adjacent to the specific target Country/Bloc and no war is ongoing between them (2026-11-10; formerly Troop Training).
+19. Show of Force's Leverage modifier stacks with War Exhaustion / active-war Military Leverage penalties, never substitutes for them.
 20. Fielding and Supply acquisition: market purchase (Ledger Wealth) by default; a wartime Requisition Duty is an override.
 21. War harm is attributed to the enemy by default; a cell blames its own Government only when its causal role is very obviously incompetent.
 22. Internal armed conflict is resolved by War; a side need not be a Country.
 23. Sea lanes carry transport and supply only in alpha; no fleet combat, no naval pool.
 24. Occupation garrison is soft and substitutable with Control; sizing is derived from the occupied cells' population and grievance; civil-war martial law reuses occupation's Control cost.
 25. Retinue is a scalar Right; internal conflicts resolve through the same Peace Conference with Rights/Duties-vocabulary terms.
-26. Army Tactics are dials; Troop Training is a public commitment inheriting Garrison/Hold's supply draw.
+26. Army Tactics are dials; Show of Force is derived from border deployment (not an order) and inherits Garrison/Hold's supply draw.
 27. Veto-to-declare and Veto-to-continue share one stance function; the difference emerges from live state (e.g. War Exhaustion), not a separate curve.
 28. Movement is blocked across an edge between two Mountain hexes unless it is a `mountain_pass` (see World Map Rule 15); supply routes obey the same edge rule.
 29. A unit is `levy` or `standing`; `standing_share(cell)` is set by a political decision (Government order or cell petition), covered cells comply or resist with the actions available to them, and standing units stay origin-traced (2026-11-10).
@@ -407,7 +412,7 @@ Stack(side) = list of Proposals defined by that side; no size limit
 - **World Map** — province-edge graph is Supply's pathing structure (distinct from trade-zone edges); `infrastructure_level` feeds `edge_quality` and Supply decay; terrain/forestation feed Combat Envelope and Fortress typing.
 - **Internal Politics** — Fielding/Killed-casualties trace to `origin_cell` at `(Nation, Estate, Region)`; Occupation's Actor-cell consequences are specified once, in this file (Occupation section); Internal Politics only reads them. Requisition, benefits and attribution rules apply to wartime acquisition and war harm; a faction's armed rung is handed to War (Internal Armed Conflict). The Levy Duty, Petition Right and the Government spending dial (standing-army subsidy) are defined there; the standing-army dial reads them (2026-11-10).
 - **Administration** — Occupation's `martial law` Control cost and multi-origin-cell stacking Coordination cost read Administration's pools; War Exhaustion is derived from war-attributable grievance (Internal Politics), not a separate writeback.
-- **Diplomacy** — military access agreements extend valid Supply-source territory; unilateral Annexation is a forced-annexation act (Sovereignty-tier CB plus per-observer overreach, `diplomacy__kb.md`); peace ratification's Occupation removal resolves at Diplomacy step 7; Troop Training feeds Diplomacy's Military Leverage category; the Peace Conference reuses Diplomacy's Negotiation Session (2026-11-10).
+- **Diplomacy** — military access agreements extend valid Supply-source territory; unilateral Annexation is a forced-annexation act (Sovereignty-tier CB plus per-observer overreach, `diplomacy__kb.md`); peace ratification's Occupation removal resolves at Diplomacy step 7; Show of Force (formerly Troop Training) feeds Diplomacy's Military Leverage category; the Peace Conference reuses Diplomacy's Negotiation Session; Declare War / Propose Peace are War's actions even though the catalogue lists them (2026-11-10).
 - **Nations** — sympathy data determines occupied-population Grievance vs. liberator bonus; Statehood Pathway is the secession end state of internal armed conflict.
 - **UI** — Army card, Military tab, Region/Actor-cell mobilization controls, standing-share dial, Peace Conference stack editor, occupation/siege display and the Battle Report message render this file's state and readouts (`ui__kb.md`, 2026-11-10).
 - **Characters** — deferred hook for named-commander bonuses and captured-personnel ransom. Beyond alpha (2026-11-01).
@@ -416,9 +421,10 @@ Stack(side) = list of Proposals defined by that side; no size limit
 - Roster, Technology Tier, Fielding, Garrison, Combat Envelope (incl. Armor/traits/modifiers), Army Position, Supply, Fortress/Blockade typing, Siege state, Battle resolution, Army Tactics, Occupation, War Score, War Exhaustion, Peace Conference: **settled**.
 - All numeric coefficients (envelope values, terrain multipliers, decay/upkeep rates, thresholds, blockade multiplier, siege progress rate): **open, deferred pending pacing pass**.
 - Citizens/Clergy combat-modifier flavors; ransom/exchange mechanic (post-alpha, Characters): **open, unresolved**. Naval fleet combat: **post-alpha**; alpha naval scope, garrison sizing and martial-law garrison softness: **settled 2026-11-02**.
-- **Troop Training**: **settled 2026-11-02** as a commitment; numeric decay/magnitude open (numbers pass).
+- **Troop Training**: settled 2026-11-02 as a commitment; **superseded 2026-11-10 by Show of Force** (derived from border deployment; see below). Numeric decay/magnitude open (numbers pass).
 - **2026-11-01 overhaul — settled**: per-cell War Score; derived War Exhaustion; market-purchase default + Requisition override for Fielding/Supply; internal armed conflict ownership; war harm attributed to the enemy by default; diversionary war handled by attribution (no special rally rule).
 - **2026-11-01 — open** (resolved 2026-11-02 except numbers): Retinue Right sizing; rebel Peace Conference analogue; civil-war martial-law cost; Vanguard requisition Opinion hits; numeric coefficients (pacing).
-- **2026-11-02 — settled**: alpha naval scope; soft substitutable garrison; rebel Peace Conference reuse; scalar Retinue Right; civil-war martial law; Troop Training commitment; Army Tactics as dials; Vanguard requisition hits; one stance function for Veto-to-declare/-continue; war-declaration timing (validated and logged step 2, diplomatic effects step 7, hostilities from next turn's step 4).
+- **2026-11-02 — settled**: alpha naval scope; soft substitutable garrison; rebel Peace Conference reuse; scalar Retinue Right; civil-war martial law; Army Tactics as dials; Vanguard requisition hits; one stance function for Veto-to-declare/-continue; war-declaration timing (validated and logged step 2, diplomatic effects step 7, hostilities from next turn's step 4). (Troop Training commitment: superseded 2026-11-10.)
 - **2026-11-03 — settled**: Annexation is a forced-annexation act (Diplomacy CB + overreach); peace-ratification removal of Occupation resolves at Diplomacy step 7; fielding goods come from provincial warehouses; Occupation's consequences are specified only here.
-- **2026-11-10 — designer input (settled as answered)**: levy vs. standing forces with a per-cell `standing_share` dial set as a political decision (Government order or cell petition; cells comply or resist); upkeep paid by the cells, Government may compensate; scoped Mobilization (cell / Region / Empire by each cell's own Levy obligation); Retinue scalar boosts contribution to military pools except Artillery and Meteomancy/Theurgy, pool output only (not Fairness); Peace Conference proposal stacks (obligatory = accept/refuse, optional = individually; no size cap, bounded by capability, unless defeat is ultimate); Battle Report with per-round casualties, tactic matchup highlighting and fog-of-war handling for the enemy side (exact in alpha). Vanguard/centre/rearguard: **no change** — the existing detachment model stands as written. **Proposed (awaiting OK)**: the occupation and siege readouts (no rule change); the Peace Conference reusing the Negotiation Session. **Open**: `k` and `standing_upkeep_mult` values (numbers pass); whether Siege Corps should stay in the Retinue boost list (taken literally from "except artillery/meteomancy"); how a cell's resistance to a `standing_share` order is priced beyond the existing defiance class.
+- **2026-11-10 — designer input (settled as answered)**: levy vs. standing forces with a per-cell `standing_share` dial set as a political decision (Government order or cell petition; cells comply or resist); upkeep paid by the cells, Government may compensate; scoped Mobilization (cell / Region / Empire by each cell's own Levy obligation); Retinue scalar boosts contribution to military pools except Artillery and Meteomancy/Theurgy, pool output only (not Fairness); Peace Conference proposal stacks (obligatory = accept/refuse, optional = individually; no size cap, bounded by capability, unless defeat is ultimate); Battle Report with per-round casualties, tactic matchup highlighting and fog-of-war handling for the enemy side (exact in alpha). Vanguard/centre/rearguard: **no change** — the existing detachment model stands as written. **Proposed (awaiting OK)**: the Peace Conference reusing the Negotiation Session. **Open**: `k` and `standing_upkeep_mult` values (numbers pass); whether Siege Corps should stay in the Retinue boost list (taken literally from "except artillery/meteomancy"); how a cell's resistance to a `standing_share` order is priced beyond the existing defiance class.
+- **2026-11-10 (later) — designer input (settled as answered)**: the occupation and siege readouts are **confirmed** (read-only; no occupation rule change); **Show of Force replaces Troop Training** — not a diplomatic action, no commitment, derived from armies stationed in border Regions with no war ongoing between the two Countries, feeding the Military Leverage category as a decaying modifier. Other kb files and the UI may still say "Troop Training" (see `ui__kb.md`'s Military tab and cross-references); they read "Show of Force" from now on.
