@@ -109,16 +109,16 @@ saturation toward core strength. Cataclysm hazard pattern is reserved
 - **Occupation hatch** (2026-11-10): a province controlled by a Country other than its owner during a war is drawn with **diagonal cross-hatching in the controller's colour** over the owner's fill. It is a lens-independent overlay, like borders **(proposed: all lenses)**; it reads War's `control_state`.
 
 ### Map Symbols and Army Markers (2026-11-10)
-Province markers are drawn from derived readouts, never stored on the map:
+Province markers are drawn from readouts, never stored by the UI:
 ```
 settlement class  fortress (fortification_level > 0, War)  -> triangle
                   city without a fortress                  -> square
-                  Region capital                           -> bold circle
+                  Region capital (World Map capital_province) -> bold circle
 army marker       circle in the owner's colour + an arrow pointing in the direction
                   the army moved into during the previous turn
 ```
 - A **fortified Region capital** is drawn as the bold circle with a small triangle inside **(proposed)**. Fortress icons on a chokepoint **edge** keep their edge placement (Edge Rendering, unchanged).
-- **Region capital** is a derived readout: the Region's most populous province containing a settlement (re-derived with the Region pass; ties by lower grid index) **(proposed derivation — World Map stores no Region capital)**. The Country capital keeps its Political-lens marker.
+- **Region capital** is the Region's stored `capital_province` (World Map, 2026-11-10): an administrative setting chosen by the player or AI when the Region is defined or redefined. The UI only draws it; the Region card and the reorganization draft expose the setting. The Country capital keeps its Political-lens marker.
 - The army arrow is the side the army last advanced through (`route_side`); an army that did not move last turn shows the circle with no arrow **(proposed)**. A stack count badge appears when several armies share a province.
 - Symbols obey the threshold-gated icon density rule (Rules 15, 22) and are drawn in every lens above that threshold.
 
@@ -129,8 +129,8 @@ left click target province → a move order is queued to the Orders tray with a 
 ```
 This replaces the earlier movement control. An adjacent target is a single move; a non-adjacent target is a multi-turn route planned along the edge graph **(proposed)**. The preview shows each edge's `edge_quality`, blocked edges (non-pass Mountain edges, Sea and lake provinces, hard fortresses), the expected progress per turn from `army_speed` and the Supply state along the route. Clicking another province replaces the queued order; clicking empty map or pressing Esc deselects. Army Tactics, stances and the Vanguard/Center/Rearguard depths remain dials on the Army card (War, unchanged).
 
-### Occupation and Siege Display (2026-11-10, proposed model)
-Derived from War's `control_state`, `siege_readout` and `occupation_readout` (`war__kb.md`) — no new state.
+### Occupation and Siege Display (2026-11-10, confirmed)
+Derived from War's `control_state`, `siege_readout` and `occupation_readout` (`war__kb.md`) — no new state; read-only, no occupation rule changes.
 - **Map**: the occupation hatch above; a **siege ring** around the fortress triangle showing `siege_progress` against the capture threshold; the Military lens adds supply-cut marks.
 - **Province card while besieged**: siege progress vs. capture threshold, besieger strength, garrison vs. maximum, both sides' Supply, an Assault action with its expected effect. Each figure links to what drives it.
 - **Province card once occupied**: controller, occupation garrison required (derived) vs. present, martial-law Control cost, and per occupied cell Grievance: Occupation or liberator sympathy and the uprising threshold. A **two-ways-to-hold** line shows the garrison requirement met by troops or by Control (interchangeable, War).
@@ -239,7 +239,7 @@ gating panel = covering Veto/Council cells, their stance estimate (self-interest
 ```
 Rights/Duties config, tax law, Requisition place/lift, declare war, treaty,
 Mint, Borrow/Default, audits, direct resettlement and expulsion, Region
-reorganization, Government sell/grant of goods, and a Government standing-share order are all drafts. A **reform
+reorganization (naming each resulting Region's capital province), Government sell/grant of goods, and a Government standing-share order are all drafts. A **reform
 draft** bundles many Rights/Duties changes and previews gating, entitlement-
 loss estimates and Control cost to enforce. Each queued draft shows its default
 Decision Log visibility (public / covert).
@@ -314,7 +314,7 @@ Money: `price_level`, fineness per issuer, Mint draft.
 
 ### Docked Detail Panel (live from owning module)
 - **Province card** — terrain, population, habitability, owner, garrison, warehouse, both infrastructure stocks, linked cells; controller and siege/occupation display when contested (above).
-- **Region card** — administrative Region summary: cells, hottest child, Observation committed, Control received; Mobilize Region / Mobilize Empire controls.
+- **Region card** — administrative Region summary: cells, hottest child, Observation committed, Control received; the Region's capital province (administrative setting); Mobilize Region / Mobilize Empire controls.
 - **Army card** — composition, kind (levy or standing), cohesion, supply%, position/depth, stance, last-turn direction.
 - **Actor-cell card** — bullet bars, compliance breakdown, **Control/Observation Allocation affecting the cell with each contributing filter**, Rights/Duties, Why? entry points, escalation chips, Mobilize this cell, its standing share.
 - **Country card** — own or foreign; foreign data under visibility stamps.
@@ -350,7 +350,7 @@ copy. Visibility-only, no gameplay effect. Free-text/raw-JSON value entry in the
 19. The Scope is always visible on the map (highlight); the scope tree sits under the map.
 20. Turn results are a non-modal Message Feed; attention is shown as red badges on the owning tabs.
 21. The Laws UI offers only ruleset-declared choices; free-text/JSON values exist only in Debug Mode.
-22. Settlement and army markers are derived readouts: fortress = triangle, city without fortress = square, Region capital = bold circle, army = circle with an arrow for the previous turn's direction; density is threshold-gated (2026-11-10).
+22. Settlement and army markers are readouts: fortress = triangle, city without fortress = square, Region capital (its stored `capital_province`) = bold circle, army = circle with an arrow for the previous turn's direction; density is threshold-gated (2026-11-10).
 23. Armies are ordered by left-clicking the army, then left-clicking the target province; the order is queued with a route preview (2026-11-10).
 24. A province held by a Country that does not own it is cross-hatched in the controller's colour; occupation and siege state is shown from War's derived readouts, never stored in the UI (2026-11-10).
 25. A battle is one Battle Report message; tactic matchups are highlighted green (proper) and red (bad counter) with a text/icon label, and the enemy side follows the visibility stamp (2026-11-10).
@@ -366,7 +366,7 @@ Open/stage Event Draft · Queue to Orders tray · Release/renew in Commitments
 ledger · Edit Peace Conference stack / Withdraw from negotiation · End Turn · Run N turns (slider 1–100) · Open Message Feed / message (incl. Battle Report) · Expand a bar's breakdown · Toggle Debug Mode · View Raw.
 
 ## Cross-references
-- **World Map** — sole source of terrain/edge/Region/ownership ground truth, administrative Region partition and the grid substrate; both infrastructure stocks are rendered as separate lenses; sea and lake provinces render as water (2026-11-10).
+- **World Map** — sole source of terrain/edge/Region/ownership ground truth, administrative Region partition (including each Region's stored capital province) and the grid substrate; both infrastructure stocks are rendered as separate lenses; sea and lake provinces render as water (2026-11-10).
 - **Internal Politics** — Questions/Estates/Nations/Laws tabs read grievance, compliance, Rights/Duties, scope ladder and Precedence flag, Foreign Standing, Preference vectors, Decision Log live; Rights/Duties edits are Event Drafts. The Veto factors panel reads the stance function and the acceptance inputs (2026-11-10).
 - **Administration** — Allocation Dial semantics (Control/Observation), slate as attention, Emergency Powers, upkeep degradation; the assembly queue (cap, agenda shares, Question durations) is shown on the Questions tab (2026-11-10).
 - **Economics** — Economy workspace reads pools, goods, prices, zones, Ledger inputs, credit, money; flow view follows the resolution order; Trade Zones lens follows Economics Rule 7 (derived membership).
@@ -381,6 +381,7 @@ ledger · Edit Peace Conference stack / Withdraw from negotiation · End Turn ·
 - **2026-11-03 design pass — settled shape**: shell + five workspaces; global Scope with reorderable slice order, treemap and hottest-child marker; Lens system with ten domains (eleven after the 2026-11-09 Trade Zones split) and map/table/detail renderings; Visibility Stamp; Threshold Meter; Event Draft; Orders tray, Commitments ledger and Turn Report (replaced by the Message Feed 2026-11-09); analysis widgets; workspace specs; UI honesty rules (Rules 9-13).
 - **Allocation Dial — settled 2026-11-03** (written into `administration__kb.md`, `actions__kb.md`, `internal_politics__kb.md`, `economics__kb.md`): floor + priority + surplus ratio (+ cap, sink); per-cell default with aggregate filters and player-named groups as bulk shorthand; surplus auto-fill free; Government spending dial is standing with a reserve floor and sink = keep; End Turn Preflight with a projected-Ledger-shortfall warning; garrison priority and other scalar dials stay plain dials.
 - **2026-11-09 — designer input (settled as worded)**: Apparatus before Polity; Nations tab; Trade Zones lens split from Economic; Borders rule; Regions rendering; Scope highlight; Back/Forward scope history; treemap below the map; Message Feed replacing the Turn Report; attention badges; Laws columns on the scope ladder, predefined value choices, narrative text; bar breakdown dropdowns (5 + 5 contributions); 1–100 run-turns slider; Rules 18-21. **Proposed (awaiting OK)**: green/orange pending-law semantics, early-stop on multi-turn runs, "same as the right/duty scope group has" reading.
-- **2026-11-10 — designer input (settled as worded)**: click army then click target province for movement; diagonal cross-hatch in the controller's colour for occupied provinces; fortress = triangle, city without fortress = square, Region capital = bold circle; army = circle with an arrow for the previous turn's direction; Battle Report message with per-round tactics (colour-highlighted proper / bad counters) and casualties for both sides, enemy side behind fog-of-war rules (exact in alpha); mobilization main control per Region plus an Empire button; Veto factors panel; Rules 22-28. **Proposed (awaiting OK)**: the occupation/siege display model; hatch in all lenses; the derived Region-capital rule (World Map stores none — say if capitals should be stored and player-chosen); fortified-capital drawing; no arrow for a stationary army; multi-turn route planning for a non-adjacent target; the Negotiation meter wording and the Withdraw tooltip. **Open**: army arrow vs. stack-count layout; which lenses draw symbols below the density threshold.
+- **2026-11-10 — designer input (settled as worded)**: click army then click target province for movement; diagonal cross-hatch in the controller's colour for occupied provinces; fortress = triangle, city without fortress = square, Region capital = bold circle; army = circle with an arrow for the previous turn's direction; Battle Report message with per-round tactics (colour-highlighted proper / bad counters) and casualties for both sides, enemy side behind fog-of-war rules (exact in alpha); mobilization main control per Region plus an Empire button; Veto factors panel; Rules 22-28. **Proposed (awaiting OK)**: hatch in all lenses; fortified-capital drawing; no arrow for a stationary army; multi-turn route planning for a non-adjacent target; the Negotiation meter wording and the Withdraw tooltip. **Open**: army arrow vs. stack-count layout; which lenses draw symbols below the density threshold.
+- **2026-11-10 (later) — designer input (settled as worded)**: the Region capital drawn as the bold circle is the Region's **stored** `capital_province`, set by the player or AI in the Region's administrative settings when the Region is defined or redefined (replaces the derived "most populous province" proposal; the Region card and the reorganization draft expose it); the **occupation and siege display model is confirmed** (read-only, no occupation rule change).
 - **Open (kb)**: a "total-split" mode for aggregate filters (a fixed total divided across covered cells) is not adopted — per-cell only; shortfall within one entry is pro rata across its cells; group is allocation-local (not part of the shared Rights/Duties scope syntax).
 - **Open (UI)**: wireframes/layout, icon set, colour palette, forestation stipple technique, significance threshold values, treemap default measures, table column sets per lens, End Turn confirmation behaviour with empty Orders tray; green/orange semantics; early-stop on multi-turn runs; whether the tech gate hides Estate/Empire columns or greys them; `narrative` content for each Right/Duty still to be written.
