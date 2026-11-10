@@ -10,6 +10,7 @@ Rendering of terrain/edges/habitability/resources/Debug Mode is carried over
 unchanged. Exact wireframes, icon set, palette and numeric thresholds remain
 open. The **Allocation Dial** semantics are confirmed (2026-11-03) and written into `administration__kb.md`, `actions__kb.md`, `internal_politics__kb.md` and `economics__kb.md`.
 **2026-11-09 designer input** (see Status): Apparatus before Polity, Nations tab, Regions rendering, scope highlight, scope tree below the map, Message Feed and attention badges, Laws tab with predefined values / narrative text / pending lighting, Back/Forward scope history, bar breakdowns, 1–100 run-turns slider, Trade Zones lens.
+**2026-11-10 designer input** (see Status): click-army-then-click-province movement, occupation hatch and occupation/siege display, map symbols (fortress triangle, city square, Region-capital circle) and army circle-with-arrow markers, Battle Report message, scoped mobilization controls and standing-share dial, Peace Conference stack editor and negotiation meter, Veto factors panel.
 
 ## Data Structures
 
@@ -25,7 +26,7 @@ TopBar = { turn/phase, pool meters (Control, Coordination, Observation: produced
   event drafts (planning is simultaneous; Actions pipeline). End Turn submits.
 - **CommitmentsLedger** (drawer) lists every standing commitment with the pool
   it draws on; release or renew in place.
-- **MessageFeed** (2026-11-09; replaces the blocking Turn Report popup) is a dockable, **non-modal** panel; controls are never blocked. **Every event is its own message** with a kind tag: random event / shock, order executed (the player's own orders), order rejected or refused (with holders), Question considered (a lasting multi-turn consideration is one message updated each turn), entitlement loss, war/treaty events, Decision Log entries visible to the player. Messages follow the fixed pipeline order within a turn (shocks → gating → Economics → War → Internal Politics → Administration → Diplomacy → Region pass) and link to their source (province, cell, order).
+- **MessageFeed** (2026-11-09; replaces the blocking Turn Report popup) is a dockable, **non-modal** panel; controls are never blocked. **Every event is its own message** with a kind tag: random event / shock, order executed (the player's own orders), order rejected or refused (with holders), Question considered (a lasting multi-turn consideration is one message updated each turn), entitlement loss, war/treaty events (a battle is one **Battle Report** message, below), Decision Log entries visible to the player. Messages follow the fixed pipeline order within a turn (shocks → gating → Economics → War → Internal Politics → Administration → Diplomacy → Region pass) and link to their source (province, cell, order).
 - **Attention badges** (2026-11-09): a red badge with a count on each workspace tab (and sub-tab) for **new issues requiring the player's attention** — e.g. a new Question on Polity → `Polity (1)`; unmet upkeep on Apparatus; Ledger shortfall on Economy; an incoming proposal or war declaration on World. A badge counts items not yet opened; opening the item (or its message) clears it. Read markers are UI-local state; the badge count is derived from live readouts and the feed — nothing is stored in the engine.
 - **RunTurns** (2026-11-09): the multi-turn button has a **slider 1–100** (default 5). Running stops early at the first turn that produces a message requiring attention (new existential Question, war declared on you, refused order) and says so. **(proposed early-stop)**
 - **End Turn Preflight**: pressing End Turn first shows advisory warnings from
@@ -85,7 +86,7 @@ A lens **never invents data**: a Region- or cell-resolution lens is drawn at
 that resolution, not smoothed to provinces; aggregation follows Scope rules.
 | Domain | Metrics (parameter) | Native resolution |
 |---|---|---|
-| Terrain (default) | terrain_type (10 types incl. Sea), forestation, habitability, resources (threshold-gated icons) | province |
+| Terrain (default) | terrain_type (10 types incl. Sea — lakes are Sea-type water provinces), forestation, habitability, resources (threshold-gated icons) | province |
 | Political | owning Country, Dependency/Alliance lines, capitals | province / Country |
 | Population | population, density vs `max_population_density`, urbanization, sanitation, growth/migration pull | province |
 | Cultural | plurality Nation, core strength, titular status, Nation presence share | province |
@@ -105,9 +106,53 @@ concealment overlay; Trade Zones weights edges by flow; Cultural uses opacity/
 saturation toward core strength. Cataclysm hazard pattern is reserved
 (post-alpha).
 - **Regions rendering** (map workspace mode `regions`): the Country under the cursor/selection is drawn with its Regions separated and tinted individually; **every other Country is drawn in a pale tint of its own colour with no Region separation**.
+- **Occupation hatch** (2026-11-10): a province controlled by a Country other than its owner during a war is drawn with **diagonal cross-hatching in the controller's colour** over the owner's fill. It is a lens-independent overlay, like borders **(proposed: all lenses)**; it reads War's `control_state`.
+
+### Map Symbols and Army Markers (2026-11-10)
+Province markers are drawn from derived readouts, never stored on the map:
+```
+settlement class  fortress (fortification_level > 0, War)  -> triangle
+                  city without a fortress                  -> square
+                  Region capital                           -> bold circle
+army marker       circle in the owner's colour + an arrow pointing in the direction
+                  the army moved into during the previous turn
+```
+- A **fortified Region capital** is drawn as the bold circle with a small triangle inside **(proposed)**. Fortress icons on a chokepoint **edge** keep their edge placement (Edge Rendering, unchanged).
+- **Region capital** is a derived readout: the Region's most populous province containing a settlement (re-derived with the Region pass; ties by lower grid index) **(proposed derivation — World Map stores no Region capital)**. The Country capital keeps its Political-lens marker.
+- The army arrow is the side the army last advanced through (`route_side`); an army that did not move last turn shows the circle with no arrow **(proposed)**. A stack count badge appears when several armies share a province.
+- Symbols obey the threshold-gated icon density rule (Rules 15, 22) and are drawn in every lens above that threshold.
+
+### Army Orders (click-to-move — 2026-11-10)
+```
+left click army → army selected: Army card opens, reachable provinces highlight
+left click target province → a move order is queued to the Orders tray with a route preview
+```
+This replaces the earlier movement control. An adjacent target is a single move; a non-adjacent target is a multi-turn route planned along the edge graph **(proposed)**. The preview shows each edge's `edge_quality`, blocked edges (non-pass Mountain edges, Sea and lake provinces, hard fortresses), the expected progress per turn from `army_speed` and the Supply state along the route. Clicking another province replaces the queued order; clicking empty map or pressing Esc deselects. Army Tactics, stances and the Vanguard/Center/Rearguard depths remain dials on the Army card (War, unchanged).
+
+### Occupation and Siege Display (2026-11-10, proposed model)
+Derived from War's `control_state`, `siege_readout` and `occupation_readout` (`war__kb.md`) — no new state.
+- **Map**: the occupation hatch above; a **siege ring** around the fortress triangle showing `siege_progress` against the capture threshold; the Military lens adds supply-cut marks.
+- **Province card while besieged**: siege progress vs. capture threshold, besieger strength, garrison vs. maximum, both sides' Supply, an Assault action with its expected effect. Each figure links to what drives it.
+- **Province card once occupied**: controller, occupation garrison required (derived) vs. present, martial-law Control cost, and per occupied cell Grievance: Occupation or liberator sympathy and the uprising threshold. A **two-ways-to-hold** line shows the garrison requirement met by troops or by Control (interchangeable, War).
+- Visibility follows the stamp rule: foreign sieges show only what Observation/Espionage reveals.
+
+### Battle Report message (2026-11-10)
+Each battle is **one Message Feed message** rendered from War's `BattleReport` (`war__kb.md`):
+- a header (province, turn, sides) and the totals for both sides;
+- one row per round: step, the stance/tactic each side used, and casualties for both sides **per round**;
+- **colour highlighting with a text/icon label** (never colour alone): **green "proper tactic"** for a stance that countered the enemy's choice, **red "bad counter"** for one the enemy's choice punished, neutral otherwise;
+- the enemy side's casualties (total and per round) carry the visibility stamp — **exact in alpha**, `estimated` once fog-of-war exists.
+
+### Mobilization and Standing Army controls (2026-11-10)
+- **Region card**: the primary control is **"Mobilize Region"** (the main tooltip); beside it a separate **"Mobilize Empire"** button. A preview lists the covered cells and what each will contribute by its own Levy obligation × `involuntary_compliance`. **Demobilize** is the counterpart on each.
+- **Actor-cell card**: **Mobilize this cell** for a single cell (War, `Mobilize(scope)`).
+- **Military tab**: the **standing-share dial** per cell with bulk scope filters. Changing it is a political decision — a Government order goes through an Event Draft with the gating panel; a **cell petition** appears as a Question. The widget shows who pays the upkeep, the Government's compensation (spending dial) and the covered cells' compliance state.
+
+### Veto Factors Panel (2026-11-10)
+Part of the Event Draft **gating panel**. For each covering Veto/Council holder it lists, next to the stance estimate (self-interest × Preference alignment), the **factors that could keep it from using the Veto in this vote**: the acceptance factors (crisis severity, its own exposure, burden share, visible alternatives), concessions or benefits the Government could add (compensation, a Right granted, which offset an entitlement loss), its Opinion-toward-Government and the Control cost and entitlement loss it would face if the act is forced through; the factors pushing the other way are listed too. Each factor links to its source (Why? entry or stock); factors the player cannot observe show `unknown` under the visibility stamp, never a guess.
 
 ### Grid (rendering)
-Pointy-top, odd-r offset hex, 25×20 at alpha; **every hex is a province** (Sea hexes included, 2026-11-09 — 500 provinces), sourced from
+Pointy-top, odd-r offset hex, 25×20 at alpha; **every hex is a province** (Sea and lake hexes included, 2026-11-09/10 — 500 provinces), sourced from
 World Map's 157×114 @16px/cell raw terrain grid by majority-vote/centroid
 sampling. World Map owns the substrate; this is its render.
 
@@ -189,12 +234,12 @@ Target scale is shown ("× Region population").
 ```
 draft → preview (pure; observation-bounded) → gating panel → commit (irreversible)
 gating panel = covering Veto/Council cells, their stance estimate (self-interest ×
-               Preference alignment), and the "force through Control" option with
-               an entitlement-loss warning on the holder cells
+               Preference alignment), the Veto factors panel, and the "force through
+               Control" option with an entitlement-loss warning on the holder cells
 ```
 Rights/Duties config, tax law, Requisition place/lift, declare war, treaty,
 Mint, Borrow/Default, audits, direct resettlement and expulsion, Region
-reorganization, and Government sell/grant of goods are all drafts. A **reform
+reorganization, Government sell/grant of goods, and a Government standing-share order are all drafts. A **reform
 draft** bundles many Rights/Duties changes and previews gating, entitlement-
 loss estimates and Control cost to enforce. Each queued draft shows its default
 Decision Log visibility (public / covert).
@@ -216,6 +261,7 @@ Decision Log visibility (public / covert).
   upkeep shortfall), for the current scope.
 - **Escalation chip**: per (cell, need), the banded rung with momentum and
   enter/exit thresholds; marked "acts next turn" where the one-turn lag applies.
+- **Negotiation meter** (2026-11-10): during a diplomatic negotiation or a Peace Conference, a meter shows the **other side's satisfaction** with the current terms and a marker for its **walk-out threshold** (Diplomacy's Negotiation Session). Exact in alpha; stamped `estimated` once fog-of-war exists. A **Withdraw** button carries a tooltip warning that withdrawing ends the negotiation, that a new one must start from scratch, and, when the withdrawing Country is the stronger party, that it leaves a decaying Reputational Leverage mark.
 
 ### Workspace Specs
 **Polity**
@@ -263,14 +309,14 @@ Money: `price_level`, fineness per issuer, Mint draft.
 - *Mirror*: your Country as others see it — observed Portrait, Reputational
   stacks held toward you, CBs against you (incl. structural: militaristic
   disposition, nationalism claims).
-- *Military*: Army roster/fielding queue, Supply, garrison priority (scalar dial per Region, War), Tactics/stance dials, Troop Training commitment, War Score
-  ledger by cell, Exhaustion readout, Peace Conference negotiation.
+- *Military*: Army roster/fielding queue (units marked levy or standing), Mobilization controls, the standing-share dial, Supply, garrison priority (scalar dial per Region, War), Tactics/stance dials, Troop Training commitment, War Score
+  ledger by cell, Exhaustion readout, Peace Conference negotiation — a **stack editor** per side (each proposal marked obligatory or optional; obligatory proposals only accepted/refused, optional ones accepted or refused individually; no size limit) with the negotiation meter and Withdraw.
 
 ### Docked Detail Panel (live from owning module)
-- **Province card** — terrain, population, habitability, owner, garrison, warehouse, both infrastructure stocks, linked cells.
-- **Region card** — administrative Region summary: cells, hottest child, Observation committed, Control received.
-- **Army card** — composition, cohesion, supply%, position/depth, stance.
-- **Actor-cell card** — bullet bars, compliance breakdown, **Control/Observation Allocation affecting the cell with each contributing filter**, Rights/Duties, Why? entry points, escalation chips.
+- **Province card** — terrain, population, habitability, owner, garrison, warehouse, both infrastructure stocks, linked cells; controller and siege/occupation display when contested (above).
+- **Region card** — administrative Region summary: cells, hottest child, Observation committed, Control received; Mobilize Region / Mobilize Empire controls.
+- **Army card** — composition, kind (levy or standing), cohesion, supply%, position/depth, stance, last-turn direction.
+- **Actor-cell card** — bullet bars, compliance breakdown, **Control/Observation Allocation affecting the cell with each contributing filter**, Rights/Duties, Why? entry points, escalation chips, Mobilize this cell, its standing share.
 - **Country card** — own or foreign; foreign data under visibility stamps.
 
 ### Debug Mode
@@ -298,27 +344,34 @@ copy. Visibility-only, no gameplay effect. Free-text/raw-JSON value entry in the
 13. Skin/skeleton modules (Administration, Diplomacy, War's Peace Conference) keep distinct vocabularies; the underlying shared mechanic is never named or explained in UI.
 14. Any screen/panel exceeding viewport height scrolls vertically; the Map canvas alone also scrolls/pans horizontally.
 15. Edges render identically across lenses; icon/overlay density is threshold-gated.
-16. Debug Mode is a single global toggle; View Raw shows the exact object already rendering.
+16. Debug Mode is a single global toggle; View Raw shows the exact object already rendering it.
 17. End Turn Preflight is advisory and derived from `preview`; it never blocks, marks estimates, and excludes shocks and unobserved state.
 18. Borders: Country bold + Region thin, in every lens; foreign Countries are pale and un-subdivided in the Regions rendering.
 19. The Scope is always visible on the map (highlight); the scope tree sits under the map.
 20. Turn results are a non-modal Message Feed; attention is shown as red badges on the owning tabs.
 21. The Laws UI offers only ruleset-declared choices; free-text/JSON values exist only in Debug Mode.
+22. Settlement and army markers are derived readouts: fortress = triangle, city without fortress = square, Region capital = bold circle, army = circle with an arrow for the previous turn's direction; density is threshold-gated (2026-11-10).
+23. Armies are ordered by left-clicking the army, then left-clicking the target province; the order is queued with a route preview (2026-11-10).
+24. A province held by a Country that does not own it is cross-hatched in the controller's colour; occupation and siege state is shown from War's derived readouts, never stored in the UI (2026-11-10).
+25. A battle is one Battle Report message; tactic matchups are highlighted green (proper) and red (bad counter) with a text/icon label, and the enemy side follows the visibility stamp (2026-11-10).
+26. Mobilization is offered per Region (primary), per Empire and per cell; the standing-share dial changes through a draft with gating or arrives as a petition Question (2026-11-10).
+27. The gating panel includes a Veto factors panel; unobservable factors show `unknown` (2026-11-10).
+28. Withdrawing from a negotiation always shows the restart-from-scratch warning first (2026-11-10).
 
 ## Actions (UI-level)
 Set Scope / SliceOrder · Scope Back / Forward · Toggle Lens (domain, metric, parameter) · Switch render
 (map/regions/table/detail) · Click province/Region/army/cell/Country → Docked Detail
-Panel · Edit Allocation Dial (add per-cell/aggregate/group entry; floor, priority, surplus ratios, cap, sink; reserve floor on the spending dial) ·
+Panel · Select army → click target province (queue move order) · Mobilize / Demobilize (cell, Region, Empire) · Edit standing-share dial · Edit Allocation Dial (add per-cell/aggregate/group entry; floor, priority, surplus ratios, cap, sink; reserve floor on the spending dial) ·
 Open/stage Event Draft · Queue to Orders tray · Release/renew in Commitments
-ledger · End Turn · Run N turns (slider 1–100) · Open Message Feed / message · Expand a bar's breakdown · Toggle Debug Mode · View Raw.
+ledger · Edit Peace Conference stack / Withdraw from negotiation · End Turn · Run N turns (slider 1–100) · Open Message Feed / message (incl. Battle Report) · Expand a bar's breakdown · Toggle Debug Mode · View Raw.
 
 ## Cross-references
-- **World Map** — sole source of terrain/edge/Region/ownership ground truth, administrative Region partition and the grid substrate; both infrastructure stocks are rendered as separate lenses.
-- **Internal Politics** — Questions/Estates/Nations/Laws tabs read grievance, compliance, Rights/Duties, scope ladder and Precedence flag, Foreign Standing, Preference vectors, Decision Log live; Rights/Duties edits are Event Drafts.
-- **Administration** — Allocation Dial semantics (Control/Observation), slate as attention, Emergency Powers, upkeep degradation.
+- **World Map** — sole source of terrain/edge/Region/ownership ground truth, administrative Region partition and the grid substrate; both infrastructure stocks are rendered as separate lenses; sea and lake provinces render as water (2026-11-10).
+- **Internal Politics** — Questions/Estates/Nations/Laws tabs read grievance, compliance, Rights/Duties, scope ladder and Precedence flag, Foreign Standing, Preference vectors, Decision Log live; Rights/Duties edits are Event Drafts. The Veto factors panel reads the stance function and the acceptance inputs (2026-11-10).
+- **Administration** — Allocation Dial semantics (Control/Observation), slate as attention, Emergency Powers, upkeep degradation; the assembly queue (cap, agenda shares, Question durations) is shown on the Questions tab (2026-11-10).
 - **Economics** — Economy workspace reads pools, goods, prices, zones, Ledger inputs, credit, money; flow view follows the resolution order; Trade Zones lens follows Economics Rule 7 (derived membership).
-- **War** — Military lens, Army card, Military tab, garrison priority dial, Troop Training commitment.
-- **Diplomacy** — Relations/Treaties/Mirror read Relations, CB, Leverage readouts, axis bundles; Threshold Meters follow its action model; detection/visibility stamps follow Observation + counter-intelligence Espionage.
+- **War** — Military lens, Army card, Military tab, garrison priority dial, Troop Training commitment; levy/standing units, Mobilize, standing-share dial, Peace Conference stacks, occupation/siege readouts and the Battle Report (2026-11-10).
+- **Diplomacy** — Relations/Treaties/Mirror read Relations, CB, Leverage readouts, axis bundles; Threshold Meters follow its action model; detection/visibility stamps follow Observation + counter-intelligence Espionage; the negotiation meter and withdrawal warning follow the Negotiation Session (2026-11-10).
 - **Nations** — Cultural lens, Nations tab, Nation presence, core strength, titular status.
 - **Countries** — Scope tree for dependents/Confederation; Institutional↔Personalistic is a display-only readout.
 - **Actions** — class (dial/commitment/event) drives control type; Allocation Dial subclass, spending dial/reserve floor and End Turn Preflight are defined there; Orders tray and Message Feed follow the pipeline; gating panel follows Actions' gating rules.
@@ -328,5 +381,6 @@ ledger · End Turn · Run N turns (slider 1–100) · Open Message Feed / messag
 - **2026-11-03 design pass — settled shape**: shell + five workspaces; global Scope with reorderable slice order, treemap and hottest-child marker; Lens system with ten domains (eleven after the 2026-11-09 Trade Zones split) and map/table/detail renderings; Visibility Stamp; Threshold Meter; Event Draft; Orders tray, Commitments ledger and Turn Report (replaced by the Message Feed 2026-11-09); analysis widgets; workspace specs; UI honesty rules (Rules 9-13).
 - **Allocation Dial — settled 2026-11-03** (written into `administration__kb.md`, `actions__kb.md`, `internal_politics__kb.md`, `economics__kb.md`): floor + priority + surplus ratio (+ cap, sink); per-cell default with aggregate filters and player-named groups as bulk shorthand; surplus auto-fill free; Government spending dial is standing with a reserve floor and sink = keep; End Turn Preflight with a projected-Ledger-shortfall warning; garrison priority and other scalar dials stay plain dials.
 - **2026-11-09 — designer input (settled as worded)**: Apparatus before Polity; Nations tab; Trade Zones lens split from Economic; Borders rule; Regions rendering; Scope highlight; Back/Forward scope history; treemap below the map; Message Feed replacing the Turn Report; attention badges; Laws columns on the scope ladder, predefined value choices, narrative text; bar breakdown dropdowns (5 + 5 contributions); 1–100 run-turns slider; Rules 18-21. **Proposed (awaiting OK)**: green/orange pending-law semantics, early-stop on multi-turn runs, "same as the right/duty scope group has" reading.
+- **2026-11-10 — designer input (settled as worded)**: click army then click target province for movement; diagonal cross-hatch in the controller's colour for occupied provinces; fortress = triangle, city without fortress = square, Region capital = bold circle; army = circle with an arrow for the previous turn's direction; Battle Report message with per-round tactics (colour-highlighted proper / bad counters) and casualties for both sides, enemy side behind fog-of-war rules (exact in alpha); mobilization main control per Region plus an Empire button; Veto factors panel; Rules 22-28. **Proposed (awaiting OK)**: the occupation/siege display model; hatch in all lenses; the derived Region-capital rule (World Map stores none — say if capitals should be stored and player-chosen); fortified-capital drawing; no arrow for a stationary army; multi-turn route planning for a non-adjacent target; the Negotiation meter wording and the Withdraw tooltip. **Open**: army arrow vs. stack-count layout; which lenses draw symbols below the density threshold.
 - **Open (kb)**: a "total-split" mode for aggregate filters (a fixed total divided across covered cells) is not adopted — per-cell only; shortfall within one entry is pro rata across its cells; group is allocation-local (not part of the shared Rights/Duties scope syntax).
 - **Open (UI)**: wireframes/layout, icon set, colour palette, forestation stipple technique, significance threshold values, treemap default measures, table column sets per lens, End Turn confirmation behaviour with empty Orders tray; green/orange semantics; early-stop on multi-turn runs; whether the tech gate hides Estate/Empire columns or greys them; `narrative` content for each Right/Duty still to be written.

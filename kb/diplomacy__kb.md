@@ -22,6 +22,8 @@ event-based / structural), per-observer overreach penalty, binary below-threshol
 actions with thresholds scaled by the target object, DomainVeto axis, Confederation
 as a symmetric bundle, Leverage Categories as readouts.
 
+**2026-11-10 designer input**: a Negotiation Session model — no fixed term, either side may withdraw at any time (restart from scratch), a satisfaction meter for the other side, and a decaying Reputational Leverage mark when the stronger Country withdraws. The Diplomacy **action catalogue** (named actions per axis with parameter types) is agreed to be drafted for the designer's approval first and is **not** written here yet. Items tagged **(proposed)** await the designer's OK.
+
 ## Data Structures
 
 ### Casus Belli (CB)
@@ -69,7 +71,8 @@ the observed action record; this stack is external belief about it, laggable
 under poor intelligence).
 ```
 fed by: CB overreach (−), promise fulfilled/broken (±), Veto/treaty
-compliance (±), rejecting a coalition-backed demand (− only vs. that coalition's supporters, never global)
+compliance (±), rejecting a coalition-backed demand (− only vs. that coalition's supporters, never global),
+withdrawing from a negotiation as the stronger party (−, decaying; see Negotiation Session)
 ```
 Never a freely-spent independent currency.
 
@@ -117,6 +120,18 @@ Leverage(A, B or Bloc) = { Economic, Diplomatic(Reputational), Military, Cultura
 - Aggregation formula, per-category computation (beyond Military's War-kb
   feed), country-profile-driven weighting, threshold trigger condition:
   **open, implementation-deferred**.
+
+### Negotiation Session (2026-11-10)
+```
+Negotiation(A, B) = { terms (each side's proposals; the Peace Conference's are stacks, war__kb.md),
+                      state ∈ open | concluded | withdrawn,
+                      satisfaction(A), satisfaction(B), walkout_threshold(A), walkout_threshold(B) }
+```
+- **No fixed term.** A negotiation stays open until it concludes or a party withdraws — it has no turn limit.
+- **Withdrawal at any time.** Either Country may withdraw whenever it judges necessary. A withdrawn negotiation is closed; a later negotiation **starts completely from scratch** (no proposals, concessions or progress carry over). The UI warns before a withdrawal (`ui__kb.md`).
+- **Satisfaction** of a side is a derived readout of how well the terms on the table serve its stance (the same stance-times-modifier shape as the rest of the skeleton; in a war it is the side's `peace_evaluation`, `war__kb.md`). When it falls below the side's walk-out threshold that side ends the negotiation. The other side's satisfaction and its walk-out threshold are shown as a **meter**: **exact in alpha**; a **fog-of-war estimate** (stamp `estimated`) once fog-of-war exists (post-alpha).
+- **Withdrawal leaves a decaying mark** when the withdrawing Country is the **stronger** party — stronger by the Leverage-readout comparison at negotiation time (bilateral or bloc-pair scoping, as in Leverage Categories). The mark is a decaying negative modifier on that Country's Reputational Leverage stack toward the other party **(proposed reading: sign negative, on the stronger Country's own stack)**. A weaker Country that withdraws leaves no mark. The mark is cached and re-derivable like any modifier — never a spendable currency.
+- **Scope (proposed reading)**: the session applies to every bilateral diplomatic negotiation, including the Peace Conference (war and internal-conflict terms alike).
 
 ### Axis Bundle (shared substrate — Sanctions/Dependency/Alliance)
 ```
@@ -215,16 +230,20 @@ deniability cost.
 18. DomainVeto is an axis in the shared menu; Confederation is a symmetric bundle with mutual consent and no teeth beyond the axes' own effects.
 19. Leverage Categories are derived readouts with no stored aggregate; weighting happens only at an AI decision.
 20. Every Diplomacy/Espionage action type declares its own target-scale parameter.
+21. A negotiation has no fixed term; either side may withdraw at any time, and a later negotiation starts completely from scratch (2026-11-10).
+22. The other side's satisfaction and walk-out threshold are shown as a meter — exact in alpha, a fog-of-war estimate once fog-of-war exists (2026-11-10).
+23. Withdrawing leaves a decaying Reputational Leverage mark only when the withdrawing Country is the stronger party by the Leverage-readout comparison; the mark is cached and re-derivable, never spendable (2026-11-10, sign and holder proposed).
 
 ## Cross-references
 - **Internal Politics** — Ratification/Veto reads IP's `treaty` Veto domain directly; Foreign Standing is a per-(cell, foreign Country) derived value (Nation Sympathy + cell-specific terms); propaganda and covert influence write into the cell-specific terms; nothing aggregates back into Sympathy.
 - **Nations** — kin-state Sympathy baseline (non-decaying, live-recomputed off titular declaration); spent-resource soft power is a decaying standing-modifier. The kin-state toolkit has no separate mechanic (2026-11-02).
 - **Economics** — TradeAccess/ResourceExportBan read `throughput_cap` directly; LaborMigrationBan exposes the open "external pool recruitment" question.
 - **Administration** — Covert Faction Influence targets the settled Actor-cell model (`administration__kb.md` + `internal_politics__kb.md`) — re-verified 2026-11-01; Observation there contributes additively with counter-intelligence Espionage to detection (2026-11-02).
-- **War** — Troop Training feeds this file's Military Leverage category; see `war__kb.md`.
+- **War** — Troop Training feeds this file's Military Leverage category; the Peace Conference reuses the Negotiation Session and builds proposal stacks inside it; see `war__kb.md`.
+- **UI** — the negotiation meter and the Withdraw warning render this file's Negotiation Session (`ui__kb.md`, 2026-11-10).
 - **Characters** — Succession axis, Common Ruler axis, ruler-deposition event: post-alpha (Characters beyond alpha).
 - **AI — Diplomacy** — owns Leverage instrument selection/combination, weighting from the Portrait, coalition-backing relevance.
-- **Fog of war** — deliberately deferred as a separate turn-flow layer.
+- **Fog of war** — deliberately deferred as a separate turn-flow layer; the negotiation meter is its first consumer here (exact in alpha).
 
 ## Status
 - CB tiers, overreach concept, external-recognition flag, Reputational Leverage, Axis-Bundle system, Cooperation, Facilitation grants, fixed-threshold action model: **settled**.
@@ -238,3 +257,4 @@ deniability cost.
 - **2026-11-02 — settled**: detection = Observation + counter-intelligence Espionage (additive); sender revealed at a higher separate threshold; false flags possible for strong-Espionage countries. False-flag exposure costs Reputational Leverage and a CB; no limits on the implicated party (confirmed). **Open**: thresholds (numbers pass).
 - **2026-11-02 (Countries/Diplomacy pass) — settled**: CB persistence classes; per-observer overreach penalty; binary below-threshold with target-scaled thresholds; DomainVeto axis; Confederation as a symmetric bundle with no teeth; Leverage Categories as readouts.
 - **2026-11-03 — settled**: Concert as a derived great-power-backing predicate; Government-to-Government standing (`opinion`); Leverage weights from the Portrait with the override trigger; militaristic-disposition derivation; per-action target-scale parameter; Annexation as a forced-annexation CB; per-observer attribution.
+- **2026-11-10 — designer input (settled as answered)**: negotiations have no fixed term and either side may withdraw at any time, after which negotiation restarts from scratch; the other side's satisfaction is shown as a meter (exact now, fog-of-war estimate post-alpha); withdrawal leaves a decaying mark that feeds Reputational Leverage of the stronger Country when it is the one that withdraws. **Proposed (awaiting OK)**: the mark's sign (negative) and holder (the stronger Country's own stack toward the other party); the session covering the Peace Conference too. **Agreed, not yet written**: the Diplomacy action catalogue — a named action per axis in common strategy-game and political language, each with its own parameter type (0-100, -100-100, -100-0, strength tiers, duration) and rules — will be drafted for the designer's approval before it goes into this file. **Open**: satisfaction function details and walk-out threshold values (numbers pass).
