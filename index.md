@@ -73,11 +73,11 @@ layer: `kb/war__kb.md`, `doc/…`, `spec/…`.
 6. **Never trust README status** — confirm "implemented" from `src/` plus a test name.
 7. **Edit flow**: one branch per session; kb → spec → code → tests; changelog entry in `index.md`; no direct commits to the default branch.
 8. **Tooling to build**: `tools/outline.mjs`, `tools/section.mjs`, `tools/check-headers.mjs` (named in the layout and Access rules above, not present in the repo yet; until they exist, use the kb Status block and the connector's file reads).
+9. **KB/Spec equality**: kb and spec files should have mostly the same structure to make the search of topics to the both sides easier.
 
 ## Working mode (GitHub)
 
-- One branch per session: `session/<YYYY-MM-DD>-<topic>`; never commit straight to
-  `main` unless asked.
+- Always commit to branch /indev, although explicitly asked to use other branch.
 - Commit order within a session: **kb → spec → code → tests**, small commits with
   the module name as prefix (`war: …`).
 - Before the final commit: regenerate `.outline/`, run `check-headers`, run
