@@ -3,7 +3,7 @@
 Status: terrain/resource/edge/region model settled. Grid substrate merged in
 from former world_map_graphics__kb.md (rendering itself now lives in
 ui__kb.md — see that file). Exact worldgen pipeline,
-Grassland forestation ceiling value open. **2026-11-09 designer input**: Region is now a stored administrative partition with a Reorganization Event; resettlement widened and Expulsion added; every hex is a province and Sea becomes the 10th terrain type (see Status; items tagged **(proposed)** await the designer's OK). **2026-11-10 designer input**: lakes are playable water provinces too (unsettled without special technologies); starting population anchors raised (Grassland ≈ 10,000, Taiga/Mountain ≈ 1,000).
+Grassland forestation ceiling value open. **2026-11-09 designer input**: Region is now a stored administrative partition with a Reorganization Event; resettlement widened and Expulsion added; every hex is a province and Sea becomes the 10th terrain type (see Status; items tagged **(proposed)** await the designer's OK). **2026-11-10 designer input**: lakes are playable water provinces too (unsettled without special technologies); starting population anchors raised (Grassland ≈ 10,000, Taiga/Mountain ≈ 1,000); each Region has a stored `capital_province`, set by the player/AI in the Region's administrative settings.
 
 ## Data Structures
 
@@ -95,11 +95,16 @@ World Map owns the province population stock; nothing here is a stored rate.
 - **Expulsion (2026-11-09)**: an Event removing the population of cells / a Nation / an Estate from the Country across a border into a destination Country's province; destination gating by Diplomacy's LaborMigrationBan; the expelled lose a Government-chosen share of their stocks (confiscated to the Government inventory); maximal entitlement loss for the cells, a public Decision Log entry (awareness-driven discontent for others) and a kin-state appeal CB if the Nation has a kin Country. **(proposed details)** Both resettlement and expulsion are drafts with preview and gating.
 
 ### Region (administrative region, 2026-11-09)
-A stored, per-Country partition of its provinces into contiguous same-owner groups (default size 6-8, guidance not a hard cap). Worldgen seeds the initial partition. Primary
+```
+Region = { provinces (contiguous, same owner), capital_province ∈ provinces }   // capital_province: stored administrative setting (2026-11-10)
+```
+A stored, per-Country partition of its provinces into contiguous same-owner groups (default size 6-8, guidance not a hard cap). Worldgen seeds the initial partition and each Region's initial capital. Primary
 player-attention unit, the level at which laws are set, and the resolution level at which Internal Politics'
 `(Nation, Estate, Region)` actor stocks are held. Ownership change still forces split/merge (cell stocks by population share). The former automatic "sustained development" re-derivation becomes an **advisory readout**; applying it is a reorganization. **(proposed)**
 
-**Reorganization Event** (Event Draft): split a Region, merge adjacent Regions, or move provinces between adjacent Regions (contiguity and ownership preserved). Cells' stocks split/sum by population share; effective laws re-resolve; worsening = entitlement loss; gating per Internal Politics (Country-wide Veto/Council consultation). Applied once at end of turn with the Region pass.
+**Region capital (2026-11-10)**: each Region has a `capital_province`, a **stored administrative setting** chosen by the **player or the AI** when the Region is defined or redefined (not derived). It is set in the Region's administrative settings and re-set whenever a Reorganization or an ownership split/merge leaves a Region without a valid capital (the new or merged Region needs one chosen; until the choice is made the previous capital stands if it is still in the Region, otherwise the most populous province is the placeholder — **proposed fallback**). The UI draws it as a bold circle (`ui__kb.md`). It carries **no gameplay effect yet**; effects (administrative seat, Control or Coordination, a siege target) are open. The AI's selection rule belongs to AI — Economics / Internal Politics.
+
+**Reorganization Event** (Event Draft): split a Region, merge adjacent Regions, or move provinces between adjacent Regions (contiguity and ownership preserved). Cells' stocks split/sum by population share; effective laws re-resolve; worsening = entitlement loss; gating per Internal Politics (Country-wide Veto/Council consultation). The draft also **names the capital province of every resulting Region**. Applied once at end of turn with the Region pass.
 
 **Region pass timing (settled 2026-11-02, adapted)**: one pass at the **end of each
 turn, after Diplomacy (step 7)**, applying all splits, sums and queued reorganizations, so mid-turn
@@ -139,17 +144,19 @@ Water provinces (sea and lake) carry population, owner and warehouse fields like
 15. Movement across Mountain edges is blocked unless the edge is a Mountain Pass — an edge between two Mountain hexes (the Region interior) is traversable only as `mountain_pass`; Mountain↔non-Mountain edges stay open (to confirm). Worldgen guarantees land connectivity.
 16. Land armies cannot enter Sea or lake provinces until the matching technology (`traversal.Sea`, `traversal.Lake`); they cannot be settled until a capability flag allows it (`capability.settleSea`, `capability.settleLake`).
 17. A Settled province's initial `current_population` is seeded from a per-terrain anchor (Grassland ≈ 10,000; Taiga and Mountain ≈ 1,000; other terrains scaled by density ceiling); afterwards population is derived dynamics only (2026-11-10).
+18. A Region's `capital_province` is a stored administrative setting chosen by the player or AI when the Region is defined or redefined, always a province of that Region; it is never derived and has no gameplay effect yet (2026-11-10).
 
 
 ## Cross-references
 - **Economics** — reads terrain-favor/forestation for yields, habitability for developability. `trade_infrastructure_level` is a separate Economics-owned stock (see Rule 9) — its definition is settled in Economics (per-province stock, 2026-11-02).
-- **UI** — sole consumer of this data for rendering; owns all lens/color/icon/overlay logic (see `ui__kb.md`; Regions rendering and Trade Zones lens 2026-11-09; map symbols, occupation hatch and army markers 2026-11-10).
+- **UI** — sole consumer of this data for rendering; owns all lens/color/icon/overlay logic (see `ui__kb.md`; Regions rendering and Trade Zones lens 2026-11-09; map symbols, Region-capital marker, occupation hatch and army markers 2026-11-10).
 - **Countries / Administration** — Region is the actor-cell resolution layer Countries/Administration consume, not one they compute themselves; the administrative Region is also the unit of a Region assembly (`administration__kb.md`, 2026-11-10).
 - **Internal Politics** — `(Nation, Estate, Region)` actor granularity resolves here; laws are set per administrative Region; Region fracture/merger/reorganization triggers IP's stock-split/sum (Rule 7) and entitlement loss on worsened laws. `urbanization_rate` is an awareness input (2026-11-01).
 - **Diplomacy** — LaborMigrationBan gates cross-border migration and Expulsion destinations.
 - **Exogenous shocks (2026-11-01)** — epidemic risk derives from `sanitation_level` × `urbanization_rate` × Economics' Medicine pool; harvest variance feeds Economics yields; cataclysm is post-alpha (2026-11-02). No Events module in alpha.
 - **Nations** — province-level population is the divisor for Region-fracture splitting; the starting-population anchors seed the totals Nations splits across Nations/Estates.
 - **War** — chokepoint edges/fortresses gate supply/siege; `infrastructure_level` feeds Supply decay and army `edge_quality`; Sea and lake provinces are untraversable by land armies in alpha.
+- **AI — Economics / Internal Politics** — chooses an AI Country's Region capitals when Regions are defined or redefined (selection rule not yet designed).
 
 ## Status
 - Terrain types, forestation-as-scalar, favor-table structure, edge model, fortress-as-edge-blocker, Region/Megaregion derivation, Grid substrate, infrastructure_level as a distinct stock from trade_infrastructure_level: **settled**.
@@ -159,3 +166,4 @@ Water provinces (sea and lake) carry population, owner and warehouse fields like
 - **2026-11-04 — settled**: surface (land/sea/lake) model; river-first water source; non-pass Mountain edges blocked (interior reading to confirm). **The land/sea/lake surface model is superseded 2026-11-09** by sea provinces (below); river-first water source and the Mountain-edge rule stand.
 - **2026-11-09 — designer input**: Region is the stored administrative Region with a Reorganization Event; direct resettlement widened to cells/Nations/Estates; Expulsion added; every hex is a province and Sea is the 10th terrain type (500 provinces; Rules 6, 11, 13, 16). **Proposed (awaiting OK)**: advisory development readout replacing automatic re-derivation; Expulsion details (confiscated share, kin-state CB). **Open**: whether unsettled sea can be owned (default no); Sea's Fish yield; Sea `water_source`; numbers.
 - **2026-11-10 — designer input (settled as worded)**: lakes are playable water provinces, unsettled without special technologies (the 2026-11-09 "lakes stay non-province water" line is superseded); starting population anchors raised — Grassland ≈ 10,000, Taiga and Mountain ≈ 1,000 per Settled province (Rule 17). **Proposed (awaiting OK)**: lakes as the Sea terrain type with a `water_body` attribute and per-body capability/traversal flags; lake shore counts as `river_adjacent`; interpolation of the other terrains' anchors by density ceiling. **Open**: ownership of unsettled water; lake Fish yield; whether Sea Lanes may cross lakes; Frontier/Wasteland seeds. The concrete numbers in `data/`/`scenarios/` and worldgen code are not changed by this kb commit.
+- **2026-11-10 (later) — designer input (settled as worded)**: a Region's capital is a **stored administrative setting** chosen by the player or AI when the Region is defined or redefined (Rule 18; replaces the derived "most populous province" proposal in `ui__kb.md`). **Proposed (awaiting OK)**: the fallback when a split/merge leaves a Region without a valid capital. **Open**: gameplay effect of the capital (none yet); the AI's selection rule.
