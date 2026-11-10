@@ -77,7 +77,7 @@ layer: `kb/war__kb.md`, `doc/…`, `spec/…`.
 
 ## Working mode (GitHub)
 
-- Always commit to branch /indev, although explicitly asked to use other branch.
+- Always working with one branch /indev. Read from there and commit to there, unless explicitly told otherwise. 
 - Commit order within a session: **kb → spec → code → tests**, small commits with
   the module name as prefix (`war: …`).
 - Before the final commit: regenerate `.outline/`, run `check-headers`, run
