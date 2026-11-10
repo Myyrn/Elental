@@ -3,13 +3,13 @@
 Status: terrain/resource/edge/region model settled. Grid substrate merged in
 from former world_map_graphics__kb.md (rendering itself now lives in
 ui__kb.md — see that file). Exact worldgen pipeline,
-Grassland forestation ceiling value open. **2026-11-09 designer input**: Region is now a stored administrative partition with a Reorganization Event; resettlement widened and Expulsion added; every hex is a province and Sea becomes the 10th terrain type (see Status; items tagged **(proposed)** await the designer's OK).
+Grassland forestation ceiling value open. **2026-11-09 designer input**: Region is now a stored administrative partition with a Reorganization Event; resettlement widened and Expulsion added; every hex is a province and Sea becomes the 10th terrain type (see Status; items tagged **(proposed)** await the designer's OK). **2026-11-10 designer input**: lakes are playable water provinces too (unsettled without special technologies); starting population anchors raised (Grassland ≈ 10,000, Taiga/Mountain ≈ 1,000).
 
 ## Data Structures
 
 ### Grid
 Pointy-top, odd-r offset hex, 25×20 (500 hexes) at alpha — 1 hex = 1
-province, **sea hexes included (2026-11-09: exactly 500 provinces)**. Sourced from a 157×114 @16px/cell raw terrain grid via
+province, **sea and lake hexes included (2026-11-09 / 2026-11-10: exactly 500 provinces)**. Sourced from a 157×114 @16px/cell raw terrain grid via
 majority-vote/centroid sampling per hex. (Rendering of this grid is UI's
 concern; this is the coordinate substrate War/Economics/etc. address.)
 
@@ -17,6 +17,7 @@ concern; this is the coordinate substrate War/Economics/etc. address.)
 ```
 province = {
   terrain_type, forestation (0-100%),
+  water_body?: sea | lake,         // Sea terrain only (2026-11-10)
   max_area, max_arable_area, max_population_density,
   current_population, urbanization_rate, sanitation_level,
   water_source: river_adjacent | coastal | none,
@@ -29,7 +30,7 @@ province = {
 ### Terrain Types (10)
 `Mountain, Hill, Desert, Steppe, Grassland, Wetland, Jungle, Arctic, Taiga, Sea`
 — fixed at worldgen and for all of alpha (cataclysm/reclamation changes are post-alpha).
-**Sea (2026-11-09)**: a province like any other (population, owner and warehouse fields exist), but in alpha **no Nation has the capability to settle it** (`capability.settleSea = false`, post-alpha tech), so it stays Wasteland; land armies cannot enter (`traversal.Sea = false` until naval tech). Lakes stay non-province water. Open: whether unsettled sea can be owned (default no), Sea's Fish yield, numbers.
+**Sea (2026-11-09) and lakes (2026-11-10)**: a water province is a province like any other (population, owner and warehouse fields exist), but in alpha **no Nation has the capability to settle it** (`capability.settleSea = false`, `capability.settleLake = false`, post-alpha tech), so it stays Wasteland; land armies cannot enter (`traversal.Sea = false`, `traversal.Lake = false` until the matching technology). **Lakes are water provinces too**: they use the Sea terrain type with `water_body = lake` (fresh water) — playable territory that is simply unsettled without special technologies. No new terrain type, so the count stays 10 **(proposed shape: one Sea terrain type with a `water_body` attribute and separate flags per body)**. Open: whether unsettled water can be owned (default no), Sea's and lakes' Fish yield, whether Sea Lane edges may route through lake provinces, numbers.
 
 ### Forestation
 Independent 0-100% scalar, capped per terrain:
@@ -44,9 +45,19 @@ Independent 0-100% scalar, capped per terrain:
 | Hill | 10-70% | medium | medium |
 | Grassland | 10-70%* | high | high |
 | Jungle | 60-100% | low | low-medium |
-| Sea | 0% | none | none (unsettleable in alpha) |
+| Sea (incl. lake) | 0% | none | none (unsettleable in alpha) |
 
 *flagged for correction to a higher ceiling — exact value **open, unresolved**.
+
+### Starting population (worldgen anchors, 2026-11-10)
+At worldgen `current_population` of a **Settled** province is seeded from a per-terrain anchor, raised from the earlier placeholder values. Afterwards population is derived dynamics only (see Population dynamics) — the anchor is a seed, not a stored rate.
+| Terrain | Anchor per Settled province |
+|---|---|
+| Grassland | ≈ 10,000 |
+| Taiga, Mountain | ≈ 1,000 |
+| other land terrains | scaled between those anchors by the terrain's `max_population_density` ceiling (values open — numbers pass) |
+| Sea (incl. lake) | 0 (unsettled) |
+Frontier and Wasteland provinces seed lower (open). The split of a province's seed across Nations and Estate cells is Nations' data (unchanged).
 
 ### Resource Extraction
 `yield(resource, hex) = baseline_rate + terrain_favor(terrain_type, resource)`
@@ -64,7 +75,7 @@ the favor table.
 | Jungle | Herbs ×8, Magical Reagents ×5, Fiber ×4 |
 | Arctic | Fish ×4 (coastal only), Hides ×3, Precious Metal Ore ×2 |
 | Taiga | Timber (forestation-driven), Hides ×5, Fish ×3 |
-| Sea | Fish (yield **open**; unreachable while no Nation can settle Sea) |
+| Sea (incl. lake) | Fish (yield **open**; unreachable while no Nation can settle water) |
 
 ### Edges (not hex attributes)
 ```
@@ -102,12 +113,12 @@ until the pass runs.
 provinces), when per-empire Region count alone would exceed attention cap.
 
 ```
-hex = province = { x, y, terrain_type (10 incl. Sea) }      // every grid hex is a province
-lake = non-province water (no terrain/owner/population/warehouse)
+hex = province = { x, y, terrain_type (10 incl. Sea) }      // every grid hex is a province, lake hexes included
+water_body = sea | lake                                      // Sea terrain only
 water_source: river_adjacent | coastal | none
-    precedence: river first  (river edge or lake shore -> river_adjacent; touches a Sea province -> coastal)  [lake shore = fresh water: to confirm]
+    precedence: river first  (river edge or neighbouring a lake province -> river_adjacent; touches a Sea-body province -> coastal)  [lake shore = fresh water — proposed 2026-11-10; was "to confirm"]
 ```
-Sea provinces carry population, owner and warehouse fields like any province but stay Wasteland and untraversable by land armies in alpha (see Terrain Types). Sea Lane edges connect coastal provinces and route through Sea provinces (path length is the lane's length).
+Water provinces (sea and lake) carry population, owner and warehouse fields like any province but stay Wasteland and untraversable by land armies in alpha (see Terrain Types). Sea Lane edges connect coastal provinces and route through Sea-body provinces (path length is the lane's length).
 
 
 ## Rules
@@ -123,21 +134,22 @@ Sea provinces carry population, owner and warehouse fields like any province but
 10. Population growth, migration and settlement are derived from existing stocks — no stored birth rate or migration rate; settlement is gradual migration plus action by a cell (actors; permitted unless forbidden) or the Government (free-colonization policy or direct resettlement of cells/Nations/Estates). Expulsion is a gated Event, never a stored rate.
 11. The Region pass runs once at end of turn after Diplomacy, applying splits, sums and queued reorganizations; the development readout is advisory with banded enter/exit thresholds.
 12. Cataclysm is post-alpha; terrain is fixed throughout alpha.
-13. Every hex of the 25×20 grid is a province (exactly 500 at alpha); lakes are non-province water. Sea is a terrain type that no Nation can settle in alpha.
+13. Every hex of the 25×20 grid is a province (exactly 500 at alpha), lake hexes included; Sea is the terrain type of both seas and lakes (`water_body`), and no Nation can settle it in alpha.
 14. `water_source` is single-valued; when several apply, river-adjacent wins over coastal.
 15. Movement across Mountain edges is blocked unless the edge is a Mountain Pass — an edge between two Mountain hexes (the Region interior) is traversable only as `mountain_pass`; Mountain↔non-Mountain edges stay open (to confirm). Worldgen guarantees land connectivity.
-16. Land armies cannot enter Sea provinces until naval technology (`traversal.Sea`); Sea provinces cannot be settled until a capability flag allows it (`capability.settleSea`).
+16. Land armies cannot enter Sea or lake provinces until the matching technology (`traversal.Sea`, `traversal.Lake`); they cannot be settled until a capability flag allows it (`capability.settleSea`, `capability.settleLake`).
+17. A Settled province's initial `current_population` is seeded from a per-terrain anchor (Grassland ≈ 10,000; Taiga and Mountain ≈ 1,000; other terrains scaled by density ceiling); afterwards population is derived dynamics only (2026-11-10).
 
 
 ## Cross-references
 - **Economics** — reads terrain-favor/forestation for yields, habitability for developability. `trade_infrastructure_level` is a separate Economics-owned stock (see Rule 9) — its definition is settled in Economics (per-province stock, 2026-11-02).
-- **UI** — sole consumer of this data for rendering; owns all lens/color/icon/overlay logic (see `ui__kb.md`; Regions rendering and Trade Zones lens 2026-11-09).
-- **Countries / Administration** — Region is the actor-cell resolution layer Countries/Administration consume, not one they compute themselves.
+- **UI** — sole consumer of this data for rendering; owns all lens/color/icon/overlay logic (see `ui__kb.md`; Regions rendering and Trade Zones lens 2026-11-09; map symbols, occupation hatch and army markers 2026-11-10).
+- **Countries / Administration** — Region is the actor-cell resolution layer Countries/Administration consume, not one they compute themselves; the administrative Region is also the unit of a Region assembly (`administration__kb.md`, 2026-11-10).
 - **Internal Politics** — `(Nation, Estate, Region)` actor granularity resolves here; laws are set per administrative Region; Region fracture/merger/reorganization triggers IP's stock-split/sum (Rule 7) and entitlement loss on worsened laws. `urbanization_rate` is an awareness input (2026-11-01).
 - **Diplomacy** — LaborMigrationBan gates cross-border migration and Expulsion destinations.
 - **Exogenous shocks (2026-11-01)** — epidemic risk derives from `sanitation_level` × `urbanization_rate` × Economics' Medicine pool; harvest variance feeds Economics yields; cataclysm is post-alpha (2026-11-02). No Events module in alpha.
-- **Nations** — province-level population is the divisor for Region-fracture splitting.
-- **War** — chokepoint edges/fortresses gate supply/siege; `infrastructure_level` feeds Supply decay and army `edge_quality`; Sea provinces are untraversable by land armies in alpha.
+- **Nations** — province-level population is the divisor for Region-fracture splitting; the starting-population anchors seed the totals Nations splits across Nations/Estates.
+- **War** — chokepoint edges/fortresses gate supply/siege; `infrastructure_level` feeds Supply decay and army `edge_quality`; Sea and lake provinces are untraversable by land armies in alpha.
 
 ## Status
 - Terrain types, forestation-as-scalar, favor-table structure, edge model, fortress-as-edge-blocker, Region/Megaregion derivation, Grid substrate, infrastructure_level as a distinct stock from trade_infrastructure_level: **settled**.
@@ -146,3 +158,4 @@ Sea provinces carry population, owner and warehouse fields like any province but
 - **2026-11-03 — settled**: cells are actors for settlement; Government settlement as a free-colonization policy or direct resettlement of specific cells.
 - **2026-11-04 — settled**: surface (land/sea/lake) model; river-first water source; non-pass Mountain edges blocked (interior reading to confirm). **The land/sea/lake surface model is superseded 2026-11-09** by sea provinces (below); river-first water source and the Mountain-edge rule stand.
 - **2026-11-09 — designer input**: Region is the stored administrative Region with a Reorganization Event; direct resettlement widened to cells/Nations/Estates; Expulsion added; every hex is a province and Sea is the 10th terrain type (500 provinces; Rules 6, 11, 13, 16). **Proposed (awaiting OK)**: advisory development readout replacing automatic re-derivation; Expulsion details (confiscated share, kin-state CB). **Open**: whether unsettled sea can be owned (default no); Sea's Fish yield; Sea `water_source`; numbers.
+- **2026-11-10 — designer input (settled as worded)**: lakes are playable water provinces, unsettled without special technologies (the 2026-11-09 "lakes stay non-province water" line is superseded); starting population anchors raised — Grassland ≈ 10,000, Taiga and Mountain ≈ 1,000 per Settled province (Rule 17). **Proposed (awaiting OK)**: lakes as the Sea terrain type with a `water_body` attribute and per-body capability/traversal flags; lake shore counts as `river_adjacent`; interpolation of the other terrains' anchors by density ceiling. **Open**: ownership of unsettled water; lake Fish yield; whether Sea Lanes may cross lakes; Frontier/Wasteland seeds. The concrete numbers in `data/`/`scenarios/` and worldgen code are not changed by this kb commit.

@@ -4,9 +4,9 @@ Status: roster/fielding/Supply/Combat/maneuver/siege/battle structure,
 War Score, War Exhaustion, Peace Conference, and Technology Tier all
 settled. Occupation is recorded here as the single source of truth (was
 previously duplicated in `internal_politics__kb.md` — removed there).
-Coefficients remain open (numbers pass). Naval scope for alpha, soft
-substitutable garrison, the rebel Peace Conference, Retinue sizing, civil-war
-martial law and Troop Training were settled 2026-11-02 — see below.
+Coefficients remain open (numbers pass). Naval scope for alpha, soft garrison,
+the rebel Peace Conference, Retinue sizing, civil-war martial law and Troop
+Training were settled 2026-11-02 — see below.
 
 **2026-11-01 overhaul pass**: War Score is now per-cell harm in existing
 stocks (no Loyalty stock, no persistent Faction); War Exhaustion is derived,
@@ -22,6 +22,15 @@ Conference with Rights/Duties-vocabulary terms; Retinue is a scalar Right;
 civil-war martial law reuses occupation's Control cost; Troop Training is a
 commitment; Army Tactics are dials; war-declaration timing settled; one stance
 function governs Veto-to-declare and Veto-to-continue.
+
+**2026-11-10 designer input**: fielded forces are `levy` or `standing` (a per-cell
+`standing_share` dial set by a political decision; cells pay the higher upkeep, the
+Government may compensate); Mobilization is scoped (cell / Region / Empire); the
+Retinue Right also scales a cell's contribution to Army pools except Artillery and
+Meteomancy/Theurgy (pool output only, never a Fairness term); Peace Conference
+proposals are obligatory/optional stacks; every battle emits a per-round Battle
+Report; occupation and siege expose derived readouts for the UI (no rule change).
+Items tagged **(proposed)** await the designer's OK. See Status.
 
 ## Data Structures
 
@@ -43,7 +52,8 @@ blending artillery/support/disruption into one unit type.
 ### Fielded Unit (Standing Commitment)
 ```
 unit = {
-  origin_cell: (Nation, Estate, Region), composition: {pool: count},
+  origin_cell: (Nation, Estate, Region), kind: levy | standing,
+  composition: {pool: count},
   equipment_tier, armor_invested: 0-100%,
   strength_current, cohesion (persistent), position, supply_state: 0-100%
 }
@@ -55,6 +65,34 @@ hits — `internal_politics__kb.md`); labour via Levy Duty. **Casualties**: Kill
 origin cell) · Wounded/scattered (temporary, returns after delay) ·
 Captured (open — likely discounted/delayed Killed, ransom hook deferred
 to Characters/Diplomacy). Disbandment returns labor immediately, no penalty.
+
+### Levy, Standing Army and Mobilization (2026-11-10)
+```
+kind = levy      mobilized from a cell's Levy obligation on demand; its labour returns to
+                 production on demobilization (no claim in peace)
+kind = standing  kept under arms continuously, in peace and war; composed from the
+                 levy pools of cells, so it stays origin-traced and subject to the
+                 cells' and Estates' own compliance or resistance
+standing_share(cell) ∈ [0,1]   // fraction of the cell's own levy pool kept as standing
+```
+- **The dial is a political decision.** `standing_share` is set per cell (any scope filter is bulk shorthand, as for other dials) either by a **Government order** (an Event Draft, gated by the covering Veto/Council cells) or by **cell petition** (a Question raised through the Petition Right, Internal Politics). Once set, the covered cells must **comply or resist** by the actions available to them at that moment (permitted / granted / defiance classes, `actions__kb.md`; compliance rides `involuntary_compliance`; the armed rung runs through the Retinue Right below). There is no separate loyalty stock — loyalty is exactly this compliance-or-defiance outcome.
+- **Upkeep is paid by the cells.** A standing unit costs more upkeep than a levy unit (`standing_upkeep_mult` > 1, numbers pass) because it is always active and withdrawn from production; the cost falls on the origin cell's own Wealth and goods. The **Government may compensate** by setting its spending dial (a subsidy to those cells — direct intervention, `internal_politics__kb.md`), partly or fully. An uncompensated burden enters `burden_share` and the entitlement-loss acceptance function.
+- **Mobilization** is scoped with the shared filter syntax:
+```
+Mobilize(scope ∈ cell | Region | Empire)     // standing commitment on Army labour;
+                                             // released by Demobilize
+  each covered cell contributes its own Levy obligation × involuntary_compliance
+```
+The **Region** scope is the default act, **Empire** mobilizes every cell by its own obligation (cells are not equal: obligations differ by Rights/Duties), and a single **cell** may be mobilized on its own. Mobilized levy and standing units may be combined in one army; multi-origin stacking Coordination cost applies as before.
+- Standing and levy units use the same Combat Envelope, Supply and Casualty rules; only the claim on labour, the upkeep and the persistence differ. Class of Mobilize/Demobilize and the `standing_share` change follows `actions__kb.md` (commitment / dial).
+
+### Retinue Right and military contribution (2026-11-10)
+```
+military_contribution(cell, pool) = base_contribution(cell, pool) × (1 + k × retinue(cell))
+   for pool ∈ { Shock Infantry, Pike Infantry, Skirmishers, Cavalry, Siege Corps }
+   not for Artillery, nor Meteomancy/Theurgy (hence not Mages)
+```
+`retinue(cell)` is the scalar Right (maximum fraction of the cell's own armed pools that can serve as retinue). The boost scales the cell's **contribution to those military Skilled Labor pools in proportion to its Retinue scalar**; `k` is a numbers-pass value. It changes **pool output only** — it is not a separate contribution term in Internal Politics' Fairness gap. The Right's armed-rung role (Internal armed conflict, below) is unchanged.
 
 ### Garrison (Recurring Claim — distinct from field units)
 ```
@@ -189,6 +227,20 @@ cohesion: win → += Δwin; stalemate/loss → −= Δloss   // persistent, boun
 (↑atk/charge, ↓screening/def) · Cautious (↑cohesion retention, ↓atk/charge)
 · Flanking-focused (↑reinforcement, ↓screening).
 
+### Battle Report (resolution trace — 2026-11-10)
+```
+BattleReport = { battle: (province, turn, sides),
+                 rounds: [ { step ∈ skirmish | melee round | rout,
+                             actions, stance_A, stance_B,
+                             matchup_A, matchup_B ∈ good_counter | neutral | bad_counter,
+                             casualties_A, casualties_B } ],
+                 total_casualties_A, total_casualties_B }
+```
+- A **round** is one step of Battle Resolution (a Skirmish exchange, each Melee round, the Rout step), so the report reads as the battle actually went.
+- `matchup` is **derived at resolution** from the tactic stances and the sparse trait interaction multipliers (a stance that countered the enemy's choice = `good_counter`; one the enemy's choice punished = `bad_counter`) — never stored on the unit.
+- The report is the **resolution trace itself**, emitted once per battle into the turn result and rendered as a single Message Feed message (`ui__kb.md`); it is not persisted engine state and writes nothing to War Score (the harm entries are written as before).
+- **Visibility**: the player's own side is always exact. The enemy side's casualties (total and per round) follow the visibility stamp: exact in alpha (fog-of-war is post-alpha), `estimated` once fog-of-war exists.
+
 ### Army Tactics
 `Seek Battle, Raid, Forced March, Siege, Garrison/Hold, Shadow/Screen, Blockade`
 — Raid damages enemy production/Warehousing; Forced March trades Supply
@@ -233,6 +285,19 @@ receive an `occupation` modifier:
 
 ### Occupation garrison (soft, substitutable — settled 2026-11-02)
 There is no fixed garrison number and no hard requirement. An occupation garrison is a recurring claim like any other, and **troops and Control are interchangeable ways to hold a province**. Sizing is derived from the occupied cells' population and grievance. An unmet garrison raises martial-law Control cost and lowers the uprising-trigger threshold.
+
+### Occupation and siege readouts (2026-11-10, proposed — no rule change)
+The designer found no way to see who controls a province during a war or how a siege is going. These are **derived readouts** over existing state (nothing new is stored), exposed for the UI (`ui__kb.md`):
+```
+control_state(province) = { owner, controller (Country or rebelling bloc), contested: bool }
+siege_readout(province) = { siege_progress vs capture_threshold, besieger strength,
+                            garrison_strength vs max_capacity, defender/besieger supply_state,
+                            supply_cut: bool, assault_available: bool }
+occupation_readout(province) = { occupation garrison required (derived) vs present,
+                                 martial-law Control cost, per occupied cell:
+                                 Grievance: Occupation or liberator sympathy, uprising threshold }
+```
+Control passes to the besieger when `siege_progress` reaches the capture threshold or an Assault succeeds; occupation then applies as above. Hold-by-troops vs. hold-by-Control is shown as the two interchangeable ways to meet the derived garrison requirement. Occupation **rules** are unchanged; the designer asked to be consulted before any revision of them.
 
 ### Civil-war martial law (settled 2026-11-02)
 Suppression of rebelling cells uses the **same martial-law Control cost** as occupation. The Occupation Grievance does not apply (they are the Government's own citizens); the political cost arrives through Rights revocation and entitlement loss (Internal Politics).
@@ -292,6 +357,15 @@ a side weighs its own continuation-capability. Ratification removes
 Occupation automatically; resolves into Countries-level territorial/treaty
 changes.
 
+**Proposal stacks (2026-11-10)**: each side builds a **stack** of proposals instead of a single one.
+```
+Proposal = { terms, class ∈ obligatory | optional }
+Stack(side) = list of Proposals defined by that side; no size limit
+```
+- **Obligatory** proposals can only be **accepted or refused** (a refused obligatory proposal means no agreement from that stack); **optional** proposals can each be accepted or refused **on their own**.
+- There is **no cap on stack size**; the limit is capability: each term is weighed by the recipient's `peace_evaluation` against the leverage comparison, so over-large demands are refused — **unless the recipient's defeat is ultimate** (its evaluation of continuing is worse than the terms).
+- The stacks are mirrored: both sides may stack proposals in the same conference. The session's rules (no fixed term, withdrawal restarts from scratch, satisfaction meter) are Diplomacy's Negotiation Session (`diplomacy__kb.md`), which the Peace Conference reuses **(proposed reading)**.
+
 ## Rules
 1. Army roster = six pools + Meteomancy/Theurgy-drawn Mages; variants are Estate/culture/tech modifiers, never new pools.
 2. Fielded units are Standing Commitments (persistent, origin-traced); garrisons are recurring anonymous claims — loss accounting never shared.
@@ -321,14 +395,21 @@ changes.
 26. Army Tactics are dials; Troop Training is a public commitment inheriting Garrison/Hold's supply draw.
 27. Veto-to-declare and Veto-to-continue share one stance function; the difference emerges from live state (e.g. War Exhaustion), not a separate curve.
 28. Movement is blocked across an edge between two Mountain hexes unless it is a `mountain_pass` (see World Map Rule 15); supply routes obey the same edge rule.
+29. A unit is `levy` or `standing`; `standing_share(cell)` is set by a political decision (Government order or cell petition), covered cells comply or resist with the actions available to them, and standing units stay origin-traced (2026-11-10).
+30. Standing upkeep is paid by the origin cells, at a higher rate than levy; the Government may compensate through its spending dial; an uncompensated burden feeds `burden_share` (2026-11-10).
+31. Mobilization is scoped (cell / Region / Empire); every covered cell contributes by its own Levy obligation × `involuntary_compliance` (2026-11-10).
+32. The Retinue scalar scales a cell's contribution to Shock Infantry, Pike Infantry, Skirmishers, Cavalry and Siege Corps — never Artillery or Meteomancy/Theurgy — and changes pool output only, never a Fairness term (2026-11-10).
+33. Peace Conference proposals are stacks: obligatory proposals are accepted or refused only, optional ones individually; no size limit — the recipient's capability assessment bounds what is accepted (2026-11-10).
+34. A Battle Report is the derived resolution trace, rendered as one message; the player's side is exact, the enemy side follows the visibility stamp; it stores no engine state (2026-11-10).
 
 ## Cross-references
 - **Economics** — Army pool/envelope ground truth; Heavy Industry goods consumed at fielding; Warehousing backs Supply and equipment purchase.
 - **World Map** — province-edge graph is Supply's pathing structure (distinct from trade-zone edges); `infrastructure_level` feeds `edge_quality` and Supply decay; terrain/forestation feed Combat Envelope and Fortress typing.
-- **Internal Politics** — Fielding/Killed-casualties trace to `origin_cell` at `(Nation, Estate, Region)`; Occupation's Actor-cell consequences are specified once, in this file (Occupation section); Internal Politics only reads them. Requisition, benefits and attribution rules apply to wartime acquisition and war harm; a faction's armed rung is handed to War (Internal Armed Conflict).
+- **Internal Politics** — Fielding/Killed-casualties trace to `origin_cell` at `(Nation, Estate, Region)`; Occupation's Actor-cell consequences are specified once, in this file (Occupation section); Internal Politics only reads them. Requisition, benefits and attribution rules apply to wartime acquisition and war harm; a faction's armed rung is handed to War (Internal Armed Conflict). The Levy Duty, Petition Right and the Government spending dial (standing-army subsidy) are defined there; the standing-army dial reads them (2026-11-10).
 - **Administration** — Occupation's `martial law` Control cost and multi-origin-cell stacking Coordination cost read Administration's pools; War Exhaustion is derived from war-attributable grievance (Internal Politics), not a separate writeback.
-- **Diplomacy** — military access agreements extend valid Supply-source territory; unilateral Annexation is a forced-annexation act (Sovereignty-tier CB plus per-observer overreach, `diplomacy__kb.md`); peace ratification's Occupation removal resolves at Diplomacy step 7; Troop Training feeds Diplomacy's Military Leverage category.
+- **Diplomacy** — military access agreements extend valid Supply-source territory; unilateral Annexation is a forced-annexation act (Sovereignty-tier CB plus per-observer overreach, `diplomacy__kb.md`); peace ratification's Occupation removal resolves at Diplomacy step 7; Troop Training feeds Diplomacy's Military Leverage category; the Peace Conference reuses Diplomacy's Negotiation Session (2026-11-10).
 - **Nations** — sympathy data determines occupied-population Grievance vs. liberator bonus; Statehood Pathway is the secession end state of internal armed conflict.
+- **UI** — Army card, Military tab, Region/Actor-cell mobilization controls, standing-share dial, Peace Conference stack editor, occupation/siege display and the Battle Report message render this file's state and readouts (`ui__kb.md`, 2026-11-10).
 - **Characters** — deferred hook for named-commander bonuses and captured-personnel ransom. Beyond alpha (2026-11-01).
 
 ## Status
@@ -340,3 +421,4 @@ changes.
 - **2026-11-01 — open** (resolved 2026-11-02 except numbers): Retinue Right sizing; rebel Peace Conference analogue; civil-war martial-law cost; Vanguard requisition Opinion hits; numeric coefficients (pacing).
 - **2026-11-02 — settled**: alpha naval scope; soft substitutable garrison; rebel Peace Conference reuse; scalar Retinue Right; civil-war martial law; Troop Training commitment; Army Tactics as dials; Vanguard requisition hits; one stance function for Veto-to-declare/-continue; war-declaration timing (validated and logged step 2, diplomatic effects step 7, hostilities from next turn's step 4).
 - **2026-11-03 — settled**: Annexation is a forced-annexation act (Diplomacy CB + overreach); peace-ratification removal of Occupation resolves at Diplomacy step 7; fielding goods come from provincial warehouses; Occupation's consequences are specified only here.
+- **2026-11-10 — designer input (settled as answered)**: levy vs. standing forces with a per-cell `standing_share` dial set as a political decision (Government order or cell petition; cells comply or resist); upkeep paid by the cells, Government may compensate; scoped Mobilization (cell / Region / Empire by each cell's own Levy obligation); Retinue scalar boosts contribution to military pools except Artillery and Meteomancy/Theurgy, pool output only (not Fairness); Peace Conference proposal stacks (obligatory = accept/refuse, optional = individually; no size cap, bounded by capability, unless defeat is ultimate); Battle Report with per-round casualties, tactic matchup highlighting and fog-of-war handling for the enemy side (exact in alpha). Vanguard/centre/rearguard: **no change** — the existing detachment model stands as written. **Proposed (awaiting OK)**: the occupation and siege readouts (no rule change); the Peace Conference reusing the Negotiation Session. **Open**: `k` and `standing_upkeep_mult` values (numbers pass); whether Siege Corps should stay in the Retinue boost list (taken literally from "except artillery/meteomancy"); how a cell's resistance to a `standing_share` order is priced beyond the existing defiance class.
