@@ -71,7 +71,7 @@ layer: `kb/war__kb.md`, `doc/…`, `spec/…`.
 4. **Spec**: only the section the kb cross-reference names. **Code**: only the files that spec section lists; the matching `tests/<module>.test.js` last, for conventions.
 5. **Skip** the doc layer, other modules' kb files unless a cross-reference names them, and `cross_module_notes__kb.md` unless the task is cross-cutting.
 6. **Never trust README status** — confirm "implemented" from `src/` plus a test name.
-7. **Edit flow**: one branch per session; kb → spec → code → tests; changelog entry in `index.md`; no direct commits to the default branch.
+7. **Edit flow**: always work in the same github branch; kb → spec → code → tests; changelog entry in `changelog.md` split into sections having headers as title and date;
 8. **Tooling to build**: `tools/outline.mjs`, `tools/section.mjs`, `tools/check-headers.mjs` (named in the layout and Access rules above, not present in the repo yet; until they exist, use the kb Status block and the connector's file reads).
 9. **KB/Spec equality**: kb and spec files should have mostly the same structure to make the search of topics to the both sides easier.
 
