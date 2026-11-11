@@ -7,15 +7,17 @@ Committed directly to `main` at the designer's request. Files touched: `kb/ai_di
 
 **Settled (designer input)**
 - **Scope**: alpha AI focuses on international diplomacy and alliances; internal politics runs on autopilot using only actions the player also has — no artificial stability floor.
-- **Symmetry**: the player is an ordinary Country; Posture toward any Country is one function of opinion, Leverage readouts, CBs and the rest. The initial opinion seeds the posture and sustained behaviour can flip it.
-- **Parallel actions**, not a strict ladder: the AI strengthens itself and secures contested assets first, provokes or fabricates a CB, finishes with war, and builds an alliance network to squeeze rivals.
+- **Symmetry**: the player is an ordinary Country; Posture toward any Country is one function of opinion, Leverage readouts, CBs and the rest. The initial opinion seeds the posture and sustained behaviour can flip it. Four-value Posture enum with a hysteresis cache.
+- **Parallel actions**, not a strict ladder: the AI strengthens itself and secures contested assets first, provokes or fabricates a CB, finishes with war, and builds an alliance network to squeeze rivals. Balance-of-power term included.
+- **Campaign**: a stored record of the AI's current intent per target; it adds a focus bonus to aligned actions but forbids nothing. Switching types is free (no action, no labour) with a small switch margin as hysteresis; existential threats and sudden opportunities bypass the margin.
+- **CB fabrication**: goading, framing a third Country by false flag, or a false flag against the AI's own Region.
 - **Implementation**: deterministic utility AI, one module, no LLM at runtime; AI-War keeps minimal hooks (border deployment, Declare War, default army handling).
 
-**Proposed (awaiting the designer's OK)**: no stored `Campaign` object — momentum is read from the Decision Log; the four-value Posture enum with a hysteresis cache; the balance-of-power term; the framing play (false flag against a third Country).
+**Proposed (awaiting the designer's OK)**: the Campaign type list (Court, Secure, Squeeze, Provoke, Strike, Support), the focus-bonus mechanism, and the bypass rule.
 
-**Open**: whether a false flag may target the AI's own Region; how the AI estimates a target's detection strength; the Contested Asset formula; Portrait → appetite mapping; all numbers.
+**Open**: how the AI estimates a target's detection strength; the Contested Asset formula; Portrait → appetite mapping; all numbers (switch margin, Posture band).
 
-**Not yet done**: spec (`ai_diplomacy__spec.md`), code, tests, `index.md` module row 13 (still lists a stub doc), `.outline/`.
+**Not yet done**: check the `diplomacy__kb.md` false-flag wording against a self-targeted false flag; spec (`ai_diplomacy__spec.md`), code, tests, `index.md` module row 13 (still lists a stub doc), `.outline/`.
 
 ## Army composition, third pass — 2026-11-11
 Committed directly to `main` at the designer's request. Files touched: `kb/war__kb.md`.
