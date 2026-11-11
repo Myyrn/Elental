@@ -1,7 +1,7 @@
 // tests/ai_diplomacy.test.js — AI-Diplomacy agent (ai_diplomacy__spec). Pure: the reads adapter is injected, so no world is needed.
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { shared, weights, derivePosture, typeValueInputs } from './ai_diplomacy_helpers.js'
+import { shared, weights, derivePosture } from '../src/modules/ai/diplomacy/posture.js'
 import { updateCampaigns } from '../src/modules/ai/diplomacy/campaign.js'
 import { generate } from '../src/modules/ai/diplomacy/candidates.js'
 import { select } from '../src/modules/ai/diplomacy/score.js'
