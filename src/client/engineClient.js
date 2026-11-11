@@ -4,8 +4,7 @@ import { createModules, createRegistry } from '../modules/index.js'
 import { buildState } from '../data/loaders/buildState.js'
 import { effectiveRuleset } from '../data/loaders/readPackage.js'
 import * as D from '../modules/economics/derive.js'
-import { simpleWarOrders } from '../modules/ai/simpleWar.js'
-import { simpleDiplomacyOrders } from '../modules/ai/simpleDiplomacy.js'
+import { aiOrders } from '../modules/ai/index.js'
 import { readouts } from './readouts.js'
 const sum = a => a.reduce((s, x) => s + x, 0)
 export class EngineClient {
@@ -18,7 +17,7 @@ export class EngineClient {
   async submit(order) { const o = { id: `o${this.state.meta.turn}.${this.seq++}`, visibility: 'public', ...order }; this.orders.push(o); return this.orders.length }
   async clearOrders() { this.orders = [] }
   async removeOrder(id) { this.orders = this.orders.filter(o => o.id !== id) }
-  async endTurn() { const r = resolveTurn(this.state, this.ruleset, this.orders, { modules: this.modules, registry: this.registry, aiOrders: (s0, rs) => { const c = makeCtx(structuredClone(s0), rs, { modules: this.modules, registry: this.registry, start: s0 }); return [...simpleWarOrders(c), ...simpleDiplomacyOrders(c)] } }); this.state = r.state; this.orders = []
+  async endTurn() { const r = resolveTurn(this.state, this.ruleset, this.orders, { modules: this.modules, registry: this.registry, aiOrders: (s0, rs) => { const c = makeCtx(structuredClone(s0), rs, { modules: this.modules, registry: this.registry, start: s0 }); return aiOrders(c) } }); this.state = r.state; this.orders = []
     this.version++; this.history.push(this.summary()); return { report: r.report, turn: this.state.meta.turn } }
   async runTurns(n) { for (let i = 0; i < n; i++) await this.endTurn(); return this.snapshotMeta() }
   summary() { const ctx = this.ctx(), out = { turn: this.state.meta.turn, countries: {} }
