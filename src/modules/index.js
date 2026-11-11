@@ -9,5 +9,6 @@ import { registerWarActions } from './war/actions.js'
 import { ActionRegistry } from '../engine/engine.js'
 import { registerPolityActions } from './polity/actions.js'
 import { registerRemainingActions } from './polity/remaining.js'
+import { registerAiActions } from './ai/actions.js'
 export const createModules = () => [worldmapModule, administrationModule, economicsModule, polityModule, warModule, diplomacyModule]
-export function createRegistry() { const r = new ActionRegistry(); registerPolityActions(r); registerRemainingActions(r); registerWarActions(r); registerDiplomacyActions(r); return r }
+export function createRegistry() { const r = new ActionRegistry(); registerPolityActions(r); registerRemainingActions(r); registerWarActions(r); registerDiplomacyActions(r); registerAiActions(r); return r }
