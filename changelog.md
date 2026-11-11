@@ -2,6 +2,21 @@
 
 New entries go here (one section per change, header = title and date), per the edit flow in `index.md`. Earlier entries still live in the `index.md` Changelog section.
 
+## AI — Diplomacy, first pass — 2026-11-11
+Committed directly to `main` at the designer's request. Files touched: `kb/ai_diplomacy__kb.md` (new; the doc layer is skipped by decision).
+
+**Settled (designer input)**
+- **Scope**: alpha AI focuses on international diplomacy and alliances; internal politics runs on autopilot using only actions the player also has — no artificial stability floor.
+- **Symmetry**: the player is an ordinary Country; Posture toward any Country is one function of opinion, Leverage readouts, CBs and the rest. The initial opinion seeds the posture and sustained behaviour can flip it.
+- **Parallel actions**, not a strict ladder: the AI strengthens itself and secures contested assets first, provokes or fabricates a CB, finishes with war, and builds an alliance network to squeeze rivals.
+- **Implementation**: deterministic utility AI, one module, no LLM at runtime; AI-War keeps minimal hooks (border deployment, Declare War, default army handling).
+
+**Proposed (awaiting the designer's OK)**: no stored `Campaign` object — momentum is read from the Decision Log; the four-value Posture enum with a hysteresis cache; the balance-of-power term; the framing play (false flag against a third Country).
+
+**Open**: whether a false flag may target the AI's own Region; how the AI estimates a target's detection strength; the Contested Asset formula; Portrait → appetite mapping; all numbers.
+
+**Not yet done**: spec (`ai_diplomacy__spec.md`), code, tests, `index.md` module row 13 (still lists a stub doc), `.outline/`.
+
 ## Army composition, third pass — 2026-11-11
 Committed directly to `main` at the designer's request. Files touched: `kb/war__kb.md`.
 
