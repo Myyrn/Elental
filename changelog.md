@@ -2,6 +2,24 @@
 
 New entries go here (one section per change, header = title and date), per the edit flow in `index.md`. Earlier entries still live in the `index.md` Changelog section.
 
+## AI — Diplomacy code, AI — War first pass — 2026-11-11 (later)
+Committed directly to `main` at the designer's request. Files touched: `kb/ai_war__kb.md` (new), `spec/ai_diplomacy__spec.md` (rewritten), `spec/ai_war__spec.md` (new), `src/modules/ai/{index,diplomacyAgent,aiWar,actions}.js`, `src/modules/ai/diplomacy/{tuning,config,reads,posture,campaign,candidates,score,negotiate}.js`, `src/modules/index.js`, `src/client/engineClient.js`, `tests/ai_diplomacy.test.js`, `package.json`.
+
+**Implemented (not yet run: no execution environment this session; run `npm test` first)**
+- **AI-Diplomacy agent** per the spec: Posture with hysteresis, balance-of-power term, Campaigns with switch margin and bypass, candidate roles validated against the real ActionRegistry, binary-threshold greedy selection, covert exposure pricing, false-flag *frame* inside the detection window, proposal responses. The player is read as an ordinary Country.
+- **Opt-in**: runs only with `ruleset.aiDiplomacy.enabled === true`, so existing behaviour and tests are unchanged by default. `simpleWar` and `simpleDiplomacy` still always run. `engineClient` now calls `aiOrders` from `src/modules/ai/index.js`.
+- **AI-War hooks**: pre-war border deployment under hostile Campaigns; per-army tactic (aggressive under Strike, else balanced). Same opt-in.
+
+**Corrections to the previous spec** (the Diplomacy module is implemented, contrary to the earlier "not implemented" note): `ctx.derive.*` is bound, so it is called without `ctx`; real action ids are `proposeTreaty`, `answerProposal`, `foreignPropaganda`, `covertInfluence`, `declareWar` (the provisional `actionMap` is gone); the AI cache persists through a pseudo-action `aiMemo` instead of an `ai` module service (no engine change; the Decision Log records it with no affected cells).
+
+**Finding — needs a designer decision**: a self-targeted false flag (`ai_diplomacy__kb.md` Rule 4c) is impossible in the current Diplomacy code: `covert.js` `validate` rejects `target === actor`, and `detect()` / `consequences()` would use the AI's own Observation and grant a CB against itself. The `selfFlag` candidate is generated but always dropped by validation. The `diplomacy__kb.md` wording still has not been checked; the rule for who detects a self-flag is missing.
+
+**Proposed (awaiting the designer's OK)** — spec decisions listed in `ai_diplomacy__spec.md` Status: opt-in flag; `aiMemo`; scale-free edge normaliser; Diplomacy's `power` readout for balance of power; `ruleset.aiDiplomacy.initialOpinion` as the opinion seed (no Country-to-Country opinion stock exists); tuning defaults in code rather than `tuning.defaults.json`; Dominate gate order Strike, Squeeze, Provoke, Secure. AI-War kb Rules 1, 3, 5, 8 (border deployment, tactic rule, no merge/split, no peace proposals).
+
+**Not implemented (no ActionType yet)**: Embargo, Tariffs, Improve Relations, Trade Agreement, Gift, alliance-call, counter-proposals; Secure's Contested Asset formula is a trade-dependency placeholder.
+
+**Not yet done**: the **War army-composition spec and code** (Contingents, sorting templates, merge/split, reinforcement, per-detachment tactic, Balanced stance; see the entries below); `tests/ai_war.test.js`; an end-to-end run of the agent through the real engine; `modules__spec.md` pointer; `index.md` rows were updated, but `war__kb.md` Cross-references still point to `ai_war__doc.md` (read it as `ai_war__kb.md`); moving `ai.dip.*` keys into `tuning.defaults.json`; `.outline/`; `tools/` helpers.
+
 ## AI — Diplomacy, first pass — 2026-11-11
 Committed directly to `main` at the designer's request. Files touched: `kb/ai_diplomacy__kb.md` (new; the doc layer is skipped by decision), `spec/ai_diplomacy__spec.md` (new).
 
