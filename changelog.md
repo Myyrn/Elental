@@ -3,7 +3,7 @@
 New entries go here (one section per change, header = title and date), per the edit flow in `index.md`. Earlier entries still live in the `index.md` Changelog section.
 
 ## AI — Diplomacy, first pass — 2026-11-11
-Committed directly to `main` at the designer's request. Files touched: `kb/ai_diplomacy__kb.md` (new; the doc layer is skipped by decision).
+Committed directly to `main` at the designer's request. Files touched: `kb/ai_diplomacy__kb.md` (new; the doc layer is skipped by decision), `spec/ai_diplomacy__spec.md` (new).
 
 **Settled (designer input)**
 - **Scope**: alpha AI focuses on international diplomacy and alliances; internal politics runs on autopilot using only actions the player also has — no artificial stability floor.
@@ -13,11 +13,13 @@ Committed directly to `main` at the designer's request. Files touched: `kb/ai_di
 - **CB fabrication**: goading, framing a third Country by false flag, or a false flag against the AI's own Region.
 - **Implementation**: deterministic utility AI, one module, no LLM at runtime; AI-War keeps minimal hooks (border deployment, Declare War, default army handling).
 
+**Spec written (`ai_diplomacy__spec.md`)**: agent `planDiplomacy` returning orders plus a cache written through an `ai` module service; a single `reads.js` adapter so the agent runs before the Diplomacy module exists (roles whose ActionType is not registered are skipped); posture, balance-of-power, campaign selection with margin and bypass, greedy value-per-labour selection under binary thresholds, covert risk pricing, CB fabrication plays, proposal responses, `ai.dip.*` tuning keys. Items tagged **(spec decision)** there await the designer's OK, notably that "strengthen first" is not implemented by this agent in alpha (it is limited to scenario default dials, `simpleWar.js` and the diplomatic half of Secure).
+
 **Proposed (awaiting the designer's OK)**: the Campaign type list (Court, Secure, Squeeze, Provoke, Strike, Support), the focus-bonus mechanism, and the bypass rule.
 
-**Open**: how the AI estimates a target's detection strength; the Contested Asset formula; Portrait → appetite mapping; all numbers (switch margin, Posture band).
+**Open**: how the AI estimates a target's detection strength (spec reads exact data in alpha); the Contested Asset formula; Portrait → appetite mapping; the `effects` table; all numbers (switch margin, Posture band).
 
-**Not yet done**: check the `diplomacy__kb.md` false-flag wording against a self-targeted false flag; spec (`ai_diplomacy__spec.md`), code, tests, `index.md` module row 13 (still lists a stub doc), `.outline/`.
+**Not yet done**: check the `diplomacy__kb.md` false-flag wording against a self-targeted false flag; code, tests, `modules__spec.md` pointer, `index.md` module row 13 (still lists a stub doc), `.outline/`. The Diplomacy module itself is still unimplemented.
 
 ## Army composition, third pass — 2026-11-11
 Committed directly to `main` at the designer's request. Files touched: `kb/war__kb.md`.
