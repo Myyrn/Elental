@@ -1,6 +1,6 @@
 # Elental — Project Index / Manifest
 
-Last updated: 2026-11-11
+Last updated: 2026-11-12
 
 This file lives in **two places**: the Project knowledge (always available, slim
 working copy) and the repo root (`index.md`, authoritative). It is the map of what
@@ -88,6 +88,37 @@ layer: `kb/war__kb.md`, `doc/…`, `spec/…`.
 - If GitHub is unreachable, fall back to attaching only the files for the module
   and returning updated files as downloads; the access rules above still apply
   (outline, then section).
+
+## KB ↔ Spec continuity (2026-11-12)
+
+Spec is a section-wise projection of kb. Continuity = one integer **rev** per kb
+section, mirrored in the spec. No hashes, no tooling; only two Status blocks are read.
+
+- **Mirror**: spec uses the same `##/###` headings as kb under Data Structures and
+  Rules (one spec section per kb section; address = heading path). Each spec section
+  opens with `Code: <src path>`. Cross-references live in kb only.
+- **`Rev:`** (kb Status): one line per tracked section, `<heading path> = <n>`.
+  Tracked = every `##/###` under Data Structures and Rules. +1 in the same commit as
+  any edit that changes meaning (not wording/typos). New section starts at 1; a
+  deleted section loses its line.
+- **`Sync:`** (spec Status): `<heading path> = <kb rev> / <code rev>`. kb rev = the kb
+  rev the spec text reflects; code rev = kb rev implemented in code + tests (`-` if none).
+- **Work list** = compare the two lists, never section bodies:
+  kb rev > synced rev → revise that spec section; in `Rev:` but not `Sync:` → write it;
+  in `Sync:` but not `Rev:` → delete it (orphan); synced rev > code rev → code + tests.
+- **Revise in place**: read the kb section (+ pointers it names) and the old spec
+  section; edit that spec section only; set its Sync kb rev. Never regenerate a whole
+  spec, never open doc.
+- **Commit chain**: kb (bump Rev) → spec (set Sync) → code/tests (set code rev). A
+  session may stop after any link; the two lists show where it stopped.
+- **Pointers**: mechanics live in one owning section (Access rule 4); only the
+  owner's rev is bumped.
+- **check-headers** also fails if: a tracked kb section lacks a `Rev:` line; a `Sync:`
+  line has no kb section; a synced rev exceeds its kb rev.
+- **Bootstrap**: existing specs are discarded. Per module: add `Rev:` (all = 1) to kb
+  Status, then write spec section by section, filling `Sync:` as each lands. The
+  module-table spec column turns ✅ when every `Sync:` kb rev equals its `Rev:`.
+- Supersedes Access rule 6's spec-headings clause and Task intake item 9.
 
 ## Module status
 
