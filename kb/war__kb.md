@@ -36,12 +36,14 @@ Items tagged **(proposed)** await the designer's OK. See Status.
 
 **2026-11-10 (army composition)**: fielded forces are made of **Contingents** (one Army
 pool from one origin cell); a cell's mobilized troops are divided across the Army pools
-it generates, and a pool under 10% of the cell's total produces no Contingent; armies
-can be **merged** (all three detachment depths equal; detachments combined separately)
-and **split** (whole Contingents); the three detachments are a strategic division of the
-army, not a battle line; Contingents are sorted into detachments automatically (default
-table **(proposed)**). This supersedes the earlier "no change" note on
-vanguard/centre/rearguard. See Status.
+it generates, and a pool under 10% of the cell's total is not deployed (Artillery, Siege
+Corps and Mages are exempt); armies can be **merged** (same owner and province, detachment
+depths within a speed-based tolerance) and **split** (whole Contingents, same position and
+depths), both as commitments; the three detachments are a strategic division of the army,
+not a battle line, with a **tactic per detachment** and an automatic **stance per
+Contingent**; Contingents are sorted into detachments automatically by a selectable
+**sorting template** (Default: 20% Vanguard / 60% Center / 20% Rearguard). This supersedes
+the earlier "no change" note on vanguard/centre/rearguard. See Status.
 
 ## Data Structures
 
@@ -66,7 +68,8 @@ unit = {                                  // a Contingent (see Contingents and A
   origin_cell: (Nation, Estate, Region), kind: levy | standing,
   pool, count,                            // exactly one Army pool (2026-11-10; was a composition map)
   equipment_tier, armor_invested: 0-100%,
-  strength_current, cohesion (persistent), position, supply_state: 0-100%
+  strength_current, cohesion (persistent), position, supply_state: 0-100%,
+  stance                                  // set automatically per Contingent (2026-11-10)
 }
 ```
 Fielding consumes Heavy Industry goods once, drawn from the recruiting
@@ -103,7 +106,7 @@ military_contribution(cell, pool) = base_contribution(cell, pool) × (1 + k × r
    for pool ∈ { Shock Infantry, Pike Infantry, Skirmishers, Cavalry, Siege Corps }
    not for Artillery, nor Meteomancy/Theurgy (hence not Mages)
 ```
-`retinue(cell)` is the scalar Right (maximum fraction of the cell's own armed pools that can serve as retinue). The boost scales the cell's **contribution to those military Skilled Labor pools in proportion to its Retinue scalar**; `k` is a numbers-pass value. It changes **pool output only** — it is not a separate contribution term in Internal Politics' Fairness gap. The Right's armed-rung role (Internal armed conflict, below) is unchanged.
+`retinue(cell)` is the scalar Right (maximum fraction of the cell's own armed pools that can serve as retinue). The boost scales the cell's **contribution to those military Skilled Labor pools in proportion to its Retinue scalar**; `k` is a numbers-pass value. It changes **pool output only** — it is not a separate contribution term in Internal Politics' Fairness gap. The Right's armed-rung role (Internal armed conflict, below) is unchanged. **Pool generation (settled 2026-11-10)**: the boost raises the cell's *generation* of those pools, so it feeds the cell's `pool_share` and the total pool value indirectly (Contingents and Army Composition) — it is not applied again at sorting or fielding.
 
 ### Contingents and Army Composition (2026-11-10)
 **Contingent** — the name for what the designer first called an "individual stack": the
@@ -111,46 +114,79 @@ troops of **one Army pool** drawn from **one origin cell** `(Nation, Estate, Reg
 is the Fielded Unit: it is the atom of an army, it is never mixed across pools or origin
 cells, and casualties trace to its origin cell. (A cell is the *contributor*, a Contingent
 is what it contributes.)
+
+**Generation**
 ```
 mobilized_total(cell)  = Levy obligation(cell) × involuntary_compliance(cell)   // Mobilization, above
-pool_share(cell, p)    = cell's Army-pool output of p / Σ cell's Army-pool output   // pools the cell actually generates
+pool_share(cell, p)    = cell's Army-pool output of p / Σ cell's Army-pool output   // pools the cell actually generates;
+                                                                                    // output already includes the Retinue boost
 contribution(cell, p)  = mobilized_total(cell) × pool_share(cell, p)
 Contingent(cell, p) exists  ⇔  contribution(cell, p) ≥ contingent_min_share × mobilized_total(cell)
+                               or p ∈ { Artillery, Siege Corps, Mages }
                                 // contingent_min_share = 0.10 (settled value)
 ```
-- A cell contributes its **total** troops according to its Duties, divided into kinds by
-  the Army labour pools it generates (the `kind` of a Contingent is its pool; `levy | standing`
-  is a separate attribute).
-- **10% threshold**: a Contingent is generated only when it makes up at least 10% of the
-  total troops the cell must provide — even if enough people are available.
-- **Army structure**: an army holds its Contingents in three detachments.
+- A cell contributes its **total** troops according to its Duties, divided into kinds by the Army labour pools it generates (a Contingent's pool is its kind; `levy | standing` is a separate attribute).
+- **10% threshold**: a pool is deployed only when it makes up at least 10% of the total troops the cell must provide. A share under 10% is **simply not deployed** — those people stay in production and are not moved to other pools.
+- **Exempt from the 10% minimum**: Artillery, Siege Corps and Mages (Meteomancy/Theurgy draw). They are always deployed when the cell generates them.
+
+**Army structure**
 ```
 army = { contingents: { vanguard: [Contingent], center: [Contingent], rearguard: [Contingent] },
-         position (Army Position & Maneuver), tactic, stance }
+         position (Army Position & Maneuver, incl. detachment_depths),
+         tactic: { vanguard, center, rearguard } }       // a dial per detachment; stance lives on each Contingent
 ```
-- **Automatic sorting**: the game sorts every Contingent into a detachment on creation and on
-  merge. **Default table (proposed)** — by pool, the detachment whose strategic role (Army
-  Position & Maneuver) the pool best serves:
+- **Stance is set automatically per Contingent**; **tactic is set per detachment** (Army Tactics, below). The rule that picks a Contingent's stance is **open**.
+
+**Sorting templates**
+A **sorting template** is player-authored data (not hardcoded): any number can be created, and the player chooses one **whenever deploying or changing an army's composition** (fielding, Mobilize, merge, split, adding Contingents).
 ```
-detachment_default(pool) = vanguard  ← Skirmishers, Cavalry
-                           center    ← Shock Infantry, Artillery, Siege Corps
-                           rearguard ← Pike Infantry
+SortingTemplate = { name,
+                    shares: { vanguard, center, rearguard },     // fractions of the army's total troops, sum = 1
+                    vanguard_rules:  [ rule … ],                 // run in order until the detachment is full
+                    rearguard_rules: [ rule … ] }                // Center takes everything left
+rule ∈ take_all(pool)                          // every troop of that pool still unassigned
+     | take_share_of_remaining(pool, f)        // fraction f of that pool still unassigned
+     | fill_ratio({pool: weight, …})           // the pools in the stated proportion
+capacity(d) = shares[d] × total troops of the army
 ```
-  Whether the player may reassign Contingents between detachments afterwards is **open**.
-- **Merge** (armies combine):
+- **Order**: Vanguard is filled first, then Rearguard, then Center takes all remaining troops (including Artillery, Siege Corps and Mages unless a rule claims them). Capacity is counted in troops.
+- **Cutting (proposed)**: a Contingent that straddles a capacity boundary is cut there; both parts keep the same pool, origin cell, `kind` and casualty tracing and are separate Contingents.
+- **Exhaustion (proposed)**: when a pool in a `fill_ratio` runs out, the rest continue in their ratio; when all are out the detachment stays under capacity.
+- **Default template (settled 2026-11-10)**:
 ```
-Merge(army A into army B)   // legal only if A.depths == B.depths for all three detachments
+Default: shares { vanguard 0.20, center 0.60, rearguard 0.20 }
+  vanguard : take_all(Cavalry)  →  fill_ratio({Skirmishers: 2, Shock Infantry: 1})
+  rearguard: take_share_of_remaining(Cavalry, 0.30)  →  fill_ratio({Skirmishers: 3, Shock Infantry: 1, Pike Infantry: 1})
+  center   : everything left
+```
+  All Cavalry goes to the Vanguard until it is full; if Cavalry is not enough, Skirmishers and Shock Infantry support it at 2 : 1. Then 30% of the Cavalry still left goes to the Rearguard, which is filled with Skirmishers, Shock Infantry and Pike Infantry at 3 : 1 : 1 until full. Everything remaining goes to the Center.
+- Whether choosing a template again overrides a player's manual reassignments, and whether templates belong to the Country or the player, are **open**.
+
+**Reassign**: the player may move Contingents between the detachments of one army, **as long as the two detachments' depths are within tolerance** (below).
+
+**Depth tolerance**
+```
+depth_tolerance(S) = tol_base × relative_speed(S)       // S = the troops being compared; quicker troops count as closer
+                                                         // so their tolerance is larger
+```
+- Alpha: relative speed only. **Post-alpha**: the tolerance also takes in the province's terrain and its obstacles.
+- Used by Merge (S = the lower `army_speed` of the two armies, **proposed**) and Reassign (S = the lower speed of the moved Contingent and the receiving detachment, **proposed**). `tol_base` is a numbers-pass value.
+
+**Merge** (armies combine — a Commitment)
+```
+Merge(army A into army B)   // legal only if: same owner, same province, and for every detachment d
+                            //   |A.depth(d) − B.depth(d)| ≤ depth_tolerance
   B.vanguard  += A.vanguard;  B.center += A.center;  B.rearguard += A.rearguard
 ```
-  The detachments are combined **separately**; the merged army keeps the shared depths.
-  Implied conditions **(proposed)**: same owner/side and same province.
-- **Split** (a new army is formed):
+  The detachments are combined **separately**. Merged depths are the troop-weighted average **(proposed)**. Being "near each other in the province" is exactly the depth tolerance: armies at opposite ends of a province cannot merge. Whether `entry_side`/`route_side` must also match is **open** (the position model has no lateral coordinate).
+
+**Split** (a new army is formed — a Commitment)
 ```
 Split(army, set<Contingent>) → new army   // only whole Contingents; the parent keeps ≥ 1
 ```
-  A split needs enough Contingents to form each army; a Contingent is never divided.
-  Each moved Contingent stays in its current detachment. The new army starts in the parent's
-  province with the parent's depths **(proposed)**, so the two can be merged again.
+  The new army starts at the **same position with the parent's detachment depths**, so the two can be merged again immediately. Each moved Contingent stays in its detachment. A Split never divides a Contingent (cutting happens only in sorting).
+
+- Merge and Split are **Commitments** (`actions__kb.md`).
 - Multi-origin stacking Coordination cost (Administration) still applies to armies made of
   several origin cells; merge and split do not change origin tracing.
 
@@ -228,13 +264,17 @@ threshold, closest pair fights first, remainder delayed/misses.
 division of the army, not a tactical battle line:
 - **Vanguard** — scouts for the enemy (detection), harasses it, tries to engage it and hold it until the main forces arrive, screens and intercepts (the Vanguard-vs-Vanguard contest, Evasion / Compel), and forages from the ground (local requisition). It risks being caught by the enemy's main force and eliminated before help arrives.
 - **Center** — the main body: fights battles and conducts sieges.
-- **Rearguard** — protects the supply lines. It can itself be scattered along the route and **caught away from the main army** (the same `spread` gate applies to it as to the Vanguard).
-- Which detachment a Contingent starts in comes from the automatic sorting (Contingents and Army Composition). The exact mechanical effect of "protecting supply lines" (for example against the enemy's Rearguard raids) is **open**.
+- **Rearguard** — protects the supply lines. It can itself be scattered along the route and **caught away from the main army** (the same `spread` gate applies to it as to the Vanguard). Its duties (settled 2026-11-10):
+  1. **Intercepts enemy Vanguard raids** that are not trying to intercept the army but to **interdict its supply routes** (Evasion / Compel, step 3).
+  2. **Prevents encirclement** of the army.
+  3. **Keeps the main forces in order** when they are broken or retreating (Rout, below).
+  A Rearguard that has been scattered or caught away from the main body cannot perform these duties for it. Numbers and the interception contest are **open** (**proposed**: the same `screening_strength` contest as Compel).
+- Which detachment a Contingent starts in comes from the automatic sorting (Contingents and Army Composition); it may be changed by Reassign within depth tolerance.
 
 ### Evasion / Compel
 1. Gate — attacker `army_speed` must threaten interception.
 2. Compel — Vanguard vs. Vanguard via `screening_strength`: defender wins → clean disengage; attacker too weak → deflected; attacker wins → battle at current depths.
-3. Rearguard raids — cheaper, separate Supply-interdiction action.
+3. Rearguard raids — cheaper, separate Supply-interdiction action. A Vanguard that raids the supply routes instead of trying to intercept the army meets the defender's **Rearguard**, which can intercept it (see Detachment roles).
 
 ### Supply
 ```
@@ -284,15 +324,16 @@ besieger spends Siege Corps for an immediate capture attempt scaled by progress.
 
 ### Battle Resolution (sequential, state carries forward)
 1. **Skirmish** — ranged vs. ranged (full-effect); ranged vs. melee-tagged (harassment, reduced). Carries into Melee.
-2. **Melee** — screening contest (`screening_strength = discipline × reach_bonus × tactic_modifier`) determines whether mounted sub-units bypass to fragile ranged units (`charge_bonus` applies) or get forced into reach engagement; paired duels resolve independently per sub-unit; cascading reinforcement applies `flanking_bonus`.
-3. **Rout** — aggregate cohesion vs. threshold: clean break (pursuit, `speed`-driven casualties) or orderly withdrawal.
+2. **Melee** — screening contest (`screening_strength = discipline × reach_bonus × tactic_modifier`) determines whether mounted sub-units bypass to fragile ranged units (`charge_bonus` applies) or get forced into reach engagement; paired duels resolve independently per sub-unit; cascading reinforcement applies `flanking_bonus`. A present Rearguard prevents encirclement (2026-11-10, numbers open).
+3. **Rout** — aggregate cohesion vs. threshold: clean break (pursuit, `speed`-driven casualties) or orderly withdrawal. A present Rearguard keeps broken or retreating main forces in order (2026-11-10, numbers open).
 
 ```
 cohesion: win → += Δwin; stalemate/loss → −= Δloss   // persistent, bounded, never reset
 ```
 **Tactic Stances**: Hold Formation (↑screening/def, ↓atk) · Aggressive
 (↑atk/charge, ↓screening/def) · Cautious (↑cohesion retention, ↓atk/charge)
-· Flanking-focused (↑reinforcement, ↓screening).
+· Flanking-focused (↑reinforcement, ↓screening). The stance is set
+**automatically per Contingent** (2026-11-10; the selection rule is open).
 
 ### Battle Report (resolution trace — 2026-11-10)
 ```
@@ -314,6 +355,7 @@ BattleReport = { battle: (province, turn, sides),
 for Speed/depth; Shadow/Screen is pure recon; Blockade commits strength ≥
 `garrison_strength × 3` against a soft-type target.
 **Class (settled 2026-11-02)**: Army Tactics are **dials** — free to change, with consequences coming only from the resulting state.
+**Scope (settled 2026-11-10)**: a tactic is set **per detachment**, not per army.
 
 ### Internal Armed Conflict (handed off from Internal Politics — settled 2026-11-01)
 A faction's armed rung (armed retinue / revolt) resolves here, on the same
@@ -462,21 +504,25 @@ Stack(side) = list of Proposals defined by that side; no size limit
 23. Sea lanes carry transport and supply only in alpha; no fleet combat, no naval pool.
 24. Occupation garrison is soft and substitutable with Control; sizing is derived from the occupied cells' population and grievance; civil-war martial law reuses occupation's Control cost.
 25. Retinue is a scalar Right; internal conflicts resolve through the same Peace Conference with Rights/Duties-vocabulary terms.
-26. Army Tactics are dials; Show of Force is derived from border deployment (not an order) and inherits Garrison/Hold's supply draw.
+26. Army Tactics are dials, set per detachment (2026-11-10); Show of Force is derived from border deployment (not an order) and inherits Garrison/Hold's supply draw.
 27. Veto-to-declare and Veto-to-continue share one stance function; the difference emerges from live state (e.g. War Exhaustion), not a separate curve.
 28. Movement is blocked across an edge between two Mountain hexes unless it is a `mountain_pass` (see World Map Rule 15); supply routes obey the same edge rule.
 29. A unit is `levy` or `standing`; `standing_share(cell)` is set by a political decision (Government order or cell petition), covered cells comply or resist with the actions available to them, and standing units stay origin-traced (2026-11-10).
 30. Standing upkeep is paid by the origin cells, at a higher rate than levy; the Government may compensate through its spending dial; an uncompensated burden feeds `burden_share` (2026-11-10).
 31. Mobilization is scoped (cell / Region / Empire); every covered cell contributes by its own Levy obligation × `involuntary_compliance` (2026-11-10).
-32. The Retinue scalar scales a cell's contribution to Shock Infantry, Pike Infantry, Skirmishers, Cavalry and Siege Corps — never Artillery or Meteomancy/Theurgy — and changes pool output only, never a Fairness term (2026-11-10).
+32. The Retinue scalar scales a cell's generation of Shock Infantry, Pike Infantry, Skirmishers, Cavalry and Siege Corps — never Artillery or Meteomancy/Theurgy — and changes pool output only, never a Fairness term; the boosted output feeds `pool_share` (2026-11-10).
 33. Peace Conference proposals are stacks: obligatory proposals are accepted or refused only, optional ones individually; no size limit — the recipient's capability assessment bounds what is accepted (2026-11-10).
 34. A Battle Report is the derived resolution trace, rendered as one message; the player's side is exact, the enemy side follows the visibility stamp; it stores no engine state (2026-11-10).
 35. A Contingent is the troops of exactly one Army pool from exactly one origin cell; it is the atom of an army and is never mixed across pools or origin cells (2026-11-10).
-36. A cell's mobilized troops are its total obligation, divided across the Army pools it generates by output share; a pool contributing under 10% of that total produces no Contingent even if enough people are available (2026-11-10).
-37. Every Contingent is sorted into Vanguard, Center or Rearguard automatically; the default table is **(proposed)** (2026-11-10).
-38. Armies merge only when all three detachment depths are equal; the detachments are combined separately (2026-11-10).
-39. An army splits by whole Contingents, each staying in its detachment; a Contingent is never divided (2026-11-10).
-40. Vanguard, Center and Rearguard are strategic roles (scouting/screening/foraging; fighting and sieges; supply-line protection); the Rearguard can be scattered and caught away from the main body under the same spread gate as the Vanguard (2026-11-10).
+36. A cell's mobilized troops are its total obligation, divided across the Army pools it generates by output share; a pool contributing under 10% of that total is not deployed (the people stay in production), except Artillery, Siege Corps and Mages (2026-11-10).
+37. Contingents are sorted into Vanguard, Center and Rearguard automatically by the chosen sorting template; Vanguard is filled first, then Rearguard, and Center takes the rest. The Default template is 20% / 60% / 20% with the fill rules above (2026-11-10).
+38. Sorting templates are player-authored, any number can exist, and one is chosen whenever the player deploys or changes an army's composition (2026-11-10).
+39. Merge needs the same owner, the same province and, for each detachment, depths within tolerance; the detachments are combined separately; Merge is a Commitment (2026-11-10).
+40. Split moves whole Contingents into a new army at the same position with the parent's depths, so the two can be merged immediately; Split is a Commitment (2026-11-10).
+41. Contingents can be reassigned between detachments of an army only while the two detachments' depths are within tolerance (2026-11-10).
+42. Depth tolerance is derived from the troops' relative speed (terrain and obstacles post-alpha); quicker troops have a larger tolerance (2026-11-10).
+43. Stance is set automatically per Contingent; tactic is set per detachment (2026-11-10).
+44. Vanguard, Center and Rearguard are strategic roles (scouting/screening/foraging; fighting and sieges; supply-line protection); the Rearguard intercepts Vanguard raids on supply routes, prevents encirclement and keeps broken main forces in order, and can be scattered and caught away from the main body under the same spread gate as the Vanguard (2026-11-10).
 
 ## Cross-references
 - **Economics** — Army pool/envelope ground truth; Heavy Industry goods consumed at fielding; Warehousing backs Supply and equipment purchase.
@@ -484,8 +530,9 @@ Stack(side) = list of Proposals defined by that side; no size limit
 - **Internal Politics** — Fielding/Killed-casualties trace to `origin_cell` at `(Nation, Estate, Region)`; Occupation's Actor-cell consequences are specified once, in this file (Occupation section); Internal Politics only reads them. Requisition, benefits and attribution rules apply to wartime acquisition and war harm; a faction's armed rung is handed to War (Internal Armed Conflict). The Levy Duty, Petition Right and the Government spending dial (standing-army subsidy) are defined there; the standing-army dial reads them (2026-11-10).
 - **Administration** — Occupation's `martial law` Control cost and multi-origin-cell stacking Coordination cost read Administration's pools; War Exhaustion is derived from war-attributable grievance (Internal Politics), not a separate writeback.
 - **Diplomacy** — military access agreements extend valid Supply-source territory; unilateral Annexation is a forced-annexation act (Sovereignty-tier CB plus per-observer overreach, `diplomacy__kb.md`); peace ratification's Occupation removal resolves at Diplomacy step 7; Show of Force (formerly Troop Training) feeds Diplomacy's Military Leverage category; the Peace Conference reuses Diplomacy's Negotiation Session; Declare War / Propose Peace are War's actions even though the catalogue lists them (2026-11-10).
+- **Actions** — Merge and Split are Commitments, tactics are per-detachment dials, `standing_share` is a dial (`actions__kb.md`); sorting templates are player data chosen when deploying or changing composition (2026-11-10).
 - **Nations** — sympathy data determines occupied-population Grievance vs. liberator bonus; Statehood Pathway is the secession end state of internal armed conflict.
-- **UI** — Army card, Military tab, Region/Actor-cell mobilization controls, standing-share dial, Peace Conference stack editor, occupation/siege display and the Battle Report message render this file's state and readouts (`ui__kb.md`, 2026-11-10). Army merge/split controls and the Contingent list are not yet reflected there.
+- **UI** — Army card, Military tab, Region/Actor-cell mobilization controls, standing-share dial, Peace Conference stack editor, occupation/siege display and the Battle Report message render this file's state and readouts (`ui__kb.md`, 2026-11-10). Army merge/split controls, the Contingent list, per-detachment tactics and the sorting-template editor are not yet reflected there.
 - **Characters** — deferred hook for named-commander bonuses and captured-personnel ransom. Beyond alpha (2026-11-01).
 
 ## Status
@@ -499,4 +546,6 @@ Stack(side) = list of Proposals defined by that side; no size limit
 - **2026-11-03 — settled**: Annexation is a forced-annexation act (Diplomacy CB + overreach); peace-ratification removal of Occupation resolves at Diplomacy step 7; fielding goods come from provincial warehouses; Occupation's consequences are specified only here.
 - **2026-11-10 — designer input (settled as answered)**: levy vs. standing forces with a per-cell `standing_share` dial set as a political decision (Government order or cell petition; cells comply or resist); upkeep paid by the cells, Government may compensate; scoped Mobilization (cell / Region / Empire by each cell's own Levy obligation); Retinue scalar boosts contribution to military pools except Artillery and Meteomancy/Theurgy, pool output only (not Fairness); Peace Conference proposal stacks (obligatory = accept/refuse, optional = individually; no size cap, bounded by capability, unless defeat is ultimate); Battle Report with per-round casualties, tactic matchup highlighting and fog-of-war handling for the enemy side (exact in alpha). Vanguard/centre/rearguard: initially **no change** — superseded the same day by the army-composition input below. **Proposed (awaiting OK)**: the Peace Conference reusing the Negotiation Session. **Open**: `k` and `standing_upkeep_mult` values (numbers pass); whether Siege Corps should stay in the Retinue boost list (taken literally from "except artillery/meteomancy"); how a cell's resistance to a `standing_share` order is priced beyond the existing defiance class.
 - **2026-11-10 (later) — designer input (settled as answered)**: the occupation and siege readouts are **confirmed** (read-only; no occupation rule change); **Show of Force replaces Troop Training** — not a diplomatic action, no commitment, derived from armies stationed in border Regions with no war ongoing between the two Countries, feeding the Military Leverage category as a decaying modifier. Other kb files and the UI may still say "Troop Training" (see `ui__kb.md`'s Military tab and cross-references); they read "Show of Force" from now on.
-- **2026-11-10 (army composition) — designer input (settled as answered)**: armies merge (all three detachment depths equal; detachments combined separately) and split (whole Contingents, as long as enough exist); a Contingent is the troops of one Army pool from one origin cell (wording for the designer's "individual stack"); a cell contributes its total troops by Duties, divided across the Army pools it generates, with a **10% minimum share** per Contingent; Contingents are sorted automatically; detachments are strategic roles (Vanguard scouts/harasses/screens/forages and can be caught alone; Center fights and sieges; Rearguard protects supply lines and can be scattered and caught away from the main body). **Proposed (awaiting OK)**: the default pool → detachment sorting table (Skirmishers and Cavalry → Vanguard; Shock Infantry, Artillery and Siege Corps → Center; Pike Infantry → Rearguard); same owner and province as implied merge conditions; a split army inherits the parent's province and depths. **Open**: what happens to the share of a pool that falls under 10% (left in production, or redistributed to the other pools); whether the cell's pool shares include the Retinue boost; whether the player may reassign Contingents between detachments; whether depth equality is exact or within a tolerance; whether stance and tactic are per army or per detachment; the mechanical effect of Rearguard "protecting supply lines"; the class of Merge/Split (dial or commitment, `actions__kb.md`). **Not yet updated**: spec, code (`fieldUnits` still takes an explicit composition), tests, `ui__kb.md`.
+- **2026-11-10 (army composition) — designer input (settled as answered)**: armies merge (same owner and province, depths within tolerance for each detachment, detachments combined separately) and split (whole Contingents, same position and parent's depths); Merge and Split are Commitments; a Contingent is the troops of one Army pool from one origin cell (wording for the designer's "individual stack"); a cell contributes its total troops by Duties, divided across the Army pools it generates by output share (Retinue boost already inside the output), with a **10% minimum share** per Contingent — a smaller share is simply not deployed, except Artillery, Siege Corps and Mages; automatic sorting by selectable **sorting templates** (player-authored, chosen whenever deploying or changing composition) with the **Default** template (20% Vanguard / 60% Center / 20% Rearguard, fill rules above); Contingents can be reassigned between detachments while their depths are within tolerance; depth tolerance comes from relative speed (quicker troops → larger; terrain and obstacles post-alpha); stance is automatic per Contingent, tactic is per detachment; detachments are strategic roles, with the Rearguard intercepting Vanguard raids on supply routes, preventing encirclement and keeping broken main forces in order.
+  **Proposed (awaiting OK)**: sorting cuts a Contingent at a capacity boundary (the parts stay separate Contingents with the same origin); when a pool in a ratio runs out the others continue in their ratio and the detachment may stay under capacity; the tolerance speed basis (the lower speed of the two armies for Merge, of the moved Contingent and receiving detachment for Reassign); merged depths are the troop-weighted average; the Rearguard interception contest reuses the `screening_strength` contest.
+  **Open**: the rule that picks a Contingent's automatic stance; whether `entry_side`/`route_side` must match for a Merge; whether choosing a template again overrides manual reassignments; whether templates belong to the Country or the player; the numbers for Rearguard encirclement prevention and Rout ordering; `tol_base`. **Not yet updated**: spec, code (`fieldUnits` still takes an explicit composition, `fight()` ignores detachments, tactics are per army), tests, `ui__kb.md`.
