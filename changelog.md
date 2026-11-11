@@ -2,6 +2,25 @@
 
 New entries go here (one section per change, header = title and date), per the edit flow in `index.md`. Earlier entries still live in the `index.md` Changelog section.
 
+## Army composition, third pass — 2026-11-11
+Committed directly to `main` at the designer's request. Files touched: `kb/war__kb.md`.
+
+**Settled (designer answers)**
+- **Overflow**: Contingents are never divided (not by sorting, not by Split). A Contingent that does not fit in a detachment's remaining capacity, and any other excess, goes to the detachment lower in priority (Vanguard → Rearguard → Center). Center may exceed its share; a detachment may stay under capacity.
+- **Tolerance speed**: the lower `army_speed` of the two armies for Merge; the lower speed of the moved Contingent and the receiving detachment for Reassign.
+- **Rearguard raid interception**: the same `screening_strength` contest as Compel.
+- **Stance**: automatic per Contingent and always **Balanced** for now (a new neutral entry in the stance list); AI — War will later change stances for AI armies according to its tactics and strategic goals.
+- **Lateral position**: not stored; derived from `entry_side` and depth. Merge compares the derived positions per detachment.
+- **Templates**: choosing a template again overrides manual reassignments; templates are a technical convenience for routine, with no in-game mechanic and no Country ownership.
+- **Numbers pass**: Rearguard encirclement prevention and Rout ordering, `tol_base`.
+
+**Proposed (awaiting the designer's OK)**
+- **Reinforcement**: while a Contingent's supply path is unbroken it regains lost strength each turn, up to its `mustered_count`, at the cost of its origin cell's Army pool (new field `mustered_count`; `reinforce_rate` and any goods cost per head open).
+- Merge distance measured along the line from the entry edge through the province center; the merged army keeps B's `entry_side` and takes the troop-weighted average of the derived positions.
+- **Consequence to confirm**: a single Contingent larger than a detachment's remaining capacity goes down whole, so Vanguard or Rearguard can end up empty.
+
+**Not yet done**: spec (`admin_war_diplomacy__spec.md`), code (`fieldUnits` still takes an explicit composition; `fight()` ignores detachments; tactic is per army; no Balanced stance; no reinforcement), tests, `ui__kb.md`, `ai_war__doc.md`, `.outline/`.
+
 ## Army composition, second pass — 2026-11-11
 Committed directly to `main` at the designer's request. Files touched: `kb/war__kb.md`.
 
@@ -15,6 +34,10 @@ Committed directly to `main` at the designer's request. Files touched: `kb/war__
 - **Rearguard duties**: intercepts Vanguard raids on supply routes, prevents encirclement, keeps broken or retreating main forces in order.
 
 **Proposed (awaiting the designer's OK)**: cutting a Contingent at a capacity boundary when sorting; behaviour when a pool in a ratio runs out; the speed basis of the tolerance; troop-weighted average depths after a merge; the Rearguard interception contest reusing `screening_strength`.
+
+**Open**: the rule that picks a Contingent's automatic stance; whether `entry_side`/`route_side` must match for a merge; whether choosing a template again overrides manual reassignments; whether templates belong to the Country or the player; numbers for Rearguard encirclement prevention and Rout ordering; `tol_base`.
+
+**Not yet done**: spec (`admin_war_diplomacy__spec.md`), code (`fieldUnits` still takes an explicit composition; `fight()` ignores detachments; tactic is per army), tests, `ui__kb.md`, `.outline/`.
 
 - **2026-11-10 (army composition; committed directly to `main` at the designer's request)**: `war__kb.md` — **Contingent** (the wording for the designer's "individual stack"; also the new shape of the Fielded Unit): the troops of one Army pool from one origin cell; a cell contributes its total Duty troops divided across the Army pools it generates, and a pool under a **10% minimum share** produces no Contingent; **army merge** (all three detachment depths equal, detachments combined separately) and **split** (whole Contingents only); detachments are **strategic roles** (Vanguard scouts/harasses/screens/forages and can be caught alone; Center fights and sieges; Rearguard protects supply lines and can be scattered and caught away from the main body); Contingents are sorted into detachments automatically. **Supersedes** the "no change" note on vanguard/centre/rearguard in the entry below. Items tagged **(proposed)** await the designer's OK: the default pool → detachment sorting table, merge conditions of same owner and province, a split army inheriting the parent's province and depths; open questions are listed in the file's Status. **Not yet done**: spec (`admin_war_diplomacy__spec.md`), code (`fieldUnits` still takes an explicit composition; `fight()` ignores detachments), tests, `ui__kb.md`, `.outline/`.
 - **2026-11-10 (later, Diplomacy catalogue; committed directly to `main` at the designer's request)**: `diplomacy__kb.md` — **Action Catalogue** written: one direction per action (positive 0–100, hostile −100–0, tiers, duration), positive and negative actions split; Embargo (strength, entire Country or chosen Regions, all goods or chosen goods) replaces Trade Sanctions; Tariffs replace the Sanction tiers with a derived tariff-asymmetry readout that can open a Grievance-tier CB; alliance actions as a Military subsection (Benevolent Neutrality → Defensive Pact → Standing Offensive chain, higher covers and disables lower in negotiation; Coalition independent); Improve Relations (decaying opinion modifier, refresh never stacks). `war__kb.md` — **Show of Force replaces Troop Training** (derived from border deployment, not a commitment or a diplomatic action); occupation/siege readouts confirmed. `world_map__kb.md` / `ui__kb.md` — a Region's capital is a stored administrative setting (`capital_province`) chosen by the player or AI when the Region is defined or redefined; occupation/siege display confirmed. **Known stale references**: `ui__kb.md` (Military tab, cross-references) and possibly other kb files still say "Troop Training"; read it as Show of Force. **Not yet done**: spec/code/data/tests, `.outline/`, `cross_module_notes__kb.md`, the `narrative` text of each catalogue action, the pointer line in `internal_politics__kb.md`. Items tagged **(proposed)** in those files await the designer's OK.
@@ -58,7 +81,5 @@ Committed directly to `main` at the designer's request. Files touched: `kb/war__
   merged into `ui__kb.md`. `war__kb.md`'s Occupation section deduplicated
   (single source of truth, was previously also in `internal_politics__kb.md`).
   Fixed a direct contradiction in `world_map__kb.md` Rule 9 regarding
-
-**Open**: the rule that picks a Contingent's automatic stance; whether `entry_side`/`route_side` must match for a merge; whether choosing a template again overrides manual reassignments; whether templates belong to the Country or the player; numbers for Rearguard encirclement prevention and Rout ordering; `tol_base`.
-
-**Not yet done**: spec (`admin_war_diplomacy__spec.md`), code (`fieldUnits` still takes an explicit composition; `fight()` ignores detachments; tactic is per army), tests, `ui__kb.md`, `.outline/`.
+  `infrastructure_level` vs. Economics' `trade_infrastructure_level` (now
+  explicitly distinct stocks).
