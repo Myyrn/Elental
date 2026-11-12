@@ -41,3 +41,8 @@ stancePolicy(contingent, army, campaign, war) -> stance            // owned here
 - **Proposed (awaiting OK)**: Rules 1, 3, 5, 8 as written; the hostile Campaign types.
 - **Open**: when the AI proposes peace (exhaustion headroom, lost battles); stance rules per tactic; per-detachment tactic assignment; use of standing vs. levy forces and scoped Mobilization; merge/split heuristics; fog of war (post-alpha).
 - **Not yet done**: `ui__kb.md` hooks, numbers pass, `.outline/`. Spec: `spec/ai_war__spec.md`. Code: `src/modules/ai/aiWar.js` (opt-in).
+- **Rev:** (tracked = every `###` under Data Structures; `Rules` as one section while it has no `###`; bootstrap 2026-11-12)
+  - Data Structures > Principles = 1
+  - Data Structures > Inputs (read-only) = 1
+  - Data Structures > Reserved interface (post-alpha) = 1
+  - Rules = 1
