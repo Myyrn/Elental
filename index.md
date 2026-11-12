@@ -2,11 +2,9 @@
 
 Last updated: 2026-11-12
 
-This file lives in **two places**: the Project knowledge (always available, slim
-working copy) and the repo root (`index.md`, authoritative). It is the map of what
+This file lives in the repo root (`index.md`, authoritative). It is the map of what
 exists, what's settled, and **how to reach exactly the chapter needed without
-reading whole files**. Nothing else needs to be in Project knowledge except this
-file and `cross_module_notes__kb.md`.
+reading whole files**. Don't read file body, read only its headers first.
 
 ## Repository layout (GitHub, single monorepo)
 
