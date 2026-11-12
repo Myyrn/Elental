@@ -27,10 +27,11 @@ AI parity — and every executed action writes the same Decision Log.
   (consequences come only from the resulting state shift, as with Control
   Allocation). Consent gating still applies where a Right covers the domain.
   Free dials: Control Allocation, Observation Allocation, planning posture,
-  garrison priority, war stances, border/customs policy (gated).
+  garrison priority, Army Tactics (per detachment), standing share (War),
+  border/customs policy (gated). War stances are not dials: stance is automatic per Contingent (`war__kb.md`, 2026-11-11).
 - **Commitment** — a persistent claim on labour or stock until released, or
-  renewed every turn (fielded units, garrisons, Emergency Powers, propaganda,
-  Espionage, Troop Training). Releasable at will; renewal lapses it.
+  renewed every turn (fielded units, Mobilization, army Merge/Split, garrisons, Emergency Powers, propaganda,
+  Espionage). Releasable at will; renewal lapses it. Show of Force is not a commitment and not an action: it is derived from border deployment (`war__kb.md`, 2026-11-10; it replaced Troop Training).
 - **Event** — one-shot, irreversible (declare war, grant/revoke a Right, set
   tax law, place/lift a Requisition Duty, ratify a treaty, Persuasion, audits).
 
@@ -155,7 +156,7 @@ are meant to surface). Commits are irreversible except dials and releasable comm
 |---|---|---|---|
 | Administration | Control/Observation Allocation, planning posture, border policy (gated) | Emergency Powers | audits, escalate external Question |
 | Internal Politics | — | propaganda/education | Rights/Duties config, tax law, Requisition place/lift, Profile shift, benefits, Persuasion, Debt forgiveness, Borrow, Default (Ledger), Estate Convergence declaration, Mobility-gap setting |
-| War | garrison priority, stances, Army Tactics | fielded units, Troop Training | declare war, peace |
+| War | garrison priority, Army Tactics (per detachment), standing share | fielded units, Mobilization, army Merge/Split | declare war, peace |
 | Diplomacy | — | Espionage, foreign propaganda | Sanction/Dependency/Alliance, Facilitation Grant, Recognize a rebel polity |
 | Economics | — | construction (Builders + Wealth: trade infrastructure, roads, warehouses); free-colonization incentive spend | Mint/recoin (fineness parameter); direct resettlement of specific cells |
 | Cells (actors) | — | hoarding, tax refusal, Duty-withholding, counter-propaganda, trade-infrastructure construction (own Wealth), lending (cleared by the derived credit market) | petition, settle, revolt/armed rung, kin-state appeal, international-recognition appeal |
@@ -184,7 +185,7 @@ are meant to surface). Commits are irreversible except dials and releasable comm
 - **Internal Politics** — owns the Decision Log schema, Rights/Duties, faction action set, attribution, entitlement-loss, Outcome Asymmetry; Actions only writes and gates.
 - **Administration** — Control/Observation Allocation are the model dials; slate allocation is pipeline step 6; Emergency Powers, audits.
 - **Economics** — pipeline step 3 (Requisition pre-cascade, Taxation post-cascade); dual-claim pool resolution; exogenous shocks (harvest).
-- **War** — step 4; declare war, peace, stances, garrison priority; internal armed conflict; Troop Training.
+- **War** — step 4; declare war, peace, per-detachment Army Tactics, standing share, garrison priority, Mobilization, Merge/Split; internal armed conflict; Show of Force is derived from deployment and is not an action (replaced Troop Training).
 - **Diplomacy** — step 7; Espionage/propaganda thresholds, treaties, Sanctions, Facilitation Grants; deniability = low causal visibility.
 - **World Map** — exogenous shocks (epidemic) in step 1; Region re-derivation in step 8; cataclysm is post-alpha.
 - **Characters / Events** — beyond alpha; alpha uses the Decision Log and leaderless factions.
@@ -195,13 +196,14 @@ are meant to surface). Commits are irreversible except dials and releasable comm
 - **Open**: rung ordering and band widths (numbers pass); exact form of observation-bounded preview; action-set enumeration for AI parity (deferred to AI modules).
 - **2026-11-02 — settled**: Ledger priority dial; Borrow and Default Events; Ledger never negative; faction escalation momentum as defined in Internal Politics.
 - **2026-11-02 (later) — settled**: Emergency Powers is a commitment whose cost is derived each turn (Administration); lending is a permitted-by-default cell act cleared by the derived credit market (no per-loan action), Borrow is the Government's demand-side Event; Mint carries a fineness parameter; pipeline step 3 order includes Land split and debt service (debt-service position settled 2026-11-03).
-- **2026-11-02 (War pass) — settled**: war-declaration timing; Army Tactics are dials; Troop Training is a commitment; Veto strength comes from cell privileges and one stance function covers declare/continue.
+- **2026-11-02 (War pass) — settled**: war-declaration timing; Army Tactics are dials; Veto strength comes from cell privileges and one stance function covers declare/continue. (Troop Training as a commitment: superseded 2026-11-10 by Show of Force, derived and not an action.)
 - **2026-11-02 (World Map pass) — settled**: pipeline gains step 8 (Region re-derivation, end of turn); Government-directed settlement is a Builders + Wealth commitment; cataclysm is post-alpha.
 - **2026-11-03 (dial pass) — settled**: Allocation Dial subclass (floor + priority + surplus ratio, cap, sink); per-cell default with aggregate/group shorthand; Government spending dial is standing with a reserve floor and sink = keep (replaces "re-chosen every turn"); pool-claim splits use the same dial; End Turn Preflight (advisory warnings, incl. projected Ledger shortfall).
 - **2026-11-03 — settled**: cells are actors (actor classes Government / Country / cell) with permitted/granted/defiance action classes and default log visibility by act type; deniability as a per-observer read-time scaler; propaganda is directed output, not a labour claim; Government purchases funded from the start-of-turn Ledger; Rituals are commitments gated by the Meteomancy pool (population-scale only in alpha).
+- **2026-11-12 — settled (designer confirmation)**: Troop Training removed from the lifecycle classes and the War row (Show of Force replaces it); War actions follow `war__kb.md` 2026-11-10/11: per-detachment Army Tactics and the standing share are dials, Mobilization and army Merge/Split are commitments, stance is automatic per Contingent and no longer a dial.
 - **Rev:** (tracked = every `###` under Data Structures; `Rules` as one section while it has no `###`; bootstrap 2026-11-12)
   - Data Structures > Action envelope = 1
-  - Data Structures > Lifecycle classes = 1
+  - Data Structures > Lifecycle classes = 2
   - Data Structures > Allocation Dial (dial subclass — settled 2026-11-03) = 1
   - Data Structures > Cell actions (cells are actors — settled 2026-11-03) = 1
   - Data Structures > Turn pipeline (simultaneous planning, fixed resolution order) = 1
@@ -211,5 +213,5 @@ are meant to surface). Commits are irreversible except dials and releasable comm
   - Data Structures > Decision Log write path = 1
   - Data Structures > Government spending: spending dial, Borrow, Default (settled 2026-11-02; dial revised 2026-11-03) = 1
   - Data Structures > Determinism and preview = 1
-  - Data Structures > Existing actions by module (class shown) = 1
+  - Data Structures > Existing actions by module (class shown) = 2
   - Rules = 1
