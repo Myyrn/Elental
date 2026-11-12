@@ -199,3 +199,17 @@ are meant to surface). Commits are irreversible except dials and releasable comm
 - **2026-11-02 (World Map pass) — settled**: pipeline gains step 8 (Region re-derivation, end of turn); Government-directed settlement is a Builders + Wealth commitment; cataclysm is post-alpha.
 - **2026-11-03 (dial pass) — settled**: Allocation Dial subclass (floor + priority + surplus ratio, cap, sink); per-cell default with aggregate/group shorthand; Government spending dial is standing with a reserve floor and sink = keep (replaces "re-chosen every turn"); pool-claim splits use the same dial; End Turn Preflight (advisory warnings, incl. projected Ledger shortfall).
 - **2026-11-03 — settled**: cells are actors (actor classes Government / Country / cell) with permitted/granted/defiance action classes and default log visibility by act type; deniability as a per-observer read-time scaler; propaganda is directed output, not a labour claim; Government purchases funded from the start-of-turn Ledger; Rituals are commitments gated by the Meteomancy pool (population-scale only in alpha).
+- **Rev:** (tracked = every `###` under Data Structures; `Rules` as one section while it has no `###`; bootstrap 2026-11-12)
+  - Data Structures > Action envelope = 1
+  - Data Structures > Lifecycle classes = 1
+  - Data Structures > Allocation Dial (dial subclass — settled 2026-11-03) = 1
+  - Data Structures > Cell actions (cells are actors — settled 2026-11-03) = 1
+  - Data Structures > Turn pipeline (simultaneous planning, fixed resolution order) = 1
+  - Data Structures > War declaration timing (settled 2026-11-02) = 1
+  - Data Structures > Gating (derived, never stored) = 1
+  - Data Structures > Shared pools = 1
+  - Data Structures > Decision Log write path = 1
+  - Data Structures > Government spending: spending dial, Borrow, Default (settled 2026-11-02; dial revised 2026-11-03) = 1
+  - Data Structures > Determinism and preview = 1
+  - Data Structures > Existing actions by module (class shown) = 1
+  - Rules = 1
