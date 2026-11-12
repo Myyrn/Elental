@@ -2,6 +2,24 @@
 
 New entries go here (one section per change, header = title and date), per the edit flow in `index.md`. Earlier entries still live in the `index.md` Changelog section.
 
+## KB ↔ Spec continuity bootstrap: AI — War, AI — Diplomacy, Actions, War — 2026-11-12
+Committed to `indev`. Files touched: `kb/{ai_war,ai_diplomacy,actions,war}__kb.md` (Status `Rev:` blocks only, all = 1; no kb meaning changed), `spec/ai_war__spec.md` and `spec/ai_diplomacy__spec.md` (rewritten as section mirrors), `spec/actions__spec.md` (new), `spec/war__spec.md` (new), `spec/kernel_engine__spec.md` (trimmed), `spec/admin_war_diplomacy__spec.md` (trimmed), `index.md` (module table), `changelog.md`.
+
+**Done**
+- **Mirror and Sync** for four modules: spec uses the kb's `##/###` headings under Data Structures and Rules, each section opens with `Code:`, cross-references live in kb only, and every spec has a `Sync:` block (`<kb rev> / <code rev>`). Tracked sections = every `###` under Data Structures plus `Rules` as one section (no `###` under Rules). Code rev is `1` only where `src/` plus a test confirm it, otherwise `-`.
+- **Splits to keep modules mirrored**: Actions spec split out of `kernel_engine__spec.md` (action system, Allocation Dial, claims, gating, Decision Log, Scheduler, pipeline, Preflight; the kernel file keeps scope, ModifierStack, ThresholdMeter, stance, GameState root, EngineClient with its old section numbers); War spec split out of `admin_war_diplomacy__spec.md` (which keeps Administration and Diplomacy until their own bootstrap).
+- **War spec content new to the spec** (previously only in kb): levy/standing and Mobilization, Retinue contribution boost, Contingents and 10% rule, sorting templates and the sorting algorithm, Merge/Split/Reassign and derived position, depth tolerance, Reinforcement, Garrison claim, Show of Force, Battle Report, occupation/siege readouts, proposal stacks, per-detachment tactics. All tagged **(target)**: none of it is in code.
+- **Corrections found from code**: `internal.js` (internal armed conflict) is implemented and tested, contrary to the old spec's "not implemented"; `ActionRegistry`, gating (with foreign DomainVeto), Scheduler and `writeLog` all live in `src/engine/engine.js`; `ClaimLedger.lockAll([{res, amount}])`; no `preview`, `preflight`, `listActions`, `save/load` or query stamps exist yet.
+
+**Needs a designer decision**
+- `actions__kb.md` still lists Troop Training (Lifecycle classes, War row, Cross-references) although `war__kb.md` replaced it with Show of Force on 2026-11-10; the Actions spec keeps `troopTraining` until the kb is amended (bump the two Rev lines when it is).
+- Code keeps a decaying `cell.warHarm` stock that War Exhaustion reads; the kb says Exhaustion is derived from war-attributable grievance and not stored.
+- kb names the rebel armed rung `armedRung`; code registers `armedRevolt`. Code tactics are `balanced/aggressive/defensive` per army; the kb lists seven per detachment.
+- `actions__spec.md` records spec decisions awaiting OK: concealment tier on a covert record referenced by the log entry; `mandatory` flag and `cap` semantics of the Allocation Dial. `war__spec.md` lists its own (storage of standing share, templates and Show of Force; one army per Region per Mobilize; sorting details; derived-position geometry).
+- Heading text with dates in parentheses (e.g. `Allocation Dial (dial subclass — settled 2026-11-03)`) is an address; renaming one needs the `Rev:`/`Sync:` lines and every pointer updated.
+
+**Not yet done**: bootstrap for the other nine modules (countries, nations, world_map, administration, economics, diplomacy, ui, internal_politics, cross_module_notes) and the split of `admin_war_diplomacy`, `economics_polity` and `modules__spec.md` per module; `modules__spec.md` and other specs may still point at old section numbers of `kernel_engine__spec.md` §3, §5, §8–§12 (now in `actions__spec.md`); `ai_war__spec.md` Rule 5 names `mergeArmies`/`splitArmy` (defined as targets in `war__spec.md`; not in code); `.outline/`, `tools/*` and `tests/` were not run (no execution environment); `ai_diplomacy__kb.md` Status still says its spec and code are "not yet done".
+
 ## AI — Diplomacy code, AI — War first pass — 2026-11-11 (later)
 Committed directly to `main` at the designer's request. Files touched: `kb/ai_war__kb.md` (new), `spec/ai_diplomacy__spec.md` (rewritten), `spec/ai_war__spec.md` (new), `src/modules/ai/{index,diplomacyAgent,aiWar,actions}.js`, `src/modules/ai/diplomacy/{tuning,config,reads,posture,campaign,candidates,score,negotiate}.js`, `src/modules/index.js`, `src/client/engineClient.js`, `tests/ai_diplomacy.test.js`, `package.json`.
 
@@ -103,7 +121,7 @@ Committed directly to `main` at the designer's request. Files touched: `kb/war__
   per-cell Preference vector over Portrait axes with pool-gated propaganda;
   Requisition Duty; Portrait = AI behaviour / player-observed record.
   `administration__kb.md`: active slate = Government attention only
-  (Questions independent of it); Faction spawn/despawn dissolved; upkeep
+  (Questions independent of it; Faction spawn/despawn dissolved); upkeep
   degradation + Requisition enforcement. `economics__kb.md`: Requisition,
   Government as market buyer, contribution valuation (open), propaganda
   pools. Nation-bloc strict unanimity replaced by partial cross-Estate
