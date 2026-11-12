@@ -73,3 +73,11 @@ The Decision Log is read as evidence (what has already been tried, what worked, 
 - **Proposed (awaiting OK)**: the Campaign type list; the focus-bonus mechanism; the bypass for existential threats and sudden opportunities.
 - **Open**: how the AI estimates the target's detection strength; Contested Asset formula; the Portrait → appetite mapping beyond the Military weight; all numbers, including the switch margin and the Posture hysteresis band (numbers pass).
 - **Not yet done**: check `diplomacy__kb.md` false-flag wording against Rule 4(c) and amend if it excludes the sender's own Region; spec (`ai_diplomacy__spec.md`), code, tests, `ui__kb.md` hooks, `.outline/`, `index.md` module row 13.
+- **Rev:** (tracked = every `###` under Data Structures; `Rules` as one section while it has no `###`; bootstrap 2026-11-12)
+  - Data Structures > Principles = 1
+  - Data Structures > Posture(A → B) (derived) = 1
+  - Data Structures > Campaign (stored, cached intent) = 1
+  - Data Structures > Leverage weights (decision-time) = 1
+  - Data Structures > Contested Asset (derived readout) = 1
+  - Data Structures > Action Score = 1
+  - Rules = 1
