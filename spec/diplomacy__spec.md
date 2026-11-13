@@ -174,7 +174,7 @@ consequences (senderRevealed, not open): CB against the revealed sender (influen
 ```
 - Actions: `foreignPropaganda`, `covertInfluence`, `counterIntelligence` (own-Region guard, same Espionage pool, zero-sum), `liftCovert`; validation: target Region must belong to the target Country, a false flag must name another Country and a covert tier, labour ≤ free Espionage. `setObservationAllocation` is registered here (`administration__spec.md`).
 - Visibility: `foreignPropaganda` public, the others covert (code default); detection is per defender (`target`), not per observer **(code-led)**: a third observer is not modelled.
-- **Self-targeted false flag is impossible in code** (`validate` rejects `target === actor`, `detect`/`consequences` would use the AI's own Observation): needs a Diplomacy rule for who detects a self-flag (`ai_diplomacy__spec.md` Status).
+- **Self-targeted false flag is post-alpha feature** (`validate` rejects `target === actor`, `detect`/`consequences` would use the AI's own Observation): needs a Diplomacy rule for who detects a self-flag (`ai_diplomacy__spec.md` Status).
 - Exposure leaves the implicated party unconstrained (kb): no limit on friends.
 
 ## Rules
