@@ -11,7 +11,6 @@ reading whole files**. Don't read file body, read only its headers first.
 ```
 index.md                    # this file (authoritative copy)
 kb/    <module>__kb.md      # ground truth, incl. cross_module_notes__kb.md
-doc/   <module>__doc.md     # design-doc prose, rarely loaded
 spec/  <module>__spec.md    # implementation-ready interfaces/schemas
 src/   kernel/ engine/ modules/ ui/ editor/
 scenarios/                  # demo and authored scenarios
@@ -61,7 +60,7 @@ layer: `kb/war__kb.md`, `doc/…`, `spec/…`.
    remote URL stored in the repo, or memory. Use them only for the session's
    git operations.
 
-## Task intake order (host-neutral, GitHub or GitLab — 2026-11-09)
+## Task intake order (2026-11-09)
 
 1. **Read first**: this file's module row and the top changelog entry only.
 2. **Then**: the module's kb Status block and heading list (`.outline/<file>.json`, or the first ~30 lines).
@@ -190,11 +189,9 @@ Legend: ✅ populated/designed · 🟡 stub or outdated · ⬜ not created yet
 1. Read this file's module table before starting; pick the owning kb file(s).
 2. Follow the Access rules: outline → one section → (if needed) neighbour. Do not
    load whole files, and do not load `doc` files unless extracting.
-3. `doc` → `kb` extraction sessions: read `doc` (+ existing `kb` if any) section by
-   section, plus the relevant `cross_module_notes__kb.md` sections.
-4. `kb`-only build sessions: kb sections + cross-module notes sections. Never `doc`.
+3. `kb`-only build sessions: kb sections + cross-module notes sections. Never `doc`.
    Code work additionally reads the matching `spec` section and its `Code:` target.
-5. End of session: kb/spec/code committed on the session branch (see Working
+4. End of session: kb/spec/code committed on the session branch (see Working
    mode), `.outline/` regenerated, this file's status column and changelog
    updated; refresh the Project-knowledge copy of this file if it changed.
   `infrastructure_level` vs. Economics' `trade_infrastructure_level` (now
