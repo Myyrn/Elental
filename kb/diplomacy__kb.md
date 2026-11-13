@@ -332,3 +332,18 @@ deniability cost.
 - **2026-11-03 — settled**: Concert as a derived great-power-backing predicate; Government-to-Government standing (`opinion`); Leverage weights from the Portrait with the override trigger; militaristic-disposition derivation; per-action target-scale parameter; Annexation as a forced-annexation CB; per-observer attribution.
 - **2026-11-10 — designer input (settled as answered)**: negotiations have no fixed term and either side may withdraw at any time, after which negotiation restarts from scratch; the other side's satisfaction is shown as a meter (exact now, fog-of-war estimate post-alpha); withdrawal leaves a decaying mark that feeds Reputational Leverage of the stronger Country when it is the one that withdraws. **Proposed (awaiting OK)**: the mark's sign (negative) and holder (the stronger Country's own stack toward the other party); the session covering the Peace Conference too. **Open**: satisfaction function details and walk-out threshold values (numbers pass).
 - **2026-11-10 (later) — Action Catalogue, designer input (settled as answered)**: one direction per action (positive 0–100, hostile −100–0, tiers, duration), positive and negative split into separate actions; **Embargo** (strength, entire Country or chosen Regions, all goods or chosen goods) replaces Trade Sanctions; **Tariffs** replace the Sanction tiers and uneven mutual tariffs can turn into grievances; Alliance actions as a Military subsection, five separate actions with the Benevolent Neutrality → Defensive Pact → Standing Offensive chain (higher covers and disables lower in negotiation) and **Coalition independent**; **Improve Relations** confirmed (decaying opinion modifier; repeating refreshes, never stacks); **Show of Force** confirmed as non-diplomatic (derived from deployment). **Proposed (awaiting OK)**: the agreement / unilateral / demand kinds; Guarantee as independent; the tariff-asymmetry readout and its state-based Grievance CB; alignment of Impose Tariff / Tariff Exemption with Economics' tariff mechanics; Embargo and tariffs as the same Sanction record. **Open**: a hostile counterpart to Improve Relations; Improve Relations' target-scale; every parameter value and threshold (numbers pass); `narrative` text for each action.
+- **Rev:** (tracked = every `###` under Data Structures; `Rules` as one section while it has no `###`; bootstrap 2026-11-12)
+  - Data Structures > Casus Belli (CB) = 1
+  - Data Structures > Reputational Leverage = 1
+  - Data Structures > Great-power backing (derived — replaces "Concert", 2026-11-03) = 1
+  - Data Structures > Government-to-Government standing (settled 2026-11-03) = 1
+  - Data Structures > Leverage (general) = 1
+  - Data Structures > Leverage Categories (readouts settled 2026-11-02; weights by AI-Diplomacy from the Portrait, settled 2026-11-03) = 1
+  - Data Structures > Negotiation Session (2026-11-10) = 1
+  - Data Structures > Axis Bundle (shared substrate — Sanctions/Dependency/Alliance) = 1
+  - Data Structures > Sanction / Dependency / Alliance = 1
+  - Data Structures > Cooperation / Facilitation Grant = 1
+  - Data Structures > Diplomacy/Espionage Action Threshold (settled 2026-11-02) = 1
+  - Data Structures > Action Catalogue (2026-11-10) = 1
+  - Data Structures > Covert Faction Influence & Foreign Propaganda (settled shape 2026-11-01) = 1
+  - Rules = 1

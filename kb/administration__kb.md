@@ -237,3 +237,12 @@ The cost lands as the usual decaying Opinion/Fairness modifier. When crisis seve
 - **2026-11-03 (dial pass) — settled**: Control and Observation Allocation are Allocation Dials (floor + priority + surplus ratio, optional cap and sink); per-cell default with aggregate filters and player-named groups as bulk shorthand; surplus auto-fill is free; priority orders floors only; standing spending priority replaces the per-turn re-chosen order. **Open**: a "total-split" mode for aggregate filters (a fixed total divided across covered cells) is not adopted — per-cell only; shortfall inside one entry is pro rata across its cells (numbers pass may refine).
 - **2026-11-03 — mechanical**: Control Allocation filters use the shared scope syntax (cell / Estate / Nation / Region / Empire), matching Requisition scope enforcement.
 - **2026-11-10 — designer input (settled as answered)**: queue = number of simultaneously open Questions per Region and per Empire assembly; agenda controlled by Council rights (Government absolute by default, Council/Petition holders get a share); cap derived from Coordination; Question resolution time 1 / 3 / 5 turns by scope (Region / more than one Region but not the whole Country / Country), quickened only by a majority with no strong veto, or by full consensus when a strong veto blocks. **Proposed (awaiting OK)**: the Coordination→cap mapping per assembly, the agenda-share formula (and Petition gaining an agenda share), and "strong veto" read as a covering Veto holder whose stance is against. **Open**: whether existential Questions bypass the cap; `g(Coordination)` shape and the Weight × right-strength split (numbers pass); the pointer line in `internal_politics__kb.md` (pending that file's split).
+- **Rev:** (tracked = every `###` under Data Structures; `Rules` as one section while it has no `###`; bootstrap 2026-11-12)
+  - Data Structures > Control Allocation (settled; Allocation Dial semantics settled 2026-11-03) = 1
+  - Data Structures > Observation Allocation (settled 2026-11-01; detection settled 2026-11-02) = 1
+  - Data Structures > Question Active Slate (attention commitment — revised 2026-11-02) = 1
+  - Data Structures > Assembly Queue and Question Resolution Time (2026-11-10) = 1
+  - Data Structures > Government upkeep (execution side — settled 2026-11-02) = 1
+  - Data Structures > Emergency Powers (settled 2026-11-02) = 1
+  - Data Structures > Administration actions (execution layer; classes per `actions__kb.md`) = 1
+  - Rules = 1
