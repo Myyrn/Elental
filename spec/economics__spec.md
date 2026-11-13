@@ -1,6 +1,6 @@
 # Economics — Specification
 
-KB: `kb/economics__kb.md`. Mirror of its `##/###` headings; cross-references live in kb only. Split out of `economics_polity__spec.md` (§1–§5, the Economics rules and tuning keys) on 2026-11-13; the Internal Politics part stays there until that module is bootstrapped. Besides kb, sources: `src/modules/economics/{derive,step,teaching,module}.js`, `tests/econ_polity.test.js`. Where code and the old spec disagree, **code wins** (**code-led**). Anything the kb does not state is **(spec decision)**; both are listed under Status. Sections the code has not reached are **(target)**.
+KB: `kb/economics__kb.md`. Mirror of its `##/###` headings; cross-references live in kb only. Split out of `economics_polity__spec.md` (§1–§5, the Economics rules and tuning keys) on 2026-11-13; the Internal Politics part stays there until that module is bootstrapped. Besides kb, sources: `src/modules/economics/{derive,step,teaching,module}.js`, `tests/econ_polity.test.js`. Where code and the old spec disagree, **code wins** (**code-led**) — except where the designer has decided for the kb (2026-11-13, marked **(code to follow kb)**). Anything the kb does not state is **(spec decision)**; both are listed under Status. Sections the code has not reached are **(target)**.
 
 ## Data Structures
 
@@ -34,10 +34,12 @@ labourAt(ctx, p, pool)     = Σ over the Region's cells of poolLabour × cellPro
 ### Administrative Capability Envelope (per pool — production side)
 Code: `derive.js` (`produceCCO`)
 ```js
+// target (kb, confirmed 2026-11-13):  Σ units × envelope[axis] × (1 − gov.poolUnmet[pool]) / Σ units          // blend, per axis
+// code today:                         Σ over the Country's cells, over pool in cell.labourCommitted: units × ruleset.pools[pool].envelope[axis] × (1 − gov.poolUnmet?.[pool] ?? 0)
 produceCCO(ctx, country) → {control, coordination, observation}
-  Σ over the Country's cells, over pool in cell.labourCommitted: units × ruleset.pools[pool].envelope[axis] × (1 − gov.poolUnmet?.[pool] ?? 0)
 ```
-- **(code-led)** the sum is not divided by total committed units (kb: `Σ units × envelope / total units`); it is a plain sum of unit × envelope **(needs decision: sum vs. blend)**. Upkeep degradation reads `gov.poolUnmet[pool]`; **nothing writes it** (gap): step 3 only sets `gov.upkeepFraction` (see Resolution order).
+- **(code to follow kb)** the designer confirmed the kb: the result is a blend dividing by total committed units; the code is a plain sum. **Open question for the designer**: a pure blend is independent of how many units are committed (10 or 1000 Bureaucrats give the same Control), but Control Allocation and compliance consume a *quantity*; the target needs a scale term (e.g. `blend × Σ units × T('cco.scale')`, or the envelope read as "per committed unit" with the blend only fixing the axis mix). Until answered the code stays a sum and `Sync` shows code `-`.
+- Upkeep degradation reads `gov.poolUnmet[pool]`; the writer is decided (Resolution order below, **target**).
 - Targeting to cells: Control/Observation Allocation (`administration__spec.md`). Coefficients per pool are data (`envelope`), numbers pass.
 
 ### Consumption Tiers
@@ -135,21 +137,32 @@ ledgerUpdate: r = resolveAllocation(g.spendingDial ?? {entries: []}, L0[country]
   g.upkeepFraction = need > 0 ? clamp01(1 − Σ mandatory grants / Σ mandatory floors) : 0
   g.ledger = max(0, L0 − spent + tax[country] + (g.borrowedThisTurn ?? 0));  g.borrowedThisTurn = 0           // this turn's taxes land for next turn's spending
 ```
+- **Upkeep shortfall per pool (target, settled 2026-11-13)** — new inside `ledgerUpdate`, after `resolveAllocation`:
+```js
+// spending-dial entries gain an optional `pool` tag on `mandatory` rows (data, set by the Government-needs generator or the player)
+for (const pool of poolsTagged(r.rows.filter(x => x.mandatory && x.pool)))
+  g.poolUnmet[pool] = clamp01(1 − Σ grant(rows of pool) / Σ floor(rows of pool))        // 0 when floors are met; replaces last turn's value every turn, never accumulated
+// pools with no tagged mandatory row keep poolUnmet = 0 (key removed); upkeepFraction stays as the aggregate readout
+```
+  `produceCCO` reads it next turn (one-turn lag, like taxation landing). Defection of a deeply unmet pool (`administration__kb.md`, leaderless defection) is a target in `administration__spec.md`. The row→pool tag and a `Government needs` generator that emits the mandatory rows are **(spec decision)**: today a scenario must author rows with `mandatory: true`.
 - Requisition scope is enforced through Control (`administration__spec.md` `controlGrant`); hits become the two Opinion hits in polity step 5.
-- **(code-led)** the Ledger update only subtracts spending; it does **not** buy goods or labour at zone prices for Government items, nor add State tariffs, enterprises or seigniorage; unmet upkeep sets `upkeepFraction` only, **not** `poolUnmet` per pool (Administration degradation reads `poolUnmet`).
+- **(code-led)** the Ledger update only subtracts spending; it does **not** buy goods or labour at zone prices for Government items, nor add State tariffs, enterprises or seigniorage; unmet upkeep sets `upkeepFraction` only, **not** `poolUnmet` per pool (Administration degradation reads `poolUnmet`) — **(code to follow kb)** per the target above.
 - **Government as buyer / seller / grantor (target)**: absent Requisition the Government buys through the spending dial at zone prices from L0 (competing under the usual rules); selling from `gov.inventory` into a zone market at the derived price (proceeds to the Ledger, price pressure through scarcity) and granting goods in kind to a cell, scope filter or Nation (a benefit; no Ledger flow) are Event Drafts `{goods, quantity, province|zone, target}`: `governmentSell`, `governmentGrant` (new types; none in code).
-- Tests: `tests/econ_polity.test.js` (turn purity and determinism; taxation delivered × involuntary compliance and Wealth never negative; Ledger never negative and `upkeepFraction`; requisition into inventory).
+- Tests: `tests/econ_polity.test.js` (turn purity and determinism; taxation delivered × involuntary compliance and Wealth never negative; Ledger never negative and `upkeepFraction`; requisition into inventory). **To add with the code**: a pool with unmet mandatory upkeep degrades `produceCCO` for that pool only.
 
 ### Trade-Zone Network
 Code: `derive.js` (`gravity`, `hubOf`, `zoneOf`, `zones`, `cellZone`)
 ```js
 rawGravity(p) = (economy.lastOutput[p] ?? province.population) × (economy.tradeInfra[p] ?? 0)
 gravity(p)    = rawGravity(p) + 0.5 × Σ neighbours rawGravity + tie(p)          // (code-led) smoothed, deterministic tie-break; cached per ctx in `_grav`, reset after step 3
-hubOf(p)      = hill-climb to the strongest neighbouring gravity, ties by id, max 64 steps — over neighbours with the SAME OWNER
+hubOf(p)      = hill-climb to the strongest neighbouring gravity, ties by id, max 64 steps          // code today: neighbours with the SAME OWNER only
 zone = provinces with the same hub;  cellZone(key) = zone of the Region province where the cell's Nation has the largest presence
+// target (kb rev 2, shape proposed):
+pull(from p, to q) = gravity(q) × (owner(p) === owner(q) ? 1 : borderOpenness(owner(p), owner(q)))         // hubOf climbs over ALL neighbours by pull; openness ∈ [0,1]
+borderOpenness(A, B) = Diplomacy trade openness of the border: 1 unrestricted, lowered by tariffs/restrictions, 0 under embargo/ResourceExportBan on all goods   // goods-independent aggregate of diplomacy.tradeFactor; shape in `diplomacy__spec.md` (to define)
 ```
 - Membership derived at read time, never stored (Rule 7); the slow `tradeInfra` stock damps hub switching.
-- **(code-led, conflicts with the kb)** `hubOf` only climbs through neighbours with the same owner, so zones never cross Country borders; the kb says zones are not bounded by Country borders and cross-Empire links are gated by Diplomacy through edges. Needs a decision (affects `zoneEdges`, flows and lending range).
+- **(code to follow kb)** designer decision 2026-11-13: zones are **not** bounded by Country borders; a border splits zones only where foreign trade is very heavily restricted, via the trade-volume calculation (no border flag). The code's same-owner filter in `hubOf` is the conflict; the fix is the `pull` rule above. It affects `zoneEdges` (more zones span Countries, so more edges are intra-Country), flows and lending range (`economics.draw` for War supply also gains cross-border zones). Needs `diplomacy.borderOpenness(ownerA, ownerB)` (not in code) and tuning key `zone.openFloor` (below which a border counts as closed; placeholder 0.1).
 - `tradeInfra[p]` is a per-province stock distinct from World Map `infrastructure_level`; built by `buildTradeInfra` (cell action, `polity/actions.js`) with Builders + Wealth by any cell including the Government unless forbidden (Right `Trade-infrastructure construction`, default permitted); decays by `infra.decay` per turn; no labour cap; no builder return. A Government construct Event is not in code.
 
 ### Trade-Zone Edges
@@ -203,7 +216,7 @@ cell.flow.teaching = moved;   extinct = pools with zero labour country-wide (can
 Code: per-rule notes
 1. Only `teachCell` changes pool membership of labour (tested indirectly by determinism; no direct test).
 2. `labourCommitted` is fully unavailable to production (`poolLabour`); no partial residual.
-3. C/C/O is a pool blend over `ruleset.pools[].envelope`; no institution is hardcoded (`produceCCO`; sum vs blend open).
+3. C/C/O is a pool blend over `ruleset.pools[].envelope`; no institution is hardcoded (`produceCCO`; **code to follow kb**: blend, scale term open).
 4. Cascade order strictly subsistence → comfort → luxury; taxation after it (tested).
 5. Non-material output is never stockpiled (target; no code).
 6. One global `coinage` record; no exchange rate.
@@ -230,11 +243,11 @@ Code: per-rule notes
 - **Implemented and tested** (`tests/econ_polity.test.js`): extraction with diminishing returns and Wasteland zero, cascade tier-first under a cash limit with goods conservation, taxation delivered × involuntary compliance, Ledger/spending dial with `upkeepFraction` and never negative, Requisition into inventory scaled by compliance, credit through obligation records, turn purity and determinism.
 - **Implemented, no direct test**: zone gravity/hubs, price pass and capped flows, derived demand and water-filling processing, Land split, debt service with auto-default, Teaching, trade infrastructure decay, Government inventory accumulation.
 - **Not in code**: Mint and fineness records, Ritual and Meteomancy contribution, Government buy/sell/grant, `borrow`/`defaultDebt`, Estate-Tariffs and State tariffs, Warehouse spoilage/theft/construction, planning posture, non-material channel delivery inside Economics, `poolUnmet` writing, `currentFlow`, cross-zone lending, `setPoolSplit`, inventory consumption by upkeep.
-- **(code-led)**: `produceCCO` as a plain sum; `poolScarcity` without a mean divisor; smoothed gravity with tie-break; `hubOf` limited to same-owner neighbours; constant flow friction; one-pass demand from cells and military; `cash = salesValue + wealth × cash.wealthFraction`; `cellZone` by Nation presence; `shortfall` as unmet subsistence value; obligations cells-only; arrears limit → removal; tuning keys `yield.baseline`, `yield.timberPerForest`, `cash.wealthFraction`, `credit.reservePerCap`, `infra.decay`, `teach.value`.
-- **Needs a decision**: (1) trade zones bounded by Country borders in code vs the kb's "not bounded by Country borders"; (2) `produceCCO` sum vs the kb's blend (divide by total committed units); (3) `poolUnmet` writer for upkeep degradation (Economics step 3 or Administration).
-- **(spec decision)** (listed from the old spec, pending your confirmation for the new ones): production planning rule, extraction pool per raw good, processing at zone level, greedy credit matching, auto-default after the arrears limit, `polityQueue`/`harmQueue` hand-offs, Government inventory, `governmentSell`/`governmentGrant` type names, principal not amortising, Land share taken per presence share.
+- **(code-led)**: `poolScarcity` without a mean divisor; smoothed gravity with tie-break; constant flow friction; one-pass demand from cells and military; `cash = salesValue + wealth × cash.wealthFraction`; `cellZone` by Nation presence; `shortfall` as unmet subsistence value; obligations cells-only; arrears limit → removal; tuning keys `yield.baseline`, `yield.timberPerForest`, `cash.wealthFraction`, `credit.reservePerCap`, `infra.decay`, `teach.value`.
+- **Decided 2026-11-13 (kb right, code to follow)**: (1) `hubOf` same-owner filter → cross-border pull scaled by border openness (kb rev 2, shape proposed; needs `diplomacy.borderOpenness`); (2) `produceCCO` plain sum → blend (scale term open, see the section); (3) `poolUnmet` written per pool by `ledgerUpdate` from `pool`-tagged mandatory rows (kb rev 2; spec decision for the tag). Code and tests for all three are outstanding.
+- **(spec decision)** (listed from the old spec, pending your confirmation for the new ones): production planning rule, extraction pool per raw good, processing at zone level, greedy credit matching, auto-default after the arrears limit, `polityQueue`/`harmQueue` hand-offs, Government inventory, `governmentSell`/`governmentGrant` type names, principal not amortising, Land share taken per presence share, `pool` tag on mandatory spending rows, `zone.openFloor`.
 - **Open (kb)**: ritual catalogue and prices; envelope coefficients; Teaching retraining rate; trade-gravity formula; recoinage cost; scarcity shape; pool wiring audit; numbers pass.
-- **Tuning keys** (placeholders; defaults in `tuning.defaults.json`): `prod.k` 1.0, `prod.alpha` 0.85, `prod.theta` 1.5, `yield.baseline`, `yield.timberPerForest`, `scar.eps` 1.0, `scar.min`/`scar.max` 0.25/4, `scar.elasticity` 0.8, `flow.share` 0.5, `flow.friction` 0.05, `zone.capBase` 100, `money.kappa` 1.0, `cash.wealthFraction`, `credit.lendFraction` 0.5, `credit.r0` 0.02, `credit.eta` 0.7, `credit.reservePerCap`, `debt.arrearsLimit` 0.5, `infra.decay`, `contrib.beta` 0.5, `teach.rate` 0.02, `teach.value`, `wh.slowFactor` 0.25 (target), `eps.infra` 0.05 (target).
+- **Tuning keys** (placeholders; defaults in `tuning.defaults.json`): `prod.k` 1.0, `prod.alpha` 0.85, `prod.theta` 1.5, `yield.baseline`, `yield.timberPerForest`, `scar.eps` 1.0, `scar.min`/`scar.max` 0.25/4, `scar.elasticity` 0.8, `flow.share` 0.5, `flow.friction` 0.05, `zone.capBase` 100, `money.kappa` 1.0, `cash.wealthFraction`, `credit.lendFraction` 0.5, `credit.r0` 0.02, `credit.eta` 0.7, `credit.reservePerCap`, `debt.arrearsLimit` 0.5, `infra.decay`, `contrib.beta` 0.5, `teach.rate` 0.02, `teach.value`, `wh.slowFactor` 0.25 (target), `eps.infra` 0.05 (target), `zone.openFloor` 0.1 (target), `cco.scale` (target, if the scale-term option is chosen).
 - **Sync:** (`<section> = <kb rev> / <code rev>`; `-` = no or insufficient code+tests)
   - Data Structures > Resource Tiers (45 goods, 5 tiers) = 1 / -
   - Data Structures > Skilled Labor Pools (19, independent, non-fungible) = 1 / -
@@ -246,8 +259,8 @@ Code: per-rule notes
   - Data Structures > Money (settled 2026-11-02) = 1 / -
   - Data Structures > Credit (obligation records — settled shape 2026-11-02) = 1 / 1
   - Data Structures > Prices (settled shape 2026-11-02) = 1 / -
-  - Data Structures > Resolution order within Economics (settled 2026-11-03) = 1 / 1
-  - Data Structures > Trade-Zone Network = 1 / -
+  - Data Structures > Resolution order within Economics (settled 2026-11-03) = 2 / 1
+  - Data Structures > Trade-Zone Network = 2 / -
   - Data Structures > Trade-Zone Edges = 1 / -
   - Data Structures > Estate-Tariffs = 1 / -
   - Data Structures > Warehousing (per province) = 1 / -
