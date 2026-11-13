@@ -253,3 +253,20 @@ Government inventory: requisitioned goods go to an abstract Government inventory
 - **2026-11-04 — settled**: placeholder pools; extraction-pool map (placeholders aside); production-planning rule; Government inventory.
 - **2026-11-09 — designer input (settled as worded)**: Government as seller/grantor of goods (Rule 23); calibration target for starting numbers (Rule 24; numbers-pass requirement, no number changed).
 - **2026-11-09 — open (pool wiring audit)**: every one of the 19 pools needs at least one live sink — production pools → goods; Meteomancy/Theurgy → rituals (catalogue empty, so no sink yet); Culture → non-material channel/propaganda; Medicine → epidemic burden; Builders → infrastructure/warehouses/fortifications; Diplomacy/Espionage → their action models; Trade/Commerce → trade gravity; Teaching → retraining/propaganda; Bureaucrats → C/C/O; army pools → armies. Playtest 2026-11-09: only Bureaucrats visibly used. Open: which pools are wired in the engine but unfed by demo labour data (the README claims several are wired).
+- **Rev:** (tracked = every `###` under Data Structures; `Rules` as one section while it has no `###`; bootstrap 2026-11-13)
+  - Data Structures > Resource Tiers (45 goods, 5 tiers) = 1
+  - Data Structures > Skilled Labor Pools (19, independent, non-fungible) = 1
+  - Data Structures > Administrative Capability Envelope (per pool — production side) = 1
+  - Data Structures > Consumption Tiers = 1
+  - Data Structures > Non-Material Consumption Channel = 1
+  - Data Structures > Contribution valuation (supplies Internal Politics' Fairness bucket — settled 2026-11-02 except ritual catalogue) = 1
+  - Data Structures > Land (ownership share — settled 2026-11-02) = 1
+  - Data Structures > Money (settled 2026-11-02) = 1
+  - Data Structures > Credit (obligation records — settled shape 2026-11-02) = 1
+  - Data Structures > Prices (settled shape 2026-11-02) = 1
+  - Data Structures > Resolution order within Economics (settled 2026-11-03) = 1
+  - Data Structures > Trade-Zone Network = 1
+  - Data Structures > Trade-Zone Edges = 1
+  - Data Structures > Estate-Tariffs = 1
+  - Data Structures > Warehousing (per province) = 1
+  - Rules = 1
