@@ -157,10 +157,12 @@ price(good, zone) = base_value(good) × scarcity(good, zone) × price_level   //
 ### Resolution order within Economics (settled 2026-11-03)
 production → **Land split** → Requisition (pre-cascade) → consumption cascade → taxation → debt service (existing obligations) → credit clearing (new loans, Borrow) → Ledger → Government upkeep shortfall (Actions pipeline step 3). Government market purchases are funded from the start-of-turn Ledger balance; this turn's taxation lands for next turn.
 
+**Upkeep shortfall per pool (settled 2026-11-13)**: the Ledger step is also where the shortfall is written for Administration's proportional degradation. Each mandatory upkeep row of the Government's spending dial belongs to a pool (wages/rations of its committed labour, supply, maintenance); after the dial's priority truncation, `unmet(pool) = 1 − granted / floor` over that pool's mandatory rows. Administration reads `unmet(pool)` to degrade that pool's C/C/O output (`administration__kb.md`, Government upkeep); a row with no pool feeds only the aggregate readout. The cut order stays the player's spending priority.
+
 ### Trade-Zone Network
 - Provinces form a graph via World Map adjacency.
 - Membership **derived, not stored**: `trade-gravity = production_output × trade_infrastructure_level`; resolves to strongest-pulling neighbor hub. No separate hysteresis rule (settled 2026-11-02): membership is always derived at read time (Rule 7) and the slow-moving `trade_infrastructure_level` stock damps hub switching.
-- Not bounded by Country borders. No entity is specially "a capital" — just the highest-gravity province.
+- Not bounded by Country borders (confirmed 2026-11-13): the hub climb crosses owner boundaries like any other edge. A border separates zones only where foreign trade is very heavily restricted — the restriction cuts the trade volume the pull reads, and the zones split through that same derived calculation (no border flag, no bespoke rule). **(shape proposed)**: a neighbour's pull seen across a border is multiplied by that border's trade openness (Diplomacy gating: 1 unrestricted, lowered by tariffs and restrictions, 0 under embargo); inside one Country the factor is 1. No entity is specially "a capital" — just the highest-gravity province.
 - `trade_infrastructure_level` is an Economics-owned **per-province stock** (commercial institutions: markets, banks), **distinct** from World Map's `infrastructure_level` (roads/logistics) — settled 2026-11-02: built with Builders + Wealth by **any cell including the Government unless forbidden** (Rights checklist: Trade-infrastructure construction, default permitted); decays without upkeep; **no Trade/Commerce labour cap**. **No builder return (settled 2026-11-02)**: it is a costly public investment whose payoff is the increased flow of goods that benefits everyone if built at the proper time.
 
 ### Trade-Zone Edges
@@ -234,6 +236,8 @@ Government inventory: requisitioned goods go to an abstract Government inventory
 - **Internal Politics (2026-11-02)** — Rights checklist gains Lending and Trade-infrastructure construction (default permitted); Wealth debt becomes obligation records; Demotion Duty reads net position.
 - **Diplomacy (2026-11-02)** — cross-Empire edges also gate inter-zone lending; LaborMigrationBan blocks teacher import after pool extinction.
 - **Internal Politics / UI (2026-11-09)** — a Government grant of goods is a benefit (pain-alleviating or joy-giving); the UI Trade Zones lens reads derived membership (`ui__kb.md`).
+- **Diplomacy (2026-11-13)** — the border's trade openness (embargo, tariffs, restrictions) also scales the pull a neighbour exerts across it in the zone hub climb (shape proposed).
+- **Administration (2026-11-13)** — reads the per-pool unmet-upkeep fraction written by the Ledger step (`administration__kb.md`, Government upkeep).
 
 ## Status
 - Resource tiers, pool list (19), consumption tiers, money standard, trade-zone shape, estate-tariffs, warehousing ownership: **settled**.
@@ -253,6 +257,7 @@ Government inventory: requisitioned goods go to an abstract Government inventory
 - **2026-11-04 — settled**: placeholder pools; extraction-pool map (placeholders aside); production-planning rule; Government inventory.
 - **2026-11-09 — designer input (settled as worded)**: Government as seller/grantor of goods (Rule 23); calibration target for starting numbers (Rule 24; numbers-pass requirement, no number changed).
 - **2026-11-09 — open (pool wiring audit)**: every one of the 19 pools needs at least one live sink — production pools → goods; Meteomancy/Theurgy → rituals (catalogue empty, so no sink yet); Culture → non-material channel/propaganda; Medicine → epidemic burden; Builders → infrastructure/warehouses/fortifications; Diplomacy/Espionage → their action models; Trade/Commerce → trade gravity; Teaching → retraining/propaganda; Bureaucrats → C/C/O; army pools → armies. Playtest 2026-11-09: only Bureaucrats visibly used. Open: which pools are wired in the engine but unfed by demo labour data (the README claims several are wired).
+- **2026-11-13 — designer decisions on three kb ↔ code conflicts**: (1) trade zones are not bounded by Country borders, except where foreign trade is very heavily restricted (then the trade-volume calculation splits them) — Trade-Zone Network rev 2, multiplicative border-openness shape **proposed**; (2) the Capability Envelope stays a blend dividing by total committed units (kb unchanged; code to follow); (3) the Ledger step writes the per-pool unmet-upkeep fraction (designer delegated the mechanics) — Resolution order rev 2.
 - **Rev:** (tracked = every `###` under Data Structures; `Rules` as one section while it has no `###`; bootstrap 2026-11-13)
   - Data Structures > Resource Tiers (45 goods, 5 tiers) = 1
   - Data Structures > Skilled Labor Pools (19, independent, non-fungible) = 1
@@ -264,8 +269,8 @@ Government inventory: requisitioned goods go to an abstract Government inventory
   - Data Structures > Money (settled 2026-11-02) = 1
   - Data Structures > Credit (obligation records — settled shape 2026-11-02) = 1
   - Data Structures > Prices (settled shape 2026-11-02) = 1
-  - Data Structures > Resolution order within Economics (settled 2026-11-03) = 1
-  - Data Structures > Trade-Zone Network = 1
+  - Data Structures > Resolution order within Economics (settled 2026-11-03) = 2
+  - Data Structures > Trade-Zone Network = 2
   - Data Structures > Trade-Zone Edges = 1
   - Data Structures > Estate-Tariffs = 1
   - Data Structures > Warehousing (per province) = 1
