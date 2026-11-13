@@ -1,4 +1,4 @@
-# Internal Politics — Specification (file keeps its old name `economics_polity__spec.md`; rename to `internal_politics__spec.md` yourself)
+# Internal Politics — Specification
 
 KB: `kb/internal_politics__kb.md`. Mirror of its `##/###` headings; cross-references live in kb only. Bootstrapped 2026-11-13 (the older first-pass spec was replaced; its formulas survive where code or kb confirm them). Sources: kb, `src/modules/polity/{derive,step,behaviour,actions,remaining,mobility,demotion,convergence,propaganda,module}.js` (`cellstate.js`, `transfer.js` only through the names the others import), `tests/{econ_polity,behaviour,politics_remaining}.test.js` (files, not individual test names, were checked). Where code and the old spec disagree, **code wins** (**code-led**); where code lags kb it is listed under Status as outstanding. Anything the kb does not state is **(spec decision)**. Not-yet-written code is **(target)**. Economics half: `economics__spec.md`. Shared scale (confirmed): grievance severity, compliance and need satisfaction are per-cell values in **[0,1]**.
 
