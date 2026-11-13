@@ -1,6 +1,6 @@
 # War — Specification
 
-KB: `kb/war__kb.md`. Mirror of its `##/###` headings; cross-references live in kb only. Split out of `admin_war_diplomacy__spec.md` on 2026-11-12 (its §2–§4, the war tuning keys and war rules moved here; Administration and Diplomacy stay there). Besides kb, sources: `src/modules/war/{actions,combat,graph,internal,module,step,stock}.js`, `tests/war.test.js`, `tests/internal_conflict.test.js`. Where code and the old spec disagree, **code wins** and is tagged **(code-led)**. Anything the kb does not state is **(spec decision)**; both are listed under Status. Sections that the kb added on 2026-11-10/11 (Contingents, Mobilization, standing forces, Reinforcement, Show of Force, Battle Report, proposal stacks, readouts) had no spec before: they are specified here as **(target)**, i.e. not yet in code.
+KB: `kb/war__kb.md`. Mirror of its `##/###` headings; cross-references live in kb only. Split out of `admin_war_diplomacy__spec.md` on 2026-11-12 (its §2–§4, the war tuning keys and war rules moved here; Administration and Diplomacy now have their own specs). Besides kb, sources: `src/modules/war/{actions,combat,graph,internal,module,step,stock}.js`, `tests/war.test.js`, `tests/internal_conflict.test.js`. Where code and the old spec disagree, **code wins** and is tagged **(code-led)**. Anything the kb does not state is **(spec decision)**; both are listed under Status and were **confirmed by the designer on 2026-11-12/13**. Sections that the kb added on 2026-11-10/11 (Contingents, Mobilization, standing forces, Reinforcement, Show of Force, Battle Report, proposal stacks, readouts) had no spec before: they are specified here as **(target)**, i.e. not yet in code.
 
 ## Data Structures
 
@@ -231,7 +231,7 @@ matchup(x, y) = inter(x,y) ≥ 1+ε ? 'good_counter' : inter(x,y) ≤ 1−ε ? '
 ### Army Tactics
 Code: `actions.js` (`setTactic`), `combat.js` (`tacticMod`)
 - **Today (code-led)**: `setTactic {armyId, tactic ∈ balanced|aggressive|defensive}`, class dial, army-wide; `tacticMod`: aggressive atk 1.15 / def 0.9, defensive 0.9 / 1.15.
-- **Target**: tactic per detachment — `setTactic {armyId, detachment, tactic}` (omitted `detachment` sets all three) with the kb list Seek Battle, Raid, Forced March, Siege, Garrison/Hold, Shadow/Screen, Blockade; Raid damages enemy production/Warehousing; Forced March trades Supply for speed/depth; Shadow/Screen is recon; Blockade commits strength ≥ `garrison × war.blockade.mult` against a soft target. Class stays dial (free to change).
+- **Target**: tactic per detachment — `setTactic {armyId, detachment, tactic}` (omitted `detachment` sets all three) with the kb list Seek Battle, Raid, Forced March, Siege, Garrison/Hold, Shadow/Screen, Blockade; Raid damages enemy production/Warehousing; Forced March trades Supply for speed/depth; Shadow/Screen is recon; Blockade commits strength ≥ `garrison × war.blockade.mult` against a soft target. Class stays dial (free to change). The code's three army-wide tactics are a gap against this target, not a conflict.
 - `orderMove {armyId, to}` is a dial (validates route with `findPath`).
 
 ### Internal Armed Conflict (handed off from Internal Politics — settled 2026-11-01)
@@ -240,7 +240,7 @@ Code: `internal.js`, `armedRevolt` cell action, `tests/internal_conflict.test.js
 - Rebel units: `retinueComposition(cell)` = free pool labour × Retinue scalar, limited by Cold Weapons in the cell's Region; mustered by `muster()` as ordinary units (tactic `defensive`).
 - Rebel supply: provinces whose `occupations[p].occupier` is the bloc (home provinces seized at the uprising).
 - End states in `stepInternal` (step 4): suppression (no armies, nothing held → `endBloc 'suppressed'`), concession (all member rungs 0 for `civil.calm.turns`, or peace terms), secession (all home provinces held and free of Government armies for `civil.secede.turns` → `formCountry`).
-- `armedRevolt` (cell action; class commitment, `cellAvailability: 'permitted'` with a Retinue check in `propose`; public): utility `civil.revolt × grievance × (1 − involuntary) − defy.risk × involuntary`; needs rung ≥ 4 and `men ≥ civil.minMen`. **(code-led)** the kb/actions table calls it `armedRung`.
+- `armedRevolt` (cell action; class commitment, `cellAvailability: 'permitted'` with a Retinue check in `propose`; public): utility `civil.revolt × grievance × (1 − involuntary) − defy.risk × involuntary`; needs rung ≥ 4 and `men ≥ civil.minMen`. **(code-led, confirmed)** `armedRevolt` is the registered name of the kb's armed rung.
 
 ### Show of Force (formerly Troop Training — 2026-11-10)
 Code: none (target); old `troopTrainingTick` is retired
@@ -250,8 +250,8 @@ feed (step 4, after movement):  for each army of `country` stationed in a border
   push(stack, {value: T('war.show.k') × troopCount(army) × efficiency(army), decay:{kind:'exp', rateKey:'war.show.decay'}, turn})
 inBorderRegionAdjacent(army, target) = army's province lies in a Region owned by army.owner that has a province sharing an edge with a province owned by target
 ```
-- No order, no commitment, no claim: positioning is the action; public by default (derived from observable positions under the stamp); inherits Garrison/Hold's supply draw. Decays after withdrawal or when a war begins; Diplomacy's Military Leverage reads it (`diplomacy` readout, evaluated at negotiation time against the target and its Alliance-tier partners); stacks additively with exhaustion/active-war penalties.
-- `actions__spec.md` still lists `troopTraining`: remove with the next kb amendment.
+- No order, no commitment, no claim: positioning is the action; public by default (derived from observable positions under the stamp); inherits Garrison/Hold's supply draw. Decays after withdrawal or when a war begins; Diplomacy's Military Leverage reads it (`diplomacy__spec.md`, Leverage Categories; evaluated at negotiation time against the target and its Alliance-tier partners); stacks additively with exhaustion/active-war penalties.
+- `actions__spec.md` no longer lists `troopTraining` (resolved 2026-11-12).
 
 ### Occupation (canonical — War-triggered, consequences owned elsewhere)
 Code: `step.js` (`sieges`, `W.occupations`), `module.js` (`occupiedShare`), `internal.js` (`controller`)
@@ -279,7 +279,7 @@ derive.war.occupationReadout(p) = {garrisonRequired, present, martialLawControlC
 
 ### Civil-war martial law (settled 2026-11-02)
 Code: `internal.js` (`endBloc 'suppressed'`, `martialCost`), `stepInternal`
-- On suppression each member cell gets `flags.martialLaw = {since, until: turn + civil.martial.turns}` and an `opinionGovMods` push of `−civil.suppress.opinion`; `martialCost(country) = war.martialLaw.control × Σ population of martial-law cells` is read by Administration's control supply; lapses at `until` (`stepInternal`). The Occupation Grievance does not apply; political cost arrives through Rights revocation and entitlement loss.
+- On suppression each member cell gets `flags.martialLaw = {since, until: turn + civil.martial.turns}` and an `opinionGovMods` push of `−civil.suppress.opinion`; `martialCost(country) = war.martialLaw.control × Σ population of martial-law cells` is read by Administration's control supply (`administration__spec.md`); lapses at `until` (`stepInternal`). The Occupation Grievance does not apply; political cost arrives through Rights revocation and entitlement loss.
 - Tests: `tests/internal_conflict.test.js` (suppression).
 
 ### Naval scope (alpha — settled 2026-11-02)
@@ -301,8 +301,8 @@ warScore(ctx, side) = Σ over entries: +k if e.side === side && target ≠ side;
 
 ### War Exhaustion (derived, per-cell — revised 2026-11-01)
 Code: `module.js` (`exhaustion`, `countryExhaustion`), `step.js` (`recover`)
-- **(code-led, differs from kb)** code stores a decaying `cell.warHarm` (`+war.harm.k × loss/pop` per casualty batch, `+war.occ.harm × occupiedShare` per turn, decay `war.harm.decay`) that feeds the Security grievance, and `exhaustion(cell)` just reads it. The kb says Exhaustion is a read-only derived readout of war-attributable grievance, not stored. Needs a decision: keep `warHarm` as polity-owned input to grievance and define Exhaustion over the resulting war-attributable grievance, or move the stock out of War.
-- `countryExhaustion` = population-weighted mean; never an input to simulation mechanics. Crossing the Question trigger can spawn a peace Question regardless of the cell's original stance or Veto (polity).
+- **`cell.warHarm` is a cached derived value** (**decided 2026-11-13**: it may continue to exist and breaks nothing): a decaying per-cell cache of war-attributable grievance inputs (`+war.harm.k × loss/pop` per casualty batch, `+war.occ.harm × occupiedShare` per turn, decay `war.harm.decay`) that feeds the Security grievance. `exhaustion(cell)` is the read-only readout over it, so the kb's "derived, not a separate stock" holds with `warHarm` as the cache; it is never a mechanic input of its own.
+- `countryExhaustion` = population-weighted mean; never an input to simulation mechanics (it appears in Diplomacy's Military Leverage and in `peaceEvaluation`, both as readouts). Crossing the Question trigger can spawn a peace Question regardless of the cell's original stance or Veto (polity).
 
 ### Peace Conference (capability assessment, not War Score arithmetic)
 Code: `module.js` (`peaceEvaluation`, handler `war.peaceResolve`), `actions.js` (`proposePeace`)
@@ -312,7 +312,7 @@ peaceEvaluation(side, enemy, terms) = stance(side, terms, ctx, {
   modifier: 1 + war.peace.scoreWeight × tanh(warScore(side)/50) })                // WarScore is context only
 ```
 - Flow: `proposePeace {war, terms:{cede:[{province,from,to}], treaties:[…]}}` (event, gate `war`, public) → scheduled step 7 `war.peaceResolve`; the proposer accepts its own terms, the receiver judges with `approves(peaceEvaluation(...))`; on acceptance install treaties (`diplomacy.installTreaty`), cede provinces, remove both sides' occupations, `w.active = false`. `lastProposal = {turn, accepted}`. Tests: `tests/war.test.js` (accepted by a weak/exhausted side; refused by a strong one).
-- **Proposal stacks (target)**: `terms` becomes `stack: [{terms, class: 'obligatory'|'optional'}]`, no size limit; the receiver evaluates each proposal with `peaceEvaluation`; an obligatory proposal that is refused means no agreement from that stack; optional ones are accepted or refused individually; mirrored for both sides. The session rules (no fixed term, withdrawal restarts, satisfaction meter) are Diplomacy's Negotiation Session, reused **(proposed reading in kb)**. Today: single `terms`, receiver-only evaluation.
+- **Proposal stacks (target)**: `terms` becomes `stack: [{terms, class: 'obligatory'|'optional'}]`, no size limit; the receiver evaluates each proposal with `peaceEvaluation`; an obligatory proposal that is refused means no agreement from that stack; optional ones are accepted or refused individually; mirrored for both sides. The session rules (no fixed term, withdrawal restarts, satisfaction meter) are Diplomacy's Negotiation Session (`diplomacy__spec.md`), reused **(proposed reading in kb)**. Today: single `terms`, receiver-only evaluation.
 - Veto-to-declare and Veto-to-continue share one stance function: `declareWar.impact` uses `warHarm`; same `stanceFns` for `declareWar` and continue.
 
 ## Rules
@@ -331,7 +331,7 @@ Code: per-rule notes
 12. Cohesion bounded [0,1], never reset.
 13. Occupation applied by War at capture; consequences read elsewhere.
 14. War Score: per-cell log (`logScore`), signed total in `warScore`, context only.
-15. Exhaustion = read of `warHarm` (see Status: differs from kb); may spawn a peace Question (polity).
+15. Exhaustion = read of the `warHarm` cache (a cached derived value); may spawn a peace Question (polity).
 16. Peace weighs capability (`peaceEvaluation`); WarScore only via `modifier`.
 17. Gunpowder bonus conditional on live ammunition Supply (target).
 18. Show of Force accrues only while armies sit in an adjacent border Region and no war is ongoing (target).
@@ -364,11 +364,11 @@ Code: per-rule notes
 45. (proposed) Reinforcement while supply is unbroken (target).
 
 ## Status
-- **Implemented and tested** (`tests/war.test.js`, `tests/internal_conflict.test.js`): land graph (Mountain interior, passes), `declareWar` timing, `fieldUnits` (commit labour, consume goods, reject with reasons), pairwise battle with casualties from origin cells and logged score, siege → occupation → peace with Region re-derivation, peace accepted/refused by capability, deterministic 25-turn runs, AI Government on the same API; internal armed conflict end to end (Retinue scalar, bloc as war side, rebel supply, suppression with martial law, concession by terms and by calm, secession, peace-granted secession).
+- **Implemented and tested** (`tests/war.test.js`, `tests/internal_conflict.test.js`): land graph (Mountain interior, passes), `declareWar` timing, `fieldUnits` (commit labour, consume goods, reject with reasons), pairwise battle with casualties from origin cells and logged score, siege → occupation → peace with Region re-derivation, peace accepted/refused by capability (uses the exhaustion readout), deterministic 25-turn runs, AI Government on the same API; internal armed conflict end to end (Retinue scalar, bloc as war side, rebel supply, suppression with martial law, concession by terms and by calm, secession, peace-granted secession).
 - **Not in code**: everything tagged (target): Mage pool, Technology Tier, Contingent fields (`kind`, `mustered`, `stance`, `detachment`), Mobilize/Demobilize/standing share, Retinue contribution boost, sorting templates and `autoSort`, Merge/Split/Reassign/`resortArmy`, depths and `entrySide`, spread gate, Compel/Rearguard raids, Estate/Nation modifiers, Armor, Reinforcement, Garrison claim and priority dial, Fortress typing, Sally/Relief/Assault, Battle Report, per-detachment tactics and stance table, Show of Force, occupation/siege readouts, proposal stacks, Naval check.
-- **(code-led)**: one unit per pool already in `fieldUnits`; `setTactic` is army-wide with three values; supply sources are owned/occupied provinces; `warHarm` stock (see War Exhaustion); `armedRevolt` name; war-score entry shape `{side, cause, cells, harm, turn}`; `hit()` pair loop by unit size; peace flow is receiver-only with a single `terms`; `proposePeace` terms include `cede/treaties/concessions/secede`.
-- **kb ↔ code conflicts to decide**: (1) `warHarm` stock vs kb's derived Exhaustion; (2) kb `armedRung` vs code `armedRevolt`; (3) kb tactic list vs code's three army-wide tactics; (4) `actions__kb.md`/`actions__spec.md` still list `troopTraining` although this kb replaced it with Show of Force.
-- **(spec decision)**: `state.war.standing`/`templates`/`showOfForce` locations; `unit.detachment` as the source of the derived `army.contingents`; `poolShare` from `cell.labour`; sorting algorithm details (deterministic order, `fill_ratio` by most-below-target pool, `take_share_of_remaining` in id order); template storage and `resortArmy` as an event; `setStandingShare` gate `retinue`; one army per Region per Mobilize; derived position geometry and troop-weighted merge; `depthTolerance` normaliser `war.speed.ref`; `armedRevolt` stays; Reinforcement draws from free labour and raises `labourCommitted`; `army.pathSevered`.
+- **(code-led, confirmed)**: one unit per pool already in `fieldUnits`; `setTactic` is army-wide with three values (gap against the kb's per-detachment list); supply sources are owned/occupied provinces; `armedRevolt` is the registered name of the kb's armed rung; war-score entry shape `{side, cause, cells, harm, turn}`; `hit()` pair loop by unit size; peace flow is receiver-only with a single `terms`; `proposePeace` terms include `cede/treaties/concessions/secede`.
+- **Decided 2026-11-12/13**: (1) `cell.warHarm` continues to exist as a cached derived value; War Exhaustion reads it (no kb change needed); (2) `armedRevolt` stays; (3) the kb's per-detachment tactic list is the target, the code's three army-wide tactics are a gap; (4) `actions__kb.md`/`actions__spec.md` no longer list `troopTraining`.
+- **(spec decision, confirmed 2026-11-12)**: `state.war.standing`/`templates`/`showOfForce` locations; `unit.detachment` as the source of the derived `army.contingents`; `poolShare` from `cell.labour`; sorting algorithm details (deterministic order, `fill_ratio` by most-below-target pool, `take_share_of_remaining` in id order); template storage and `resortArmy` as an event; `setStandingShare` gate `retinue`; one army per Region per Mobilize; derived position geometry and troop-weighted merge; `depthTolerance` normaliser `war.speed.ref`; Reinforcement draws from free labour and raises `labourCommitted`; `army.pathSevered`.
 - **Open**: all numbers (numbers pass): `war.retinue.k`, `war.standing.upkeepMult`, `war.tol.base`, `war.speed.ref`, `war.reinforce.rate`, `war.reinforce.goods`, `war.show.k`, `war.show.decay` (replaces `war.training.*`), Rearguard duty numbers, Rout ordering; `war.contingent.minShare = 0.10` is settled. kb opens: Siege Corps in the Retinue boost; pricing of resistance to a `standing_share` order; empty detachments after whole-Contingent overflow; Mobilize army grouping.
 - **Sync:** (`<section> = <kb rev> / <code rev>`; `-` = no or insufficient code+tests)
   - Data Structures > Technology Tier = 1 / -
@@ -402,6 +402,6 @@ Code: per-rule notes
   - Data Structures > Naval scope (alpha — settled 2026-11-02) = 1 / -
   - Data Structures > Internal armed conflict — sizing and resolution (settled 2026-11-02) = 1 / 1
   - Data Structures > War Score (computed ledger, not spendable — revised 2026-11-01) = 1 / 1
-  - Data Structures > War Exhaustion (derived, per-cell — revised 2026-11-01) = 1 / -
+  - Data Structures > War Exhaustion (derived, per-cell — revised 2026-11-01) = 1 / 1
   - Data Structures > Peace Conference (capability assessment, not War Score arithmetic) = 1 / -
   - Rules = 1 / -
