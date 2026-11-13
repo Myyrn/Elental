@@ -1,11 +1,6 @@
-# Economics & Internal Politics — Detailed Specification
+# Internal Politics — Detailed Specification (file keeps its old name until the Internal Politics bootstrap)
 
-Status: first detailed pass (2026-11-04). Expands §2-§3 of `modules__spec.md` into
-implementable algorithms. Source: `economics__kb.md`, `internal_politics__kb.md`,
-`administration__kb.md`, `actions__kb.md`. The kb fixes *rules and order*; formulas are open
-until the numbers pass, so every formula here is a **(spec decision)** with its numbers in
-`ruleset.tuning` as `placeholder` (catalogue in §9). Shared scale (confirmed): grievance
-severity, compliance and need satisfaction are per-cell values in **[0,1]**.
+Status: first detailed pass (2026-11-04); **trimmed 2026-11-13**: the Economics sections (old §2–§5, the Economics rules and tuning keys) moved to `economics__spec.md`. What remains is the Internal Politics part (laws, grievance, compliance, Questions, factions, entitlement, prestige, Preferences, mobility). The kb ↔ spec mirror (`Sync:` block) for `internal_politics__kb.md` is pending; then this file should be replaced by `internal_politics__spec.md`. Source: `internal_politics__kb.md`, `administration__kb.md`, `actions__kb.md`. The kb fixes *rules and order*; formulas are open until the numbers pass, so every formula here is a **(spec decision)** with its numbers in `ruleset.tuning` as `placeholder` (catalogue in §9). Shared scale (confirmed): grievance severity, compliance and need satisfaction are per-cell values in **[0,1]**.
 
 ## Data Structures
 
@@ -25,133 +20,7 @@ state.polity.law[country] = { rights: Record<rightId, RightEntry[]>, duties: Rec
 const right = (ctx, cell, id) => resolveState(law(cell).rights[id] ?? [], cell.key, ctx) ?? ctx.ruleset.rights[id].silentDefault   // silence = allowed
 ```
 
-### 2. Economics — production
-
-```js
-// economics/derive.js
-const poolLabour = (ctx, cell, pool) => cell.labour[pool] - committedElsewhere(ctx, cell, pool)  // production side of the dual-claim split (dial result)
-const labourAt = (ctx, p, pool) => Σ_cells poolLabour(cell, pool) * cellProvShare(cell, p)
-// Extraction (raw goods)  — each raw good declares its extraction pool in ruleset.goods[g].extractPool
-const extract = (ctx, p, g) => habitableOutput(prov(p), T('prod.k') * resourceYield(ctx, prov(p), g) * prov(p).resourceOverrides?.[g] ?? 1)
-                                * labourAt(ctx, p, goods[g].extractPool) ** T('prod.alpha')       // diminishing returns, alpha < 1
-// Processing (semi/light/heavy/transport) — per trade zone, from zone stock + this turn's raw output
-function processZone(ctx, zone) {
-  const lab = Σ_p labourAt(ctx, p, 'Crafting/Industry') over zone provinces            // other pools per recipe.pool
-  const feasible = recipes.filter(r => inputsAvailable(zone, r))                        // alternatives: Preserved Food, Draft Animals, Fuel
-  const margin = r => Math.max(0, price(r.out) * r.outQty - Σ price(i) * i.qty)         // ASSUME planning rule: labour follows value added
-  const w = feasible.map(r => margin(r) ** T('prod.theta')); normalise(w)
-  for (r of feasible) { runs = min(w[r] * lab / r.labourPerRun, limiting input / r.inQty); consume(inputs, runs); produce(r.out, runs * r.outQty) }
-}
-```
-Planning posture dial (`planningPosture ∈ [0,1]`, Administration): at 1 processing labour is allocated by the Government's `plannedWeights`
-(Questions' demanded goods) instead of `margin`; at 0 it is purely market. Units produced go to the producing province's warehouse (capped; overflow spoils, §6).
-
-### 3. Economics — prices, scarcity and flows (single pass, nothing stored)
-
-```js
-// derived at resolution (kb Rule 15): price = base_value(authored, numeraire units) × scarcity × price_level
-function pricePass(ctx) {
-  for (z of zones) for (g of goods) { S[z][g] = production + stock(z,g); D[z][g] = plannedDemand(z,g) }     // cells' tier needs + processing inputs + Government + army upkeep
-  const pre = (z,g) => scarcity(S[z][g], D[z][g])
-  for (e of zoneEdges) for (g of goods) {                                    // cross-zone flows move goods from surplus to shortage
-    gap = price(z2,g) - price(z1,g)*(1+friction(e)) ; if (gap > 0) q = min(e.throughputCapLeft, surplus(z1,g) * T('flow.share'), ...)   // net of tariffs; ONE pass
-    move(q); e.currentFlow += q
-  }
-  for (z, g) final[z][g] = scarcity(S'[z][g], D[z][g])                       // recomputed once from post-flow balances (no equilibrium solver)
-  return (g, z) => base(g) * final[z][g] * priceLevel(ctx)
-}
-const scarcity = (S, D) => clamp((D + T('scar.eps')) / (S + T('scar.eps')), T('scar.min'), T('scar.max')) ** T('scar.elasticity')
-const priceLevel = ctx => ((coinSupply(ctx) / clearedVolume(ctx)) / ctx.state.economy.coinage.ratio0) ** T('money.kappa')   // numeraire scarcity lives here only
-const frictionOf = (ctx, e) => T('flow.friction') * (1 / Math.max(T('eps.infra'), minTradeInfra(e)))                          // lower trade infrastructure -> more friction
-```
-Trade zones (derived, never stored): `gravity(p) = output(p) * tradeInfra(p)`; `hubOf(p)` = hill-climb to the strongest neighbouring gravity
-(ties by id); zone = provinces with the same hub. `throughputCap(zA,zB) = T('zone.capBase') * min(tradeInfra(hubA), tradeInfra(hubB)) * diplomacyGate(zA,zB)`
-(**ASSUME**: kb says "raised by infrastructure investment"; gate = 0 on embargo/ResourceExportBan, exempt under TradeAccess). Estate tariffs reduce realised value only.
-
-### 4. Economics — resolution order (step 3), line by line
-
-```js
-function step3(ctx) {
-  const L0 = gov(ctx).ledger                                 // start-of-turn balance: Government purchases fund from it
-  const out = production(ctx)                                // §2, per province, then split to producing cells by cellProvShare
-  landSplit(ctx, out)                                        // for each province: holders' shares (Σ ≤ 1) take their share of output; remainder -> producing cells
-  requisition(ctx)                                           // PRE-cascade
-  const price = pricePass(ctx)
-  cascade(ctx, price)                                        // Subsistence -> Comfort -> Luxury
-  taxation(ctx, price)                                       // post-cascade
-  debtService(ctx)                                           // existing obligations
-  creditClearing(ctx)                                        // new loans + Borrow
-  ledgerUpdate(ctx, L0)                                      // spending dial vs L0, then inflows
-}
-function requisition(ctx) {
-  for (entry of reqEntries(ctx)) for (cell of cellsCovered(entry.scope, ctx)) {
-    claimed = entry.unit === 'fraction' ? entry.amount * holdings(cell, entry.target) : entry.amount
-    delivered = claimed * compliance01(ctx, cell).involuntary         // delivered = claimed x involuntary_compliance
-    take(cell, entry.target, delivered) ; gov.inventory[entry.target] += delivered
-    ctx.polityQueue.requisitionHits.push({cell: cell.key, target: entry.target, essentiality: essentiality(entry.target), shortfall: claimed - delivered})
-  }                                                          // polity step 5 converts hits into the TWO Opinion hits (direct, offsettable; structural via Extraction<->Investment alignment)
-}
-function cascade(ctx, price) {                               // phases are global per tier so scarcity hits luxury first
-  for (tier of ['subsistence', 'comfort', 'luxury']) {
-    for (g of goodsInTier(tier)) for (z of zones) {
-      demand = cellsIn(z).map(c => wantQty(c, g, tier) capped by affordable(c, price(g,z), c.cash))                // alternatives (Bread|Preserved Food, Coal|Lumber) -> cheapest
-      fill = Math.min(1, supplyLeft(z,g) / Σ demand)                                                          // pro rata when short
-      for (c) { buy(c, g, demand[c] * fill) ; c.satisfaction[tier] += (demand[c]*fill) / need(c,tier) share }
-    }
-  }
-  for (c of cells) { c.cash = c.sales - purchases ; c.satisfaction[tier] = clamp01(...) }
-  deliverNonMaterial(ctx)                                    // Culture pool output (labour * rate, directed share removed) relieves Identity/Solidarity/Purpose by grievance*pop weighting; never stockpiled
-}
-// Market access, tariffs and throughput gate each purchase: a cell without Market access (Right) or behind a blocked edge gets fill = 0 for that good.
-function taxation(ctx, price) {
-  for (c of cells) {
-    base = {market: c.salesValue, wealth: c.wealth}
-    due = Σ over {market, wealth}: dutyRate(c, kind) * base[kind]           // independent, both may apply; Duty rate resolved by scope (most specific wins)
-    paid = Math.min(due * compliance01(ctx, c).involuntary, c.cash)         // never below zero; Wealth never negative
-    c.wealth += c.cash - paid; ctx.taxCollected[c.country] += paid
-  }
-}
-function debtService(ctx) {
-  for (o of obligations) {
-    due = o.principal * rate(zoneOf(o.debtor)) ; paid = Math.min(due, cashOf(o.debtor)) ; transfer(o.debtor, o.creditor, paid)
-    o.arrears += due - paid
-    if (o.arrears > T('debt.arrearsLimit') * o.principal) defaultObligation(ctx, o)    // ASSUME auto-default for cells; creditor loses claim; Opinion/Grievance hit queued; net position falls
-  }
-}
-function creditClearing(ctx) {                               // one derived pass per trade zone
-  lenders = cells.filter(c => right(c, 'Lending') && c.wealth > needReserve(c)).map(c => ({c, supply: (c.wealth - needReserve(c)) * T('credit.lendFraction')}))
-  borrowers = [...cells.filter(c => c.shortfall > 0).map(c => ({c, demand: c.shortfall})), ...(govBorrowEvent ? [{c: 'gov', demand: amount}] : [])]
-  r = clamp(T('credit.r0') * (Σdemand / Σsupply) ** T('credit.eta'), 0, legalCeiling(zone) ?? Infinity)
-  match greedily (lenders desc by supply, borrowers desc by demand): create Obligation{creditor, debtor, principal, terms:{rate: derived each turn, nominal}}   // no anonymous debts
-  // cross-zone: surplus lenders may serve a higher-rate zone while (rate gap > spread), spread = f(min hub tradeInfra, Diplomacy gating); no collection mechanism across Countries
-}
-function ledgerUpdate(ctx, L0) {
-  const d = resolveAllocation(spendingDial(ctx), L0, ctx)                    // floors = upkeep (mandatory) + discretionary; reserve floor; sink keep
-  for (row of d.rows) apply(row)                                             // wages/rations purchases at zone prices; direct intervention/restructuring spend
-  gov.upkeepFraction = unmetFraction(d)                                      // read by Administration degradation and polity step 5 same turn
-  gov.ledger = L0 - Σ spent + taxCollected + stateTariffs + enterprises + seigniorage + borrowed            // never negative; this turn's taxes land for NEXT turn's spending
-}
-```
-Mint (Event): `mint(metal q, fineness f)` converts Refined Precious Metals to coin face value `F = q * baseMetalValue / f`; `coinage.supply += F`;
-issuer record `fineness[issuer] = weightedAverage(...)` (derived record of its mint events); seigniorage = `F - q*baseMetalValue`. Domestic coin is legal tender at face value; between issuers by fineness.
-Rituals: commitment above `labourThreshold` of Meteomancy/Theurgy + Processed Reagents consumed from warehouses, sustained `duration` turns; on completion apply `effect` (`{path:'crisis.epidemicBurden', region, op:'add'|'mul'|'set', value}`) once.
-
-### 5. Economics — contribution, pools, Teaching, warehouses
-
-```js
-const poolScarcity = (ctx, pool) => (totalLabour(ctx) / Math.max(1, labourOf(ctx, pool))) ** T('contrib.beta') / meanScarcity(ctx)    // rarer pools worth more; applied to every pool
-const contribution = (ctx, c) => marketOutputValue(c) * poolScarcity(ctx, mainPool(c))                                                   // output valued at base_value (not live price)
-                               + needSatisfactionDelivered(c)               // military: scales with live war Questions; Culture/Clergy: grievance relieved
-                               + teachingMarginalFlow(c) + ritualAuthoredPrice(c)   // retraining as a FLOW; ritual = authored relative price x rituals performed
-function teaching(ctx, cell) {                // moves actual labour toward the Estate Labor Profile at the Teaching rate
-  const target = pool => cell.laborProfile[pool] * cell.population
-  capacity = poolLabour(cell, 'Teaching') * T('teach.rate') * nationAffinityBias(cell)
-  for (pool of poolsBelowTarget sorted by deficit) { move = min(capacity, deficit); taken pro rata from pools above target; capacity -= move }   // target-pool-specific; no direct conversion
-  // permanent loss: Σ_country labour[pool] == 0 -> unreachable unless teachers imported (LaborMigrationBan gates)
-}
-function warehouses(ctx) { for (w of stocks) { over = max(0, total - capacity); spoil(over, goods[g].decayRate perishable | decayRate*T('wh.slowFactor')); if (unrest) theft(over) } }
-```
-Administrative envelope: `produceCCO` as in `modules__spec`; unmet upkeep multiplies each pool's contributed C/C/O by `(1 - unmetFraction_pool)`, `unmetFraction_pool` taken from the spending-dial item attached to that pool.
+### 2–5. Economics — moved to `economics__spec.md`.
 
 ### 6. Polity — grievance, compliance, opinion
 
@@ -163,7 +32,7 @@ function updateGrievance(ctx, c) {
               : n.kind === 'fairness' ? clamp01(fairnessGap(ctx, c) * T('fair.scale')) + lossMods(c)       // gap > 0 only; entitlement-loss mods added as decaying part
               : 1 - c.delivered[n.id] / Math.max(T('eps.need'), c.target[n.id])                           // non-material channel delivered (Culture); Identity adds nonTitularCost
     if (n.id === 'identity_autonomy') shortfall += nonTitularCost(ctx, c) + suppressionCost(ctx, c)
-    shortfall += warHarm(ctx, c, n) + occupationGrievance(ctx, c, n)
+    shortfall += warHarm(ctx, c, n) + occupationGrievance(ctx, c, n)                                    // warHarm = the cached derived war-attributable value (war__spec.md, War Exhaustion)
     c.grievance[n.id] = clamp01(c.grievance[n.id] * (1 - n.decay) + n.accum * clamp01(shortfall))   // leaky accumulator: existential fast-in/slow-out, secondary slow-in/fast-out (class sets accum/decay)
   }
 }
@@ -222,7 +91,7 @@ const cellStanceFns = { selfInterest: (c, a, ctx) => expectedRelief(ctx, c, a) -
                         modifier:     (c, a, ctx) => 1 + T('stance.align') * Σ_axis sign(a.axisLoads[axis]) * effectivePref(c, axis) }   // Preference alignment
 // Defiance and 'forbidden but permitted' acts are scaled by (1 - involuntary01(c)); a cell with no available action only accumulates grievance and migrates.
 ```
-Alpha uses leaderless factions; ownership of the full action-choice rule is AI-Econ/Internal Politics — this default is replaceable behind `decideCellActions`.
+Alpha uses leaderless factions; ownership of the full action-choice rule is AI-Econ/Internal Politics — this default is replaceable behind `decideCellActions`. (In code the choice runs through each cell type's `propose`/`utility`/`minRung`: `actions__spec.md`, Cell actions.)
 
 ### 8. Polity — entitlement, prestige, Preferences, mobility
 
@@ -249,21 +118,12 @@ function propagandaStep(ctx, p) {                   // commitment: directs finis
 ```
 Government amalgam, Government-to-Government standing, Foreign Standing: see `modules__spec.md` §2. Questions/factions/slate lag one turn: factions use last turn's rung, the slate (step 6) is for NEXT turn.
 
-### 9. TUNE catalogue (all `placeholder`; defaults only so a first playable runs)
+### 9. TUNE catalogue (Internal Politics keys; all `placeholder`; Economics keys: `economics__spec.md`)
 
 | Key | Placeholder | Key | Placeholder |
 |---|---|---|---|
 | `eps.modifier` | 0.0001 | `eps.need` | 0.01 |
-| `eps.infra` | 0.05 | `eps.prestige` | 0.05 |
-| `prod.k` | 1.0 | `prod.alpha` | 0.85 |
-| `prod.theta` | 1.5 | `scar.eps` | 1.0 |
-| `scar.min` / `scar.max` | 0.25 / 4 | `scar.elasticity` | 0.8 |
-| `flow.share` | 0.5 | `flow.friction` | 0.05 |
-| `zone.capBase` | 100 | `money.kappa` | 1.0 |
-| `credit.lendFraction` | 0.5 | `credit.r0` | 0.02 |
-| `credit.eta` | 0.7 | `debt.arrearsLimit` | 0.5 |
-| `contrib.beta` | 0.5 | `teach.rate` | 0.02 |
-| `wh.slowFactor` | 0.25 | `fair.scale` | 1.0 |
+| `eps.prestige` | 0.05 | `fair.scale` | 1.0 |
 | `opinion.k` | 3 | `opinion.perf` | 2 |
 | `opinion.satNeutral` | 0.7 | `opinion.align` | 1 |
 | `opinion.modDecay` | 0.1 | `compliance.controlPerCapita` | 0.001 |
@@ -282,29 +142,22 @@ Government amalgam, Government-to-Government standing, Foreign Standing: see `mo
 
 0. Needs (data, `ruleset.needs`): material `subsistence`(existential), `comfort`, `luxury`; non-material `identity_autonomy`(existential), `solidarity`(existential), `purpose_meaning`, `faith_cosmology`, `security`, `excellence`, `superiority`, `pleasure`; `fairness` (secondary by default).
 1. Laws (Rights, Duties, Requisitions) are scoped entries per Country; per-cell values are derived with the shared scope rules (state: most specific wins; amount: additive).
-2. Economics order is fixed (production → Land split → Requisition → cascade → taxation → debt service → credit clearing → Ledger); Government purchases use the start-of-turn balance.
-3. Prices, scarcity, trade zones, flows' gaps and contribution are derived each pass; only `currentFlow` per edge and stocks persist.
-4. Delivered duty = claimed × involuntary compliance; Wealth and Ledger never go negative; debts exist only as obligation records.
+2–4. (Economics rules: moved to `economics__spec.md` Rules.)
 5. Grievance, compliance and satisfaction are 0..1; a Question exists whenever `grievance > compliance`, independent of the slate.
 6. Attribution = harm × attributability(awareness × causal visibility); war harm blames the enemy unless the Government's role is very obviously incompetent; intent is never modelled.
 7. Momentum is cached per (cell, need) with banded hysteresis; factions are derived per issue and never persisted; cells act at step 2 from last turn's rung.
 8. Propaganda directs finished output (fast, modifier stack); Teaching education moves the baseline (slow); no spend API on stacks.
-9. Every number is a `ctx.T` key from §9; changing balance never changes code.
+9. Every number is a `ctx.T` key from §9 (and the Economics catalogue); changing balance never changes code.
 
 ## Cross-references
-`modules__spec.md` (class diagrams, other modules) · `kernel_engine__spec.md` (allocation, stacks, gating) · `scenario_schemas__spec.md` (where `tuning`, `needs`, `goods`, `rights` live) · kb: Economics, Internal Politics, Administration, Actions.
+`economics__spec.md` (production, prices, credit, Ledger) · `modules__spec.md` (class diagrams, other modules) · `kernel_engine__spec.md` (stacks, stance) · `actions__spec.md` (allocation, gating, cell actions) · `administration__spec.md` (Control/Observation, slate) · `war__spec.md` (`warHarm` cache, exhaustion) · `scenario_schemas__spec.md` (where `tuning`, `needs`, `goods`, `rights` live) · kb: Internal Politics, Economics, Administration, Actions.
 
 ## Status
-- **Settled in kb, encoded**: all orders, derived-vs-stored, cell-level action classes, acceptance inputs, attribution shape, hysteresis, requisition effects, credit/price shape.
-- **Confirmed by designer**: 0..1 scale; labour spread by presence share.
-- **(spec decision)**: production planning rule (labour follows value added; planning-posture blend), extraction pool per raw good, processing at zone level, laws stored per Country, greedy credit matching, auto-default after arrears limit, `harmQueue`/`polityQueue` hand-offs between steps, government inventory for requisitioned goods, formula shapes in §2-§8.
-- **Confirmed by designer 2026-11-04**: the 8 psychological needs (adds security, excellence, superiority, pleasure to Identity/Autonomy, Solidarity, Purpose/Meaning, Faith/Cosmology); extraction pools = existing 19 where they fit, **placeholder pools** otherwise; production-planning rule; abstract Government inventory.
-- **Spec consequences**: `ruleset.needs` gains `security, excellence, superiority, pleasure`; `ruleset.pools` gains placeholder pools `Fishing` and `Reagent Gathering` (flag `placeholder: true`) — raw goods map: Agriculture ← Grain, Livestock, Fine Horses, Fiber, Wool, Hides, Herbs; Mining ← Stone, Iron Ore, Precious Metal Ore, Coal, Sulfur, Salt; Woodcraft ← Timber; Fishing(placeholder) ← Fish; Reagent Gathering(placeholder) ← Magical Reagents.
-- **Confirmed 2026-11-04**: the Portrait-axis pairings below for the four new needs. **Note**: how the four new psychological needs are fed (the kb names inputs only for Identity/Autonomy, Purpose/Meaning via Culture delivery and Fairness). Spec default: each is `nonMaterial` with its own `target` and Culture-channel delivery and `axisLoads` — security ← Ruthlessness↔Restraint & Conservatism, excellence ← Extraction↔Investment & Reformism, superiority ← Homogenizing↔Pluralist & Ruthlessness, pleasure ← Luxury-tier satisfaction. Please correct the pairings; they are data, not code.
-
-- **Implemented 2026-11-04 (runnable subset, `src/modules/economics`, `src/modules/polity`, 10 tests)**: extraction with diminishing returns, zone processing by value added, Land split, Requisition (delivered × involuntary compliance, into Government inventory), hill-climb trade zones, price pass with capped cross-zone flows and a second scarcity pass, tier-first cascade under a cash limit, taxation, debt service with auto-default, greedy credit clearing, spending dial vs start-of-turn Ledger, grievance accumulator, compliance, Questions (iff grievance > compliance), momentum with banded rungs.
-- **Details fixed while implementing (now spec)**: a cell's `cash = salesValue + wealth × cash.wealthFraction`; `wealth' = wealth + sales − purchases − tax` (never negative); `cellZone` = zone of the Region province where the cell's Nation is most present; `labourCommitted[pool]` is the claim taken off production by the pool split; `satisfaction[tier]` = mean over the tier's items of bought/needed; `shortfall` (credit demand) = unmet subsistence value; `polity.rung` is a persisted `@cache` alongside `momentum`. New tuning keys: `yield.baseline`, `yield.timberPerForest`, `cash.wealthFraction`, `credit.reservePerCap`, `aware.base`, `aware.k`.
-- **Not yet implemented (specified above)**: processing planning-posture blend, warehouse spoilage/theft, Teaching, Mint, rituals, Land-share bookkeeping tests, factions, cell action choice, attribution beyond the basic path, Mobility/Demotion/Convergence, propaganda.
-- **Refinements found by running the demo (now spec, 2026-11-04)**: (1) a pool's labour is **split across the raw goods it can extract in a province** by `(yield × base value × live scarcity)^prod.theta` — without this every good received the full pool and labour piled into goods nobody wanted; live scarcity is derived this turn from stock and *derived demand*, nothing is stored. (2) **Derived demand**: final consumption is propagated backward through recipes, net of stock, giving `need[zone][good]`; processing runs are capped by need and inputs, and labour is allocated by **water-filling** (weights = value added with live value, caps = need/inputs, leftovers redistributed) from one labour budget per zone and pool shared across tiers (no double counting). This keeps the confirmed rule "labour follows value added" but with live prices and demand. (3) Raw output enters zone stock before processing, and tiers run semi → light → heavy → transport so chains complete within a turn. (4) Consumption items with alternatives (`Bread|Preserved Food`, `Coal|Lumber`) pick the cheapest alternative **that is on the market**. (5) Trade-zone gravity is smoothed (own pull + half of each neighbour's) with a deterministic tie-break, otherwise equal terrain fragments into one zone per province.
-
-- **Implemented 2026-11-05 (`src/modules/polity/behaviour.js`, `actions.js`; 7 behaviour tests)**: real gating (cells holding `Veto.<domain>` judge the action with the shared stance function: `acceptance + relief − cost`, modifier = Preference alignment), force-through with entitlement-loss modifiers that decay through the context-read `lossDecay`, acceptance (crisis from live Questions, own exposure, burden share, visible alternatives), cell action choice (`permitted` / `granted` / `defiance`, rung-gated; chosen by the stance skeleton, scaled by `1 − involuntary compliance` when a law forbids), cell actions `petition`, `taxRefusal`, `hoard` (covert), `buildTradeInfra`, derived factions (Estate groups merge across Nations unless Preference vectors are far apart; cross-Estate blocs by alignment; Weight-aggregated momentum), hoarding withholds raw goods and releases them when it stops, trade infrastructure decays without upkeep. Not implemented: Mobility, Demotion, Convergence, propaganda/Teaching, factions acting as blocs (they are a readout), Council (consulted, non-blocking) — Veto only.
+- **Settled in kb, encoded**: cell-level action classes, acceptance inputs, attribution shape, hysteresis, requisition effects (polity side).
+- **Confirmed by designer**: 0..1 scale; labour spread by presence share; (2026-11-04) the 8 psychological needs (adds security, excellence, superiority, pleasure to Identity/Autonomy, Solidarity, Purpose/Meaning, Faith/Cosmology) and their Portrait-axis pairings: security ← Ruthlessness↔Restraint & Conservatism, excellence ← Extraction↔Investment & Reformism, superiority ← Homogenizing↔Pluralist & Ruthlessness, pleasure ← Luxury-tier satisfaction (data, not code). Each new need is `nonMaterial` with its own `target` and Culture-channel delivery and `axisLoads`.
+- **(spec decision)**: laws stored per Country, `harmQueue`/`polityQueue` hand-offs between steps, formula shapes in §6–§8.
+- **Spec consequences**: `ruleset.needs` gains `security, excellence, superiority, pleasure`.
+- **Implemented 2026-11-04 (runnable subset, `src/modules/polity`, tests in `tests/econ_polity.test.js`)**: grievance accumulator, compliance, Questions (iff grievance > compliance), momentum with banded rungs; `polity.rung` is a persisted `@cache` alongside `momentum`; `shortfall` (credit demand) = unmet subsistence value (Economics side); new tuning keys `aware.base`, `aware.k`.
+- **Implemented 2026-11-05 (`src/modules/polity/behaviour.js`, `actions.js`; 7 behaviour tests)**: real gating (cells holding `Veto.<domain>` judge the action with the shared stance function: `acceptance + relief − cost`, modifier = Preference alignment), force-through with entitlement-loss modifiers that decay through the context-read `lossDecay`, acceptance (crisis from live Questions, own exposure, burden share, visible alternatives), cell action choice (`permitted` / `granted` / `defiance`, rung-gated; chosen by the stance skeleton, scaled by `1 − involuntary compliance` when a law forbids), cell actions `petition`, `taxRefusal`, `hoard` (covert), `buildTradeInfra`, derived factions (Estate groups merge across Nations unless Preference vectors are far apart; cross-Estate blocs by alignment; Weight-aggregated momentum). Not implemented: Mobility, Demotion, Convergence, propaganda/Teaching directed output, factions acting as blocs (they are a readout), Council (consulted, non-blocking) — Veto only.
+- **Not yet implemented (specified above)**: factions as acting blocs, attribution beyond the basic path, Mobility/Demotion/Convergence, propaganda.
+- **Pending**: kb ↔ spec bootstrap (`Sync:` blocks) and the rename to `internal_politics__spec.md`; Internal Politics code status verification (`convergence.js`, `mobility.js`, `demotion.js`, `remaining.js`, `propaganda.js` exist in `src/modules/polity/` and are not covered by this file's older Status).
