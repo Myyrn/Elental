@@ -46,11 +46,15 @@ Cavalry, Artillery, Siege Corps`
 
 ### Administrative Capability Envelope (per pool — production side)
 ```
-envelope(pool) = { Control: c, Coordination: n, Observation: o }   // fixed ceiling
-combined_envelope(axis) = Σ [pool_units_committed × pool_envelope(axis)] / total_units_committed
+envelope(pool) = { Control: c, Coordination: n, Observation: o }   // per committed unit
+combined_envelope(axis) = Σ [pool_units_committed × pool_envelope(axis)]          // linear in committed units (settled 2026-11-14)
 ```
-No hardcoded institutions exist in the data model — a directive is a
-player-set C/C/O weighting over whichever pool(s) are committed that turn.
+Output is **per committed unit and linear**: a pool with no committed units
+provides nothing, every unit adds its envelope, and there is no
+diminishing return at large numbers (no division by total units). Which
+axes the Government gets follows from which pools it commits. No hardcoded
+institutions exist in the data model — a directive is a player-set C/C/O
+weighting over whichever pool(s) are committed that turn.
 This is the **production** step only; targeting the resulting output to
 specific Actor cells is Administration's Control Allocation (see
 `administration__kb.md`) — Economics owns the labor-supply fact, not the
@@ -162,7 +166,7 @@ production → **Land split** → Requisition (pre-cascade) → consumption casc
 ### Trade-Zone Network
 - Provinces form a graph via World Map adjacency.
 - Membership **derived, not stored**: `trade-gravity = production_output × trade_infrastructure_level`; resolves to strongest-pulling neighbor hub. No separate hysteresis rule (settled 2026-11-02): membership is always derived at read time (Rule 7) and the slow-moving `trade_infrastructure_level` stock damps hub switching.
-- Not bounded by Country borders (confirmed 2026-11-13): the hub climb crosses owner boundaries like any other edge. A border separates zones only where foreign trade is very heavily restricted — the restriction cuts the trade volume the pull reads, and the zones split through that same derived calculation (no border flag, no bespoke rule). **(shape proposed)**: a neighbour's pull seen across a border is multiplied by that border's trade openness (Diplomacy gating: 1 unrestricted, lowered by tariffs and restrictions, 0 under embargo); inside one Country the factor is 1. No entity is specially "a capital" — just the highest-gravity province.
+- Not bounded by Country borders (settled 2026-11-13, shape confirmed 2026-11-14 for alpha): the hub climb crosses owner boundaries like any other edge. A border separates zones only where foreign trade is very heavily restricted — the restriction cuts the trade volume the pull reads, and the zones split through that same derived calculation (no border flag, no bespoke rule). A neighbour's pull seen across a border is multiplied by that border's trade openness (Diplomacy gating: 1 unrestricted, lowered by tariffs and restrictions, 0 under embargo); inside one Country the factor is 1. Post-alpha nuance (not designed): an agreement may open the border for border provinces only and keep it closed for the rest. No entity is specially "a capital" — just the highest-gravity province.
 - `trade_infrastructure_level` is an Economics-owned **per-province stock** (commercial institutions: markets, banks), **distinct** from World Map's `infrastructure_level` (roads/logistics) — settled 2026-11-02: built with Builders + Wealth by **any cell including the Government unless forbidden** (Rights checklist: Trade-infrastructure construction, default permitted); decays without upkeep; **no Trade/Commerce labour cap**. **No builder return (settled 2026-11-02)**: it is a costly public investment whose payoff is the increased flow of goods that benefits everyone if built at the proper time.
 
 ### Trade-Zone Edges
@@ -201,7 +205,7 @@ Government inventory: requisitioned goods go to an abstract Government inventory
 ## Rules
 1. No pool converts to another except via slow Teaching.
 2. Labor committed to an administrative directive is fully unavailable to production that turn (zero-sum, no partial residual).
-3. No named administrative institution is hardcoded — all C/C/O output is a computed pool-blend.
+3. No named administrative institution is hardcoded — all C/C/O output is a computed sum over committed pool units (linear per committed unit).
 4. Consumption resolves Subsistence→Comfort→Luxury strictly; Taxation is post-cascade.
 5. Non-material consumption is never stockpiled.
 6. Money is a single global standard; no per-country currency/exchange rate.
@@ -236,7 +240,7 @@ Government inventory: requisitioned goods go to an abstract Government inventory
 - **Internal Politics (2026-11-02)** — Rights checklist gains Lending and Trade-infrastructure construction (default permitted); Wealth debt becomes obligation records; Demotion Duty reads net position.
 - **Diplomacy (2026-11-02)** — cross-Empire edges also gate inter-zone lending; LaborMigrationBan blocks teacher import after pool extinction.
 - **Internal Politics / UI (2026-11-09)** — a Government grant of goods is a benefit (pain-alleviating or joy-giving); the UI Trade Zones lens reads derived membership (`ui__kb.md`).
-- **Diplomacy (2026-11-13)** — the border's trade openness (embargo, tariffs, restrictions) also scales the pull a neighbour exerts across it in the zone hub climb (shape proposed).
+- **Diplomacy (2026-11-13)** — the border's trade openness (embargo, tariffs, restrictions) also scales the pull a neighbour exerts across it in the zone hub climb.
 - **Administration (2026-11-13)** — reads the per-pool unmet-upkeep fraction written by the Ledger step (`administration__kb.md`, Government upkeep).
 
 ## Status
@@ -257,11 +261,12 @@ Government inventory: requisitioned goods go to an abstract Government inventory
 - **2026-11-04 — settled**: placeholder pools; extraction-pool map (placeholders aside); production-planning rule; Government inventory.
 - **2026-11-09 — designer input (settled as worded)**: Government as seller/grantor of goods (Rule 23); calibration target for starting numbers (Rule 24; numbers-pass requirement, no number changed).
 - **2026-11-09 — open (pool wiring audit)**: every one of the 19 pools needs at least one live sink — production pools → goods; Meteomancy/Theurgy → rituals (catalogue empty, so no sink yet); Culture → non-material channel/propaganda; Medicine → epidemic burden; Builders → infrastructure/warehouses/fortifications; Diplomacy/Espionage → their action models; Trade/Commerce → trade gravity; Teaching → retraining/propaganda; Bureaucrats → C/C/O; army pools → armies. Playtest 2026-11-09: only Bureaucrats visibly used. Open: which pools are wired in the engine but unfed by demo labour data (the README claims several are wired).
-- **2026-11-13 — designer decisions on three kb ↔ code conflicts**: (1) trade zones are not bounded by Country borders, except where foreign trade is very heavily restricted (then the trade-volume calculation splits them) — Trade-Zone Network rev 2, multiplicative border-openness shape **proposed**; (2) the Capability Envelope stays a blend dividing by total committed units (kb unchanged; code to follow); (3) the Ledger step writes the per-pool unmet-upkeep fraction (designer delegated the mechanics) — Resolution order rev 2.
+- **2026-11-13 — designer decisions on three kb ↔ code conflicts**: (1) trade zones are not bounded by Country borders, except where foreign trade is very heavily restricted (then the trade-volume calculation splits them) — Trade-Zone Network; (2) the Capability Envelope is **per committed unit and linear** (revised 2026-11-14: the first reading, a blend dividing by total committed units, was dropped because output would not grow with the units committed) — Administrative Capability Envelope rev 2; (3) the Ledger step writes the per-pool unmet-upkeep fraction (designer delegated the mechanics, tag of the row's pool confirmed 2026-11-14) — Resolution order rev 2.
+- **2026-11-14 — confirmed**: the multiplicative border-openness shape of Trade-Zone Network for alpha (rev 3; finer border agreements are post-alpha and not designed).
 - **Rev:** (tracked = every `###` under Data Structures; `Rules` as one section while it has no `###`; bootstrap 2026-11-13)
   - Data Structures > Resource Tiers (45 goods, 5 tiers) = 1
   - Data Structures > Skilled Labor Pools (19, independent, non-fungible) = 1
-  - Data Structures > Administrative Capability Envelope (per pool — production side) = 1
+  - Data Structures > Administrative Capability Envelope (per pool — production side) = 2
   - Data Structures > Consumption Tiers = 1
   - Data Structures > Non-Material Consumption Channel = 1
   - Data Structures > Contribution valuation (supplies Internal Politics' Fairness bucket — settled 2026-11-02 except ritual catalogue) = 1
@@ -270,8 +275,8 @@ Government inventory: requisitioned goods go to an abstract Government inventory
   - Data Structures > Credit (obligation records — settled shape 2026-11-02) = 1
   - Data Structures > Prices (settled shape 2026-11-02) = 1
   - Data Structures > Resolution order within Economics (settled 2026-11-03) = 2
-  - Data Structures > Trade-Zone Network = 2
+  - Data Structures > Trade-Zone Network = 3
   - Data Structures > Trade-Zone Edges = 1
   - Data Structures > Estate-Tariffs = 1
   - Data Structures > Warehousing (per province) = 1
-  - Rules = 1
+  - Rules = 2
