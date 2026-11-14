@@ -1,6 +1,6 @@
 # Actions — Specification
 
-KB: `kb/actions__kb.md`. Mirror of its `##/###` headings; cross-references live in kb only. Split out of `kernel_engine__spec.md` on 2026-11-12 (its §3, §5, §8–§12 moved here; kernel primitives stay there). Besides kb, sources: `src/engine/engine.js`, `src/kernel/{allocation,claims,threshold}.js`, `src/modules/polity/actions.js`, `src/modules/diplomacy/covert.js`, `tests/engine.test.js`, `tests/kernel.test.js`. Where code and the old spec disagreed, **code wins** and the difference is tagged **(code-led)**. Anything the kb does not state is tagged **(spec decision)**; both are listed under Status and were **confirmed by the designer on 2026-11-12**.
+KB: `kb/actions__kb.md`. Mirror of its `##/###` headings; cross-references live in kb only. Split out of `kernel_engine__spec.md` on 2026-11-12 (its §3, §5, §8–§12 moved here; kernel primitives stay there). Besides kb, sources: `src/engine/engine.js`, `src/kernel/{allocation,claims,threshold}.js`, `src/modules/polity/{actions,remaining}.js`, `src/modules/war/{actions,internal}.js`, `src/modules/diplomacy/{actions,covert}.js`, `src/modules/ai/actions.js`, `src/modules/index.js` (`createRegistry`), `tests/engine.test.js`, `tests/kernel.test.js`. Where code and the old spec disagreed, **code wins** and the difference is tagged **(code-led)**. Anything the kb does not state is tagged **(spec decision)**; both are listed under Status and were **confirmed by the designer on 2026-11-12**.
 
 ## Data Structures
 
@@ -41,7 +41,7 @@ Code: `src/engine/engine.js` (`ActionRegistry`, `validate`)
 ### Lifecycle classes
 Code: `src/engine/engine.js` (`step2`), `src/kernel/claims.js`
 - **Dial**: `apply` sets a standing value; no claims, `costs()` returns `[]`; consent gating still applies.
-  Free dials: `setControlAllocation`, `setObservationAllocation`, `setPlanningPosture`, `setGarrisonPriority`, `setTactic` (per detachment, `war__spec.md`), `setStandingShare` (`war__spec.md`), `setBorderPolicy` (gated). **War stances are not dials**: stance is automatic per Contingent (`war__kb.md`, 2026-11-11), so no `setStance` type is planned.
+  Free dials: `setControlAllocation`, `setObservationAllocation`, `setPlanningPosture`, `setGarrisonPriority`, `setTactic` (per detachment, `war__spec.md`; **army-wide in code**), `setStandingShare` (`war__spec.md`), `setBorderPolicy` (gated). **War stances are not dials**: stance is automatic per Contingent (`war__kb.md`, 2026-11-11), so no `setStance` type is planned.
   **(code-led)** `setObservationAllocation` is registered as class `event` in `diplomacy/covert.js`; to be changed to `dial` in code.
 - **Commitment**: `costs()` returns claims locked each turn at step 2 through `ClaimLedger.lockAll`; the record lives in `GameState.commitments`; release by removing it, lapse by not renewing. Includes fielded units, Mobilization, army Merge/Split, Emergency Powers, propaganda, Espionage. Show of Force is not an action or commitment: War derives it from border deployment (`war__spec.md`; it replaced Troop Training).
 - **Event**: one-shot `apply`; deferred effects go through the Scheduler (below). Rights/Duties configuration (`reformRightsDuties`) and tax law (`setTaxLaw`) are Events with a gate and a real cost; no dial form exists for them.
@@ -71,15 +71,16 @@ involuntaryCompliance(cell, result) = Σ grants whose unit is the cell      // a
 - Aggregate filters and player-named groups are bulk shorthand: expanded per covered cell by `cellsCovered` (`kernel/scope.js`); the `group` target is allocation-local and not part of the shared scope syntax.
 
 ### Cell actions (cells are actors — settled 2026-11-03)
-Code: `src/engine/engine.js` (`step2`, `registry.cellTypes()`), polity module `decideCellActions(ctx)`, `src/modules/polity/actions.js` (cell types)
+Code: `src/engine/engine.js` (`step2`, `registry.cellTypes()`), polity module `decideCellActions(ctx)`, `src/modules/polity/actions.js` and `remaining.js` (cell types), `src/modules/war/internal.js` (`armedRevolt`)
 - `ActorRef.kind === 'cell'`; same `Action` and `writeLog`. Commitments are paid from the cell's own Wealth and pools (`costs()` resource holder = the cell key).
 - Per turn, `decideCellActions(ctx)` returns the cells' `Action`s; they enter `step2` together with the planned orders. Each cell type exposes `propose(ctx, key)` (params or null), `utility(ctx, key, p)` and `minRung`; the choice runs through the stance skeleton, with rungs read from the momentum cache written at last turn's step 5 (`state.polity.rung`, keyed `cell|need`; never on a persisted faction). **(code-led)** the old spec described the choice as a bare stance function.
 - Availability by `ActionType.cellAvailability`:
-  1. `permitted`: always available; Government silence means allowed. A forbidding law is a Rights/Duties Event that bites only through `involuntary_compliance`: the act is still attempted and its effect scaled by `ctx.derive.polity.compliance(cellKey)`.
-  2. `granted`: `requiresRight` must be held (armed rung: Retinue; minting: Minting; Local Jurisdiction acts); `validate`/`propose` reject otherwise.
-  3. `defiance`: no Right needed, only capability (labour in the pool, goods, a Duty to withhold, retinue scale); neither approved nor gated (`gateDomain` absent); effect scaled by compliance; costs arrive through attribution and the Decision Log.
+  1. `permitted`: always available; Government silence means allowed. A forbidding law (`Forbid.<typeId>` Right) is a Rights/Duties Event that bites only through `involuntary_compliance`: the act is still attempted and its effect scaled by `1 − involuntary` (`params.scale`).
+  2. `granted`: `requiresRight` must be held (`=== true`); `decideCellActions` skips the type otherwise. **No cell type in code uses it yet.**
+  3. `defiance`: no Right needed, only capability; neither approved nor gated (`gateDomain` absent); effect scaled by compliance; costs arrive through attribution and the Decision Log. In code: `taxRefusal`, `forceConvergence`.
+- **(code-led)** `armedRevolt` is registered `permitted`, not `granted`: the registry's `granted` gate is boolean-only, so the scalar Retinue Right (> 0 and men to field) is checked inside its own `propose`.
 - No available action: no order is emitted; grievance accumulates and migration (World Map derived pull) is the exit.
-- Default visibility: `hoard` covert; `taxRefusal`, `dutyWithholding`, `armedRevolt` (kb: armed rung) public (see the types table).
+- Default visibility: `hoard` covert; `petition`, `taxRefusal`, `forceConvergence`, `counterPropaganda`, `buildTradeInfra`, `armedRevolt` public (see the types table); `dutyWithholding` is a target (taxRefusal is the only withheld duty in code).
 
 ### Turn pipeline (simultaneous planning, fixed resolution order)
 Code: `src/engine/engine.js` (`resolveTurn`, `step2`)
@@ -181,7 +182,7 @@ Code: `src/engine/engine.js` (`schedule`, `runDue`); War `declareWar.apply`
 schedule(ctx, {dueTurnOffset = 0, dueStep, kind, payload, source})   // pushes {id:'pe<n>', dueTurn: turn+offset, dueStep, kind, payload, source}
 runDue(ctx, step)                                                    // runs ctx.handlers[kind] for entries with dueTurn === turn && dueStep === step; removes them
 ```
-- `declareWar.apply` (step 2: validated, gated, logged public) schedules `{dueStep:7, kind:'diplomacy.warDeclared'}` (CB, overreach, alliance chain) and `{dueTurnOffset:1, dueStep:4, kind:'war.hostilitiesBegin'}`. Covered by `tests/engine.test.js` (scheduler test).
+- `declareWar.apply` (step 2: validated, gated, logged public) schedules `{dueStep:7, kind:'war.declared'}` and `{dueStep:7, kind:'diplomacy.warDeclared'}` (CB, overreach, alliance chain) and `{dueTurnOffset:1, dueStep:4, kind:'war.hostilitiesBegin'}`. Covered by `tests/engine.test.js` (scheduler test).
 - `PendingEffect = {id, dueTurn, dueStep, kind, payload, source}` in `GameState.pending`. Entries whose `dueTurn`/`dueStep` has already passed are never run or removed **(known limitation)**.
 
 ### Gating (derived, never stored)
@@ -196,14 +197,14 @@ gate(ctx, a) -> {blocked:false, verdicts?} | {blocked:true, holders, verdicts, f
 ```
 - A foreign Veto cannot be forced through Control: `step2` refuses at once. Domestic refusal with `forceThroughControl` calls `polity.entitlementLoss(ctx, holders, a)` and records `report.entitlementLosses`; costs are only the polity decaying Fairness modifier, no bespoke penalty. **(code-led)** foreign Vetoes are not in `actions__kb.md`; `diplomacy__spec.md` Axis Bundle records the DomainVeto hook (reputation-threshold, not a full stance).
 - The same `stanceFns(a.type)` serves Veto-to-declare and Veto-to-continue war; the difference comes from live state (Exhaustion).
-- Veto domains: `war, autonomy-titular, market, skilled-labour, administration, retinue, treaty, taxLaw`; `per-entry` = domain of each Rights/Duties entry changed.
+- Veto domains: `war, autonomy-titular, market, skilled-labour, administration, retinue, treaty, taxLaw`; `per-entry` = domain of each Rights/Duties entry changed. **(code-led)** polity gates `Veto.<domain>` holders by strict `=== true`; Council seats are not a separate blocking rule (`polity/remaining.js` DOMAIN comment: Veto only).
 - Tests: `tests/engine.test.js` (refusal blocks; force-through executes and records loss; approval).
 
 ### Shared pools
 Code: `src/kernel/allocation.js`, pool wiring in the owning modules
 - Dual-claim pools (production vs. administrative C/C/O vs. Army) are an `AllocationDial` whose units are `{kind:'claim', claim}`; floors for administrative and Army claims by priority, `sink` = production claim. Shortfall truncates the lowest priority. Market competition stays in Economics.
-- Propaganda is not a labour claim: non-Government `propaganda` redirects a pool's finished Culture/Print/Teaching output (zero-sum with its ordinary use; `costs()` returns a stock claim on that output); the Government's draws on Coordination output.
-- Wiring per pool: see `economics_polity__spec.md` (pool wiring audit is open in `economics__kb.md`).
+- Propaganda is not a labour claim for the Government: non-Government `propaganda` directs a cell's Culture or Teaching **labour** (`freePoolLabour`, zero-sum with its ordinary use; Printed Goods as a directed good is deferred); the Government's draws on Coordination output (`polity/propaganda.js`). **(code-led)** the old text said "finished output"; code redirects pool labour and `costs()` is `[]`.
+- Wiring per pool: see `economics__spec.md` and `economics_polity__spec.md` (pool wiring audit is open in `economics__kb.md`).
 
 ### Decision Log write path
 Code: `src/engine/engine.js` (`writeLog`)
@@ -213,17 +214,17 @@ writeLog(ctx, a, t) { ctx.state.polity.log.push({ actor: a.actor, action_type: a
   affected_cells: t.affectedCells ? t.affectedCells(ctx, a) : [] }) }
 ```
 - Called once per executed action in `step2`, after `apply`. Schema and attribution belong to Internal Politics (`state.polity.log`); Actions only writes.
-- Default visibility by type: public = laws, war declarations, requisitions, treaties, state-level acts; covert = Espionage, covert influence, covert propaganda (types table). `foreignPropaganda` public, `covertInfluence`/`counterIntelligence` covert, `grantFacilitation` covert **(code-led)**.
+- Default visibility by type: public = laws, war declarations, requisitions, treaties, state-level acts; covert = Espionage, covert influence, `propaganda` (covert by default for every actor in code), `hoard`, `aiMemo`. `foreignPropaganda` public, `covertInfluence`/`counterIntelligence` covert, `grantFacilitation` covert **(code-led)**.
 - Attribution is per observer at read time: `detectionStrength(observer) = observationAt + counterIntel` against the action's concealment tier → undetected | act detected | sender revealed (`diplomacy__spec.md`). No log field for deniability; the log schema is unchanged.
 - **(spec decision, confirmed)** concealment tier and false-flag apparent sender live on the covert record (`state.diplomacy.covert` entry, `rec.id` / commitment id), which the Decision Log entry may reference through `entry.ref?`; code has no `ref` yet.
 
 ### Government spending: spending dial, Borrow, Default (settled 2026-11-02; dial revised 2026-11-03)
-Code: `src/kernel/allocation.js`; `setSpendingDial` (`polity/actions.js`: stores `{entries, reserve, sink: 'keep'}` on `admin.governments[c].spendingDial`); Economics step 3 (Ledger, credit clearing); `borrow`, `defaultDebt` (economics)
+Code: `src/kernel/allocation.js`; `setSpendingDial` (`polity/actions.js`: stores `{entries, reserve, sink: 'keep'}` on `admin.governments[c].spendingDial`); Economics step 3 (Ledger, credit clearing)
 - Spending dial = `AllocationDial` with `reserve`, `sink:'keep'`, items as units: upkeep entries `mandatory:true` (may dip into the reserve), discretionary entries `mandatory:false` with optional `surplusWeight`. Resolved at step 3 against the live Ledger balance; shortfall truncates the lowest priority (`waterline`).
 - Reserve floor: discretionary entries never draw below `reserve`; the reserve is unspent Wealth visible to cells (feeds the acceptance function's `visible_alternatives`, polity).
-- Ledger never negative. `borrow` (event, gated by any covering Right) adds Ledger Wealth and creates an `Obligation` to the lender cells; `defaultDebt` (event, gated) costs creditor Opinion/Grievance through the Wealth Flow channels. No anonymous debts; lenders are cells permitted to lend (credit clears as one derived market pass, no per-loan action); interest derived per trade zone with an optional legal ceiling; loans nominal.
+- Ledger never negative. **`borrow` and `defaultDebt` are not in code** (no ActionType exists; `gov.borrowedThisTurn` is read by `ledgerUpdate` but nothing sets it); target: `borrow` (event, gated by any covering Right) adds Ledger Wealth and creates an `Obligation` to the lender cells; `defaultDebt` (event, gated) costs creditor Opinion/Grievance through the Wealth Flow channels. No anonymous debts; lenders are cells permitted to lend (credit clears as one derived market pass, no per-loan action); interest derived per trade zone with an optional legal ceiling; loans nominal.
 - Government market purchases are funded from the start-of-turn Ledger balance; this turn's taxation lands next turn.
-- Tests: `tests/kernel.test.js` (spending dial: reserve, mandatory dip, sink keep). `borrow`/`defaultDebt` coverage not verified.
+- Tests: `tests/kernel.test.js` (spending dial: reserve, mandatory dip, sink keep).
 
 ### Determinism and preview
 Code: `src/engine/engine.js` (`validate`, `resolveTurn`); `preview`/`preflight`: **not in code**
@@ -241,7 +242,7 @@ preflight(state, ruleset, orders, viewer) = [ ...ledgerShortfall(p), ...floorsAb
   `ledgerShortfall`: unfunded amount, truncated entries, unmet upkeep fraction, resulting C/C/O degradation, offers Borrow. `floorsAboveOutput`: Σ floors > produced output for any Allocation Dial. `refusedAtGating`: queued events `gate()` would refuse. `belowThreshold`: Threshold Meters below threshold (would do nothing, no refund). Excludes step-1 shocks and unobserved state; price-dependent figures flagged estimate.
 
 ### Existing actions by module (class shown)
-Code: each module's `actionTypes`, registered by `src/modules/index.js` (`createRegistry`); the third column marks what was confirmed in `src/` on 2026-11-12 (`code`) or is a planned type (`target`)
+Code: each module's registration, collected by `src/modules/index.js` (`createRegistry`: `registerPolityActions`, `registerRemainingActions`, `registerWarActions` (which calls `registerInternalActions`), `registerDiplomacyActions`, `registerAiActions`). **Types table verified against `src/` on 2026-11-13**: `code` = a registration with this id exists (file in brackets); `target` = planned, no registration found. There is **no ActionType in `src/modules/economics/` and none in `administration/`** (the Control dial is registered from `polity/actions.js`; `buildTradeInfra` carries `module: 'economics'` but lives in `polity/actions.js`).
 
 | Module | Type id | Class | Gate | Vis | Status |
 |---|---|---|---|---|---|
@@ -250,33 +251,40 @@ Code: each module's `actionTypes`, registered by `src/modules/index.js` (`create
 | administration | `setPlanningPosture`, `setBorderPolicy` | dial | market (border) | public | target |
 | administration | `declareEmergencyPowers` | commitment | administration | public | target |
 | administration | `commissionAudit`, `escalateExternalQuestion` | event | — | covert / public | target |
-| polity | `reformRightsDuties` (bundle) | event | per-entry | public | target (not seen in `polity/actions.js`; may be in `remaining.js`) |
-| polity | `setTaxLaw` | event | taxLaw | public | code |
-| polity | `placeRequisition` | event | market | public | code; `liftRequisition` target |
-| polity | `shiftLaborProfile`, `grantBenefit`, `persuade`, `forgiveDebt`, `declareConvergence`, `setMobilityGap` | event | per-entry | public | not verified (`convergence.js`, `mobility.js`, `demotion.js`, `remaining.js`) |
-| polity | `setSpendingDial` | dial | — | public | code |
-| polity | `propaganda` | commitment | — | covert or public | not verified (`propaganda.js`) |
-| economics | `construct` (trade infra, roads, warehouse), `freeColonization` | commitment | — | public | not verified |
-| economics | `mint` (fineness param), `directResettlement` | event | Minting Right / — | public or covert | not verified |
-| economics | `ritual` | commitment (+ one-shot effect on completion) | — | public | not verified |
-| economics | `borrow`, `defaultDebt` | event | per-entry | public | not verified |
+| polity | `reformRightsDuties` (bundle) | event | per-entry (first entry with a domain) | public | code (`polity/remaining.js`) |
+| polity | `setTaxLaw` | event | taxLaw | public | code (`polity/actions.js`) |
+| polity | `placeRequisition` | event | market | public | code; `amount: 0` removes the entry, so no `liftRequisition` type is planned |
+| polity | `setMobilityGap` | event | administration | public | code (`polity/remaining.js`) |
+| polity | `declareConvergence` | event | administration | public | code (`polity/remaining.js`) |
+| polity | `setSpendingDial` | dial | — | public | code (`polity/actions.js`) |
+| polity | `propaganda` | commitment | — | **covert** (all actors) | code (`polity/remaining.js`) |
+| polity | `liftPropaganda` | event | — | public | code (`polity/remaining.js`) |
+| polity | `shiftLaborProfile`, `grantBenefit`, `persuade`, `forgiveDebt` | event | per-entry | public | target (no registration in `src/`) |
+| economics | `construct` (roads, warehouse; trade infra is the cell action `buildTradeInfra`), `freeColonization` | commitment | — | public | target |
+| economics | `mint` (fineness param), `directResettlement` | event | Minting Right / — | public or covert | target |
+| economics | `ritual` | commitment (+ one-shot effect on completion) | — | public | target |
+| economics | `borrow`, `defaultDebt` | event | per-entry | public | target (`gov.borrowedThisTurn` is read, never set) |
 | war | `setGarrisonPriority` | dial (scalar, plain) | — | public | target |
-| war | `setTactic` | dial (army-wide in code; per detachment target) | — | public | code (army-wide) |
+| war | `setTactic` | dial (army-wide in code; per detachment target) | — | public | code (`war/actions.js`, army-wide) |
 | war | `setStandingShare` | dial | retinue | public | target |
-| war | `fieldUnits` | commitment | retinue | public | code |
+| war | `fieldUnits` | commitment | retinue | public | code (`war/actions.js`) |
 | war | `mobilize`, `demobilize`, `mergeArmies`, `splitArmy` | commitment / event | retinue | public | target (`war__spec.md`) |
-| war | `orderMove` | dial | — | public | code |
-| war | `declareWar`, `proposePeace` | event | war | public | code |
+| war | `orderMove` | dial | — | public | code (`war/actions.js`) |
+| war | `declareWar`, `proposePeace` | event | war | public | code (`war/actions.js`) |
 | diplomacy | `foreignPropaganda` | commitment (threshold-bound) | — | public | code |
 | diplomacy | `covertInfluence`, `counterIntelligence` | commitment (threshold-bound) | — | covert | code |
 | diplomacy | `liftCovert` | event | — | covert | code |
 | diplomacy | `proposeTreaty` (Dependency/Alliance/Confederation/Cooperation), `answerProposal`, `imposeSanction`, `denounceTreaty`, `recognizeBloc` | event | treaty / — | public | code |
 | diplomacy | `grantFacilitation` | event | — | covert | code |
-| cell (permitted) | `petition`, `buildTradeInfra` | event / commitment | — | public | code |
-| cell (permitted) | `hoard` | commitment | — | **covert** | code |
-| cell (defiance) | `taxRefusal` | commitment | — | **public** | code; `dutyWithholding` target |
-| cell (granted/defiance) | `armedRevolt` (kb: armed rung) | commitment | retinue | **public** | code (`war/internal.js`) |
-| cell | `settle`, `counterPropaganda`, `mintOwn`, `localJurisdictionAct`, `kinStateAppeal`, `recognitionAppeal` | event / commitment | — | public | not verified |
+| ai | `aiMemo` (pseudo-action persisting the AI cache; no affected cells) | event | — | covert | code (`ai/actions.js`) |
+| cell (permitted) | `petition` | event | — | public | code (`polity/actions.js`) |
+| cell (permitted) | `buildTradeInfra` | commitment | — | public | code (`polity/actions.js`) |
+| cell (permitted) | `hoard` | commitment | — | **covert** | code (`polity/actions.js`) |
+| cell (permitted) | `counterPropaganda` | commitment | — | public | code (`polity/remaining.js`) |
+| cell (defiance) | `taxRefusal` | commitment | — | **public** | code (`polity/actions.js`) |
+| cell (defiance) | `forceConvergence` (minRung 4) | event | — | public | code (`polity/remaining.js`) |
+| cell (permitted; Retinue checked inside `propose`) | `armedRevolt` (kb: armed rung) | commitment | retinue | **public** | code (`war/internal.js`) |
+| cell | `dutyWithholding`, `settle`, `mintOwn`, `localJurisdictionAct`, `kinStateAppeal`, `recognitionAppeal` | event / commitment | — | public | target (no registration in `src/`; Diplomacy's `recognizeBloc` is the Country-level recognition route) |
 
 Lending is not an action. Troop Training is retired (replaced by the derived Show of Force, `war__spec.md`). `setStance` is retired (stance automatic per Contingent).
 
@@ -295,7 +303,7 @@ Code: `src/engine/engine.js`, `src/kernel/*` (per-rule notes)
 11. Pool splits and the spending dial are `AllocationDial`s (`resolveAllocation`); truncation by priority, surplus by weight, cap, sink.
 12. `validate`, `costs`, `gateDomain` pure; `apply` mutates only the owner slice; `preview` not yet written; RNG only via `ctx.rng` at step 1.
 13. Upkeep shortfall computed in Economics `steps[3]`; polity `steps[5]` reads it; the slate is the Administration `steps[6]` output applied next turn.
-14. Ledger floor enforced by the spending dial (`reserve`) and `borrow`; Ledger-never-negative is **not asserted in the engine** (module invariant, not tested here).
+14. Ledger floor enforced by the spending dial (`reserve`); Ledger-never-negative is **not asserted in the engine** (module invariant, not tested here); `borrow` is not in code.
 15. Spending dial: `mandatory` upkeep entries priority-ordered, discretionary above `reserve`, `sink:'keep'`.
 16. `cellsCovered` expands filters and groups; surplus pass needs no order or cost.
 17. Preflight: not in code; once written it calls `preview` and returns an array, never throws, never blocks `endTurn`.
@@ -304,9 +312,10 @@ Code: `src/engine/engine.js`, `src/kernel/*` (per-rule notes)
 - **Implemented and tested** (`tests/engine.test.js`, `tests/kernel.test.js`): registry with `targetScale` check, `resolveTurn` purity and determinism, step ordering, gating refusal / force-through / entitlement-loss, scheduler timing for war declaration, Allocation Dial passes and spending-dial reserve, `ClaimLedger` all-or-nothing, seeded resumable RNG.
 - **Not in code**: `preview`, `preflight`, `listActions` and `rawObject` on `EngineClient`, `class` enforcement, `ActionRegistry.listFor`, Decision-Log `ref`, stamped query results (`stamp`/`asOfTurn`; `EngineClient.query` returns plain values), `save()/load()`, Ledger-never-negative assertion. `EngineClient` still lives in `kernel_engine__spec.md` §13.
 - **(code-led, confirmed 2026-11-12)**: `ClaimLedger` signature; `validate(ctx, a)`; foreign DomainVeto in `gate()`; `step2` ordering; `TurnReport` shape; `submit/clearOrders/removeOrder` replace `setOrders/getOrders`; cell choice by `propose`/`utility`/`minRung`; `setObservationAllocation` as an event in code (to be fixed to dial); `armedRevolt` as the registered name of the kb's armed rung.
+- **(code-led, found 2026-11-13)**: `armedRevolt` is `permitted` with an internal Retinue check; no cell type uses `granted`; polity gating needs `Veto.<domain> === true` and ignores Council seats; non-Government `propaganda` redirects pool labour and is covert for every actor; `placeRequisition` with amount 0 is the lift.
 - **(spec decision, confirmed 2026-11-12)**: `mandatory` flag; `cap` = total per-unit grant; equal-priority pro rata; `priority` 1 = highest; deterministic step-2 ordering; Scheduler; concealment tier and apparent sender on the covert record with an optional `entry.ref`.
 - **Resolved 2026-11-12**: `actions__kb.md` no longer lists Troop Training (War row, Lifecycle classes and Cross-references now read Show of Force); the two Rev lines were bumped to 2 and `troopTraining` is removed from the types table.
-- **Types table**: statuses `code` were confirmed from `src/`; `not verified` rows come from the old spec and still need a check against `src/modules/{polity,economics}`.
+- **Types table verified 2026-11-13** against `src/modules/{polity,war,diplomacy,ai}` and `src/modules/index.js`: every polity and cell row now reads `code` or `target`; no `not verified` rows remain. Rows marked `code` for war and diplomacy were confirmed in the 2026-11-12 pass (war re-read 2026-11-13: `fieldUnits`, `orderMove`, `setTactic`, `declareWar`, `proposePeace`, `armedRevolt`). Economics has no ActionTypes in code.
 - **Tracked-section note**: kb headings carry dates in parentheses; a heading is an address, so a rename needs `Sync:` and every pointer updated.
 - **Sync:** (`<section> = <kb rev> / <code rev>`; `-` = no or insufficient code+tests)
   - Data Structures > Action envelope = 1 / -
