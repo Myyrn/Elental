@@ -1,0 +1,16 @@
+{"file":"spec/scenario_schemas__spec.md","headings":[
+  {"l":1,"t":"Scenario Package — Concrete Schemas","s":1,"e":178},
+  {"l":2,"t":"Data Structures","s":10,"e":160},
+  {"l":3,"t":"1. `manifest.json`","s":12,"e":25},
+  {"l":3,"t":"2. `world.json`","s":26,"e":47},
+  {"l":3,"t":"3. `nations.json`","s":48,"e":57},
+  {"l":3,"t":"4. `countries.json`","s":58,"e":65},
+  {"l":3,"t":"5. `polity.json`","s":66,"e":80},
+  {"l":3,"t":"6. `relations.json`","s":81,"e":90},
+  {"l":3,"t":"7. `scenario.json`","s":91,"e":98},
+  {"l":3,"t":"8. `ruleset.json` — section field definitions (extract)","s":99,"e":150},
+  {"l":3,"t":"9. Loader contract (`data/loaders/`)","s":151,"e":160},
+  {"l":2,"t":"Rules","s":161,"e":170},
+  {"l":2,"t":"Cross-references","s":171,"e":173},
+  {"l":2,"t":"Status","s":174,"e":178}
+]}

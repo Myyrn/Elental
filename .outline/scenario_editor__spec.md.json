@@ -1,0 +1,14 @@
+{"file":"spec/scenario_editor__spec.md","headings":[
+  {"l":1,"t":"Scenario Package & Out-of-Game Editor — Specification","s":1,"e":319},
+  {"l":2,"t":"Data Structures","s":11,"e":292},
+  {"l":3,"t":"1. Package layout","s":13,"e":58},
+  {"l":3,"t":"2. Ruleset catalogue (every value the simulation reads, and where it is authored)","s":59,"e":83},
+  {"l":3,"t":"3. One schema definition for loader, validator and forms (`data/schemas/*.js`, `kernel/schema.js`)","s":84,"e":109},
+  {"l":3,"t":"4. Validators (`data/validators/`)","s":110,"e":127},
+  {"l":3,"t":"5. Editor architecture","s":128,"e":251},
+  {"l":3,"t":"6. Loading into the game and playtest","s":252,"e":289},
+  {"l":3,"t":"7. Alpha package seed — five-Country placeholder world (2026-11-09)","s":290,"e":292},
+  {"l":2,"t":"Rules","s":293,"e":306},
+  {"l":2,"t":"Cross-references","s":307,"e":310},
+  {"l":2,"t":"Status","s":311,"e":319}
+]}

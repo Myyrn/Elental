@@ -1,0 +1,12 @@
+{"file":"spec/ai_diplomacy__spec.md","headings":[
+  {"l":1,"t":"AI — Diplomacy — Specification","s":1,"e":106},
+  {"l":2,"t":"Data Structures","s":5,"e":73},
+  {"l":3,"t":"Principles","s":7,"e":36},
+  {"l":3,"t":"Posture(A → B) (derived)","s":37,"e":45},
+  {"l":3,"t":"Campaign (stored, cached intent)","s":46,"e":57},
+  {"l":3,"t":"Leverage weights (decision-time)","s":58,"e":62},
+  {"l":3,"t":"Contested Asset (derived readout)","s":63,"e":66},
+  {"l":3,"t":"Action Score","s":67,"e":73},
+  {"l":2,"t":"Rules","s":74,"e":90},
+  {"l":2,"t":"Status","s":91,"e":106}
+]}

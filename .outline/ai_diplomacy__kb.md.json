@@ -1,0 +1,13 @@
+{"file":"kb/ai_diplomacy__kb.md","headings":[
+  {"l":1,"t":"AI — Diplomacy — Knowledge Base","s":1,"e":85},
+  {"l":2,"t":"Data Structures","s":5,"e":50},
+  {"l":3,"t":"Principles","s":7,"e":11},
+  {"l":3,"t":"Posture(A → B) (derived)","s":12,"e":21},
+  {"l":3,"t":"Campaign (stored, cached intent)","s":22,"e":31},
+  {"l":3,"t":"Leverage weights (decision-time)","s":32,"e":34},
+  {"l":3,"t":"Contested Asset (derived readout)","s":35,"e":43},
+  {"l":3,"t":"Action Score","s":44,"e":50},
+  {"l":2,"t":"Rules","s":51,"e":63},
+  {"l":2,"t":"Cross-references","s":64,"e":70},
+  {"l":2,"t":"Status","s":71,"e":85}
+]}

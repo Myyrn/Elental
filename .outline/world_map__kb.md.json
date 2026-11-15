@@ -1,0 +1,18 @@
+{"file":"kb/world_map__kb.md","headings":[
+  {"l":1,"t":"World Map — Knowledge Base","s":1,"e":185},
+  {"l":2,"t":"Data Structures","s":8,"e":129},
+  {"l":3,"t":"Grid","s":10,"e":15},
+  {"l":3,"t":"Province (hex)","s":16,"e":29},
+  {"l":3,"t":"Terrain Types (10)","s":30,"e":34},
+  {"l":3,"t":"Forestation","s":35,"e":51},
+  {"l":3,"t":"Starting population (worldgen anchors, 2026-11-10)","s":52,"e":61},
+  {"l":3,"t":"Resource Extraction","s":62,"e":79},
+  {"l":3,"t":"Edges (not hex attributes)","s":80,"e":89},
+  {"l":3,"t":"Population dynamics (settled shape 2026-11-02)","s":90,"e":96},
+  {"l":3,"t":"Region (administrative region, 2026-11-09)","s":97,"e":115},
+  {"l":3,"t":"Megaregion (derived, scale-conditional)","s":116,"e":119},
+  {"l":3,"t":"Water provinces and water source (substrate summary)","s":120,"e":129},
+  {"l":2,"t":"Rules","s":130,"e":150},
+  {"l":2,"t":"Cross-references","s":151,"e":161},
+  {"l":2,"t":"Status","s":162,"e":185}
+]}

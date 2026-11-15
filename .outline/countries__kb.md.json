@@ -1,0 +1,13 @@
+{"file":"kb/countries__kb.md","headings":[
+  {"l":1,"t":"Countries — Knowledge Base","s":1,"e":118},
+  {"l":2,"t":"Data Structures","s":9,"e":83},
+  {"l":3,"t":"Country","s":11,"e":24},
+  {"l":3,"t":"RelationState (per country-pair, bilateral, no global tension metric)","s":25,"e":31},
+  {"l":3,"t":"Sovereignty & Dependency (freeform social-contract model)","s":32,"e":56},
+  {"l":3,"t":"Confederation (settled 2026-11-02)","s":57,"e":63},
+  {"l":3,"t":"Country Lifecycle","s":64,"e":74},
+  {"l":3,"t":"Government (Triangle retired; Institutional↔Personalistic derived — 2026-11-01)","s":75,"e":83},
+  {"l":2,"t":"Rules","s":84,"e":95},
+  {"l":2,"t":"Cross-references","s":96,"e":104},
+  {"l":2,"t":"Status","s":105,"e":118}
+]}

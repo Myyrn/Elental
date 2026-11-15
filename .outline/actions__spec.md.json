@@ -1,0 +1,18 @@
+{"file":"spec/actions__spec.md","headings":[
+  {"l":1,"t":"Actions — Specification","s":1,"e":334},
+  {"l":2,"t":"Data Structures","s":5,"e":290},
+  {"l":3,"t":"Action envelope","s":7,"e":40},
+  {"l":3,"t":"Lifecycle classes","s":41,"e":52},
+  {"l":3,"t":"Allocation Dial (dial subclass — settled 2026-11-03)","s":53,"e":72},
+  {"l":3,"t":"Cell actions (cells are actors — settled 2026-11-03)","s":73,"e":84},
+  {"l":3,"t":"Turn pipeline (simultaneous planning, fixed resolution order)","s":85,"e":178},
+  {"l":3,"t":"War declaration timing (settled 2026-11-02)","s":179,"e":187},
+  {"l":3,"t":"Gating (derived, never stored)","s":188,"e":202},
+  {"l":3,"t":"Shared pools","s":203,"e":208},
+  {"l":3,"t":"Decision Log write path","s":209,"e":220},
+  {"l":3,"t":"Government spending: spending dial, Borrow, Default (settled 2026-11-02; dial revised 2026-11-03)","s":221,"e":228},
+  {"l":3,"t":"Determinism and preview","s":229,"e":243},
+  {"l":3,"t":"Existing actions by module (class shown)","s":244,"e":290},
+  {"l":2,"t":"Rules","s":291,"e":310},
+  {"l":2,"t":"Status","s":311,"e":334}
+]}

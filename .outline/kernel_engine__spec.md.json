@@ -1,0 +1,16 @@
+{"file":"spec/kernel_engine__spec.md","headings":[
+  {"l":1,"t":"Kernel & Engine — Specification","s":1,"e":145},
+  {"l":2,"t":"Data Structures","s":5,"e":125},
+  {"l":3,"t":"1. Keys and Scope (`kernel/ids.js`, `kernel/scope.js`)","s":7,"e":37},
+  {"l":3,"t":"2. ModifierStack (`kernel/modifiers.js`) — the one shape behind Prestige, Opinion, Preference, Sympathy, Portrait, Cell Preference, entitlement-loss, Reputational Leverage","s":38,"e":51},
+  {"l":3,"t":"3. AllocationDial — moved to `actions__spec.md` (Allocation Dial).","s":52,"e":53},
+  {"l":3,"t":"4. ThresholdMeter (`kernel/threshold.js`)","s":54,"e":63},
+  {"l":3,"t":"5. Claims — moved to `actions__spec.md` (Lifecycle classes).","s":64,"e":65},
+  {"l":3,"t":"6. Stance skeleton (`kernel/stance.js`) — the shared \"skin/skeleton\" mechanic","s":66,"e":74},
+  {"l":3,"t":"7. GameState root","s":75,"e":104},
+  {"l":3,"t":"8–12. Action system, Gating, Decision Log, Scheduler, Engine API and turn pipeline — moved to `actions__spec.md`.","s":105,"e":106},
+  {"l":3,"t":"13. EngineClient protocol (`client/engineClient.js`)","s":107,"e":125},
+  {"l":2,"t":"Rules","s":126,"e":133},
+  {"l":2,"t":"Cross-references","s":134,"e":139},
+  {"l":2,"t":"Status","s":140,"e":145}
+]}

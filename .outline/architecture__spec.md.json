@@ -1,0 +1,13 @@
+{"file":"spec/architecture__spec.md","headings":[
+  {"l":1,"t":"Architecture — Specification","s":1,"e":203},
+  {"l":2,"t":"Data Structures","s":14,"e":171},
+  {"l":3,"t":"1. Five layers (nothing else exists)","s":16,"e":29},
+  {"l":3,"t":"2. Context diagram","s":30,"e":68},
+  {"l":3,"t":"3. Module dependency rule","s":69,"e":102},
+  {"l":3,"t":"4. Repository layout","s":103,"e":134},
+  {"l":3,"t":"5. SimModule contract (what the Engine calls)","s":135,"e":151},
+  {"l":3,"t":"6. Translation conventions (pseudo-code → JS)","s":152,"e":171},
+  {"l":2,"t":"Rules","s":172,"e":182},
+  {"l":2,"t":"Cross-references","s":183,"e":191},
+  {"l":2,"t":"Status","s":192,"e":203}
+]}

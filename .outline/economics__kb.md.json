@@ -1,0 +1,22 @@
+{"file":"kb/economics__kb.md","headings":[
+  {"l":1,"t":"Economics — Knowledge Base","s":1,"e":283},
+  {"l":2,"t":"Data Structures","s":24,"e":204},
+  {"l":3,"t":"Resource Tiers (45 goods, 5 tiers)","s":26,"e":37},
+  {"l":3,"t":"Skilled Labor Pools (19, independent, non-fungible)","s":38,"e":46},
+  {"l":3,"t":"Administrative Capability Envelope (per pool — production side)","s":47,"e":62},
+  {"l":3,"t":"Consumption Tiers","s":63,"e":84},
+  {"l":3,"t":"Non-Material Consumption Channel","s":85,"e":96},
+  {"l":3,"t":"Contribution valuation (supplies Internal Politics' Fairness bucket — settled 2026-11-02 except ritual catalogue)","s":97,"e":110},
+  {"l":3,"t":"Land (ownership share — settled 2026-11-02)","s":111,"e":121},
+  {"l":3,"t":"Money (settled 2026-11-02)","s":122,"e":137},
+  {"l":3,"t":"Credit (obligation records — settled shape 2026-11-02)","s":138,"e":150},
+  {"l":3,"t":"Prices (settled shape 2026-11-02)","s":151,"e":160},
+  {"l":3,"t":"Resolution order within Economics (settled 2026-11-03)","s":161,"e":165},
+  {"l":3,"t":"Trade-Zone Network","s":166,"e":171},
+  {"l":3,"t":"Trade-Zone Edges","s":172,"e":178},
+  {"l":3,"t":"Estate-Tariffs","s":179,"e":185},
+  {"l":3,"t":"Warehousing (per province)","s":186,"e":204},
+  {"l":2,"t":"Rules","s":205,"e":231},
+  {"l":2,"t":"Cross-references","s":232,"e":245},
+  {"l":2,"t":"Status","s":246,"e":283}
+]}
