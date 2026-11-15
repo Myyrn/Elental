@@ -55,6 +55,10 @@
   "value": 100,
   "status": "placeholder"
  },
+ "zone.openFloor": {
+  "value": 0.1,
+  "status": "placeholder"
+ },
  "money.kappa": {
   "value": 1.0,
   "status": "placeholder"
