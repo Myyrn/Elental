@@ -110,7 +110,7 @@ function requisition(ctx) {                                            // PRE-ca
       const inv = ctx.derive.polity.compliance(k).involuntary, delivered = Math.min(have, claimed * inv)
       if (ctx.scratch.prod[k]) ctx.scratch.prod[k][e.target.good] = have - delivered
       const g = gov(ctx, country); g.inventory ??= {}; g.inventory[e.target.good] = (g.inventory[e.target.good] ?? 0) + delivered
-      ctx.polityQueue.requisitionHits.push({ cell: k, target: e.target.good, shortfall: claimed - delivered })
+      ctx.polityQueue.requisitionHits.push({ cell: k, country, target: e.target.good, claimed, delivered, value: delivered * (ctx.ruleset.goods[e.target.good]?.baseValue ?? 1), shortfall: claimed - delivered })   // read by polity step 5 (readPolityQueue)
     } } }
 
 // ---- prices (single pass, nothing stored) and cascade
