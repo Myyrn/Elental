@@ -3,7 +3,8 @@ import { cellsCovered } from './scope.js'
 export const EPS = 1e-9
 
 /** entry: {target: Scope|{kind:'group',cells}|{kind:'item',id}|{kind:'claim',claim}, floor, priority(1=highest),
- *          surplusWeight, cap?, mandatory?}   dial: {entries, sink?, reserve?} */
+ *          surplusWeight, cap?, mandatory?, pool?}   dial: {entries, sink?, reserve?}
+ *  `pool` is an optional tag carried onto the rows (Economics reads it on mandatory rows for the per-pool upkeep shortfall). */
 const unitsOf = (e, ctx) =>
   e.target.kind === 'item' ? [`item:${e.target.id}`]
   : e.target.kind === 'claim' ? [`claim:${e.target.claim}`]
@@ -12,7 +13,7 @@ const unitsOf = (e, ctx) =>
 export function resolveAllocation(dial, amount, ctx) {
   const rows = []
   dial.entries.forEach((e, i) => unitsOf(e, ctx).forEach(u => rows.push({ i, u, floor: e.floor, priority: e.priority,
-    w: e.surplusWeight ?? 0, cap: e.cap, mandatory: !!e.mandatory, grant: 0 })))
+    w: e.surplusWeight ?? 0, cap: e.cap, mandatory: !!e.mandatory, pool: e.pool, grant: 0 })))
   const reserve = dial.reserve ?? 0
   let remaining = amount, waterline = null
   const priorities = [...new Set(rows.map(r => r.priority))].sort((a, b) => a - b)
