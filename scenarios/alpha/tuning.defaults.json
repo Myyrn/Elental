@@ -493,6 +493,18 @@
   "value": 0.2,
   "status": "placeholder"
  },
+ "req.opinionHit": {
+  "value": 2,
+  "status": "placeholder"
+ },
+ "default.opinionHit": {
+  "value": 2,
+  "status": "placeholder"
+ },
+ "default.fairnessHit": {
+  "value": 0.3,
+  "status": "placeholder"
+ },
  "cell.minUtility": {
   "value": 0.02,
   "status": "placeholder"
