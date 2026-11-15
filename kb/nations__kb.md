@@ -115,3 +115,15 @@ The axis values are the Nation/Country Preference baselines (Internal Politics: 
 - **2026-11-02 — settled**: co-titular support (set, no cap, Identity bonus conditional); kin-state toolkit dissolved; Nation pool affinity; assimilation transfer rule.
 - **2026-11-03 — settled**: Sympathy is the base of Internal Politics' Foreign Standing (no reverse aggregation); titular declaration gives a Prestige modifier.
 - **2026-11-09 — designer input**: five-Country placeholder world (Family, Alatyr, Yuku, Venz, Retlaytiland) with Preference baselines, terrain, Estate configuration and placeholder colours; Rule 13. **Open**: Retlaytiland has no named Nation in the input (shown as "—"); Alatyr's terrain is unspecified; the placeholder values await the numbers pass.
+- **Rev:** (tracked = every `###` under Data Structures; `Rules` as one section while it has no `###`; bootstrap 2026-11-14)
+  - Data Structures > Nation = 1
+  - Data Structures > Population Presence = 1
+  - Data Structures > Core (emergent, computed) = 1
+  - Data Structures > Titular Nation (set, settled 2026-11-02) = 1
+  - Data Structures > Sympathy (computed, not stored) = 1
+  - Data Structures > Reaction Temperament = 1
+  - Data Structures > Nation pool affinity (settled 2026-11-02) = 1
+  - Data Structures > Assimilation Drift = 1
+  - Data Structures > Statehood Pathway = 1
+  - Data Structures > Placeholder world (alpha scenario seed — 2026-11-09) = 1
+  - Rules = 1

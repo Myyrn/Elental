@@ -117,6 +117,7 @@ until the pass runs.
 6-8 Regions, "Region-of-Regions." Only instantiated past alpha scale (~5000
 provinces), when per-empire Region count alone would exceed attention cap.
 
+### Water provinces and water source (substrate summary)
 ```
 hex = province = { x, y, terrain_type (10 incl. Sea) }      // every grid hex is a province, lake hexes included
 water_body = sea | lake                                      // Sea terrain only
@@ -167,3 +168,17 @@ Water provinces (sea and lake) carry population, owner and warehouse fields like
 - **2026-11-09 — designer input**: Region is the stored administrative Region with a Reorganization Event; direct resettlement widened to cells/Nations/Estates; Expulsion added; every hex is a province and Sea is the 10th terrain type (500 provinces; Rules 6, 11, 13, 16). **Proposed (awaiting OK)**: advisory development readout replacing automatic re-derivation; Expulsion details (confiscated share, kin-state CB). **Open**: whether unsettled sea can be owned (default no); Sea's Fish yield; Sea `water_source`; numbers.
 - **2026-11-10 — designer input (settled as worded)**: lakes are playable water provinces, unsettled without special technologies (the 2026-11-09 "lakes stay non-province water" line is superseded); starting population anchors raised — Grassland ≈ 10,000, Taiga and Mountain ≈ 1,000 per Settled province (Rule 17). **Proposed (awaiting OK)**: lakes as the Sea terrain type with a `water_body` attribute and per-body capability/traversal flags; lake shore counts as `river_adjacent`; interpolation of the other terrains' anchors by density ceiling. **Open**: ownership of unsettled water; lake Fish yield; whether Sea Lanes may cross lakes; Frontier/Wasteland seeds. The concrete numbers in `data/`/`scenarios/` and worldgen code are not changed by this kb commit.
 - **2026-11-10 (later) — designer input (settled as worded)**: a Region's capital is a **stored administrative setting** chosen by the player or AI when the Region is defined or redefined (Rule 18; replaces the derived "most populous province" proposal in `ui__kb.md`). **Proposed (awaiting OK)**: the fallback when a split/merge leaves a Region without a valid capital. **Open**: gameplay effect of the capital (none yet); the AI's selection rule.
+- **2026-11-14 — structure only**: the orphaned water-province block that followed Megaregion without a heading now has its own heading `Water provinces and water source (substrate summary)` so it is a tracked section; no meaning changed.
+- **Rev:** (tracked = every `###` under Data Structures; `Rules` as one section while it has no `###`; bootstrap 2026-11-14)
+  - Data Structures > Grid = 1
+  - Data Structures > Province (hex) = 1
+  - Data Structures > Terrain Types (10) = 1
+  - Data Structures > Forestation = 1
+  - Data Structures > Starting population (worldgen anchors, 2026-11-10) = 1
+  - Data Structures > Resource Extraction = 1
+  - Data Structures > Edges (not hex attributes) = 1
+  - Data Structures > Population dynamics (settled shape 2026-11-02) = 1
+  - Data Structures > Region (administrative region, 2026-11-09) = 1
+  - Data Structures > Megaregion (derived, scale-conditional) = 1
+  - Data Structures > Water provinces and water source (substrate summary) = 1
+  - Rules = 1

@@ -620,3 +620,34 @@ foreign-policy and Fervor↔Secular overlaps the open Faith/Cosmology bucket).
 - **2026-11-03 — settled**: Foreign Standing is Nation Sympathy + cell terms (no reverse aggregation); cells are actors with permitted/granted/defiance action classes; Government values as a Weight-weighted amalgam (AI value source, player readout); Government-to-Government standing (= `RelationState.opinion`); deniability per observer.
 - **2026-11-04 — settled**: the eight psychological needs; scale of grievance severity, compliance and need satisfaction is a shared per-cell 0..1; covert-action concealment tier lives on a `CovertOp` record referenced from the Decision Log entry (log schema unchanged); scope ties (Region broader than Estate/Nation; Estate vs Nation latest-declared-wins) — **tie line superseded 2026-11-09 by the scope ladder** (same-rung ties: latest declared wins).
 - **2026-11-09 — designer input**: scope ladder (Cell < Nation < Regional-Estate < Region < Estate < Empire), Precedence flag (Autonomy ↔ Unitarism), administrative-Region laws, Region reorganization gating, consultation/petition handling, Rules 35-37. Tagged **(proposed)** in the text and awaiting the designer's OK: Nation-rung reading, Precedence shape, Country-wide gating reading of "empire-wide question", modifiers landing on the Fairness bucket. **Open**: whether the tech gate also applies to tax law and Requisition scopes (assumed it applies to Rights/Duties states only; tax is a Duty, so tax law would also be Region-level in alpha).
+- **2026-11-13 — designer decisions (cross-module)**: unmet upkeep reaches Administration per pool — the Ledger step writes `unmet(pool)` from the Government's mandatory upkeep rows (`economics__kb.md`, Resolution order); this file's Unmet-upkeep rule is unchanged.
+- **Rev:** (tracked = every `###` under Data Structures; `Rules` as one section while it has no `###`; bootstrap 2026-11-13)
+  - Data Structures > Actor (base unit) = 1
+  - Data Structures > Government and Ledger (resource-holder, not a will — settled 2026-11-02) = 1
+  - Data Structures > Government values and Government-to-Government standing (settled 2026-11-03) = 1
+  - Data Structures > Estate Labor Profile (per (Nation, Estate, Region) cell) = 1
+  - Data Structures > Estate Convergence (structural, top-down; per (Nation, Region) cell pair — 2026-11-02) = 1
+  - Data Structures > Scope syntax and Region-level Convergence/Mobility/Demotion (settled 2026-11-02; ladder 2026-11-09) = 1
+  - Data Structures > Existential vs. Secondary needs = 1
+  - Data Structures > Fairness bucket (contribution vs. entitlement — settled 2026-11-01) = 1
+  - Data Structures > Entitlement loss (decaying modifier on Fairness — settled shape) = 1
+  - Data Structures > Government benefits (settled shape 2026-11-01) = 1
+  - Data Structures > Awareness and attributed discontent (settled shape 2026-11-01) = 1
+  - Data Structures > Decision Log (alpha causal-provenance mechanism — settled shape 2026-11-01) = 1
+  - Data Structures > Rights checklist (universal, per-cell configurable) = 1
+  - Data Structures > Estate Mobility (bottom-up, gradual, individual/family-scale) = 1
+  - Data Structures > Duties checklist (universal, per-cell configurable) = 1
+  - Data Structures > Wealth flow (per Actor, per turn) = 1
+  - Data Structures > Prestige (derived, recomputed/turn) = 1
+  - Data Structures > Duty compliance = 1
+  - Data Structures > Skilled-labour Duty — make vs. buy = 1
+  - Data Structures > Requisition Duty (settled 2026-11-01) = 1
+  - Data Structures > Subinfeudation = 1
+  - Data Structures > Grouping / Faction computation (Question-time only, never persisted) = 1
+  - Data Structures > Faction escalation state (settled 2026-11-02) = 1
+  - Data Structures > Compliance (per Actor cell, per need) = 1
+  - Data Structures > Pressure and Question queue = 1
+  - Data Structures > Question handling — consultation and petition (2026-11-09, proposed: modifiers land on the Fairness bucket) = 1
+  - Data Structures > Government Portrait (Country-level root trait bundle) = 1
+  - Data Structures > Cell Preferences & Propaganda (settled shape 2026-11-01; mechanics partly proposed) = 1
+  - Rules = 1

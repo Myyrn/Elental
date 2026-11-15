@@ -107,3 +107,11 @@ for display only.
 - **2026-11-02 — settled**: Dependency `satisfaction` as a derived readout (no exit trigger); unified axis menu with DomainVeto replacing `government_form`; Confederation as a symmetric bundle with no teeth; collapse as an outcome of armed conflict/Peace Conference; Merger as a gated Event; international-recognition route for rebels (shape).
 - **2026-11-02 — open**: what recognition changes mechanically and Formation completion criteria; CB generation details (see `diplomacy__kb.md`); `religion` axis (after Faith/Cosmology).
 - **2026-11-03 — settled**: `standing` is a derived readout; `satisfaction` uses Foreign Standing only; recognition triggers (initial independence goal from a too-large cultural-identity grievance, or Government refusal read from live state); `opinion` = Government-to-Government Foreign Standing; `goals` = declared war goals.
+- **Rev:** (tracked = every `###` under Data Structures; `Rules` as one section while it has no `###`; bootstrap 2026-11-14)
+  - Data Structures > Country = 1
+  - Data Structures > RelationState (per country-pair, bilateral, no global tension metric) = 1
+  - Data Structures > Sovereignty & Dependency (freeform social-contract model) = 1
+  - Data Structures > Confederation (settled 2026-11-02) = 1
+  - Data Structures > Country Lifecycle = 1
+  - Data Structures > Government (Triangle retired; Institutional↔Personalistic derived — 2026-11-01) = 1
+  - Rules = 1

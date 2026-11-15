@@ -327,6 +327,13 @@ Adds a **View Raw** control to every panel/card/dashboard element, exposing the
 exact live object already rendering it as formatted JSON — never a separate
 copy. Visibility-only, no gameplay effect. Free-text/raw-JSON value entry in the Laws UI exists only under Debug Mode.
 
+### Actions (UI-level)
+Set Scope / SliceOrder · Scope Back / Forward · Toggle Lens (domain, metric, parameter) · Switch render
+(map/regions/table/detail) · Click province/Region/army/cell/Country → Docked Detail
+Panel · Select army → click target province (queue move order) · Mobilize / Demobilize (cell, Region, Empire) · Edit standing-share dial · Edit Allocation Dial (add per-cell/aggregate/group entry; floor, priority, surplus ratios, cap, sink; reserve floor on the spending dial) ·
+Open/stage Event Draft · Queue to Orders tray · Release/renew in Commitments
+ledger · Edit Peace Conference stack / Withdraw from negotiation · End Turn · Run N turns (slider 1–100) · Open Message Feed / message (incl. Battle Report) · Expand a bar's breakdown · Toggle Debug Mode · View Raw.
+
 ## Rules
 1. Every workspace obeys the global Scope; Scope uses the shared filter syntax.
 2. Slice order is player-reorderable; aggregation: extensive sums, intensive Weight-weighted; aggregates always show the hottest child.
@@ -358,13 +365,6 @@ copy. Visibility-only, no gameplay effect. Free-text/raw-JSON value entry in the
 27. The gating panel includes a Veto factors panel; unobservable factors show `unknown` (2026-11-10).
 28. Withdrawing from a negotiation always shows the restart-from-scratch warning first (2026-11-10).
 
-## Actions (UI-level)
-Set Scope / SliceOrder · Scope Back / Forward · Toggle Lens (domain, metric, parameter) · Switch render
-(map/regions/table/detail) · Click province/Region/army/cell/Country → Docked Detail
-Panel · Select army → click target province (queue move order) · Mobilize / Demobilize (cell, Region, Empire) · Edit standing-share dial · Edit Allocation Dial (add per-cell/aggregate/group entry; floor, priority, surplus ratios, cap, sink; reserve floor on the spending dial) ·
-Open/stage Event Draft · Queue to Orders tray · Release/renew in Commitments
-ledger · Edit Peace Conference stack / Withdraw from negotiation · End Turn · Run N turns (slider 1–100) · Open Message Feed / message (incl. Battle Report) · Expand a bar's breakdown · Toggle Debug Mode · View Raw.
-
 ## Cross-references
 - **World Map** — sole source of terrain/edge/Region/ownership ground truth, administrative Region partition (including each Region's stored capital province) and the grid substrate; both infrastructure stocks are rendered as separate lenses; sea and lake provinces render as water (2026-11-10).
 - **Internal Politics** — Questions/Estates/Nations/Laws tabs read grievance, compliance, Rights/Duties, scope ladder and Precedence flag, Foreign Standing, Preference vectors, Decision Log live; Rights/Duties edits are Event Drafts. The Veto factors panel reads the stance function and the acceptance inputs (2026-11-10).
@@ -385,3 +385,28 @@ ledger · Edit Peace Conference stack / Withdraw from negotiation · End Turn ·
 - **2026-11-10 (later) — designer input (settled as worded)**: the Region capital drawn as the bold circle is the Region's **stored** `capital_province`, set by the player or AI in the Region's administrative settings when the Region is defined or redefined (replaces the derived "most populous province" proposal; the Region card and the reorganization draft expose it); the **occupation and siege display model is confirmed** (read-only, no occupation rule change).
 - **Open (kb)**: a "total-split" mode for aggregate filters (a fixed total divided across covered cells) is not adopted — per-cell only; shortfall within one entry is pro rata across its cells; group is allocation-local (not part of the shared Rights/Duties scope syntax).
 - **Open (UI)**: wireframes/layout, icon set, colour palette, forestation stipple technique, significance threshold values, treemap default measures, table column sets per lens, End Turn confirmation behaviour with empty Orders tray; green/orange semantics; early-stop on multi-turn runs; whether the tech gate hides Estate/Empire columns or greys them; `narrative` content for each Right/Duty still to be written.
+- **2026-11-14 — structure only**: the `Actions (UI-level)` section, which sat between Rules and Cross-references as a fifth top-level section, is now the last `###` of Data Structures so it is a tracked section; no meaning changed.
+- **Rev:** (tracked = every `###` under Data Structures; `Rules` as one section while it has no `###`; bootstrap 2026-11-14)
+  - Data Structures > Shell (persistent across workspaces) = 1
+  - Data Structures > Workspace (top-level enum, replaces Screen) = 1
+  - Data Structures > Scope (one syntax, shared with Rights/Duties/Control/Requisition) = 1
+  - Data Structures > Lens System (Map workspace — togglable, instant, non-destructive) = 1
+  - Data Structures > Map Symbols and Army Markers (2026-11-10) = 1
+  - Data Structures > Army Orders (click-to-move — 2026-11-10) = 1
+  - Data Structures > Occupation and Siege Display (2026-11-10, confirmed) = 1
+  - Data Structures > Battle Report message (2026-11-10) = 1
+  - Data Structures > Mobilization and Standing Army controls (2026-11-10) = 1
+  - Data Structures > Veto Factors Panel (2026-11-10) = 1
+  - Data Structures > Grid (rendering) = 1
+  - Data Structures > Edge Rendering (structural, identical across lenses) = 1
+  - Data Structures > Habitability Visual States / Resource Iconography = 1
+  - Data Structures > Visibility Stamp (on every political, covert or foreign readout) = 1
+  - Data Structures > Allocation Dial (the generic dial widget — settled 2026-11-03) = 1
+  - Data Structures > Threshold Meter (fixed-threshold actions) = 1
+  - Data Structures > Event Draft (staged pipeline for events) = 1
+  - Data Structures > Analysis Widgets = 1
+  - Data Structures > Workspace Specs = 1
+  - Data Structures > Docked Detail Panel (live from owning module) = 1
+  - Data Structures > Debug Mode = 1
+  - Data Structures > Actions (UI-level) = 1
+  - Rules = 1
