@@ -42,6 +42,9 @@ export function outlineJson(file, headings) {
   return `{"file":${JSON.stringify(file)},"headings":[\n${rows.join(',\n')}\n]}\n`;
 }
 
+// Rev/Sync paths are compared without backticks (inline code in a heading is formatting, not address).
+export const normPath = (p) => p.replace(/`/g, '').replace(/\s+/g, ' ').trim();
+
 // Entries of the Status section written as `- <heading path> = <n>` (kb Rev:)
 // or `- <heading path> = <kb rev> / <code rev|->` (spec Sync:).
 export function statusEntries(text) {
@@ -53,7 +56,7 @@ export function statusEntries(text) {
     const m = lines[i].match(/^\s*[-*]\s+(.+?)\s*=\s*(\d+)(?:\s*\/\s*(\d+|-))?\s*$/);
     if (!m) continue;
     out.push({
-      path: m[1].replace(/`/g, '').trim(),
+      path: normPath(m[1]),
       kb: Number(m[2]),
       code: m[3] === undefined ? undefined : m[3] === '-' ? null : Number(m[3]),
       hasSlash: m[3] !== undefined,
@@ -63,14 +66,15 @@ export function statusEntries(text) {
 }
 
 // Tracked kb sections: every ### under Data Structures and Rules; a parent with no ### children is tracked itself.
+// Returned normalised (see normPath) so they compare equal to Rev/Sync paths.
 export function trackedSections(headings) {
   const out = [];
   for (const parent of ['Data Structures', 'Rules']) {
     const p = headings.find((h) => h.level === 2 && h.text.toLowerCase() === parent.toLowerCase());
     if (!p) continue;
     const kids = headings.filter((h) => h.level === 3 && h.path.startsWith(p.text + ' > ') && h.start > p.start && h.end <= p.end);
-    if (kids.length) kids.forEach((k) => out.push(k.path));
-    else out.push(p.text);
+    if (kids.length) kids.forEach((k) => out.push(normPath(k.path)));
+    else out.push(normPath(p.text));
   }
   return out;
 }
