@@ -3,6 +3,7 @@ import { parseCellKey } from '../../kernel/ids.js'
 import { tick, push, makeStack } from '../../kernel/modifiers.js'
 import { stepRemainingPolity } from './remaining.js'
 import { addOpinionMod } from './cellstate.js'
+import { tickPortrait } from './portrait.js'
 const sum = a => a.reduce((s, x) => s + x, 0), clamp01 = x => Math.min(1, Math.max(0, x))
 
 export function updateGrievance(ctx, key) {
@@ -25,7 +26,8 @@ export function readDecisionLog(ctx) {                              // attributi
 /** Economics hand-offs of step 3 (`ctx.polityQueue`), consumed here and drained (spec decisions, shapes pending OK; sizes are tuning, "numbers pass"):
  *  requisitionHits {cell, target, claimed, delivered, value, shortfall}: the DIRECT Opinion-toward-Government hit of a Requisition — what the cell feels is what was taken,
  *    so a requisition that delivered nothing is no hit; size = req.opinionHit × burden, burden = share of the cell's own market output (base value) that was taken.
- *    The structural hit (Extraction↔Investment alignment) needs Opinion alignment/Portrait and is not in code; the offset by later benefits works only through decay.
+ *    The structural hit (Extraction↔Investment) is not a stock: the executed placeRequisition is a public Extraction-loaded act in the Decision Log and reaches cells through
+ *    the alignment channel (portrait.js). The offset by later benefits works only through decay.
  *  defaults {creditor, debtor, principal}: the creditor loses its claim (already gone with the removed obligation) and takes an Opinion hit and a Fairness grievance, size × loss,
  *    loss = principal / (wealth + principal). The debtor's net-position effect is Demotion's `netPosition`; the cross-Country remedy (a Rights-tier CB) is Diplomacy's and not wired. */
 export function readPolityQueue(ctx) {
@@ -53,6 +55,7 @@ export function step5(ctx) {
   for (const c of Object.values(P.cells)) { for (const key of ['opinionGovMods', 'prestigeMods', 'fairnessMods']) { if (!c[key]) continue
     const s = { baseline: 0, mods: c[key] }; tick(s, ctx); c[key] = s.mods } }
   for (const c of Object.values(P.cells)) for (const ax of Object.keys(c.prefMods ?? {})) { const st = { baseline: 0, mods: c.prefMods[ax] }; tick(st, ctx); c.prefMods[ax] = st.mods }   // preference modifier stacks decay (pref.modDecay)
+  tickPortrait(ctx)                                         // Government Portrait reinforcement stacks decay (pref.modDecay)
   readPolityQueue(ctx)                                      // after the decay pass: a fresh hit lands at full strength and is read from the next turn on
   ctx.bump()
   const qs = ctx.derive.polity.questions(), live = new Set(qs.map(q => q.key))
