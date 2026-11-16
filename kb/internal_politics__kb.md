@@ -226,8 +226,8 @@ attributed_discontent = harm × attributability(awareness,
                                   causal visibility of Government's role)
   → decaying modifier on Opinion-toward-Government
 ```
-- Awareness gates **attribution, not suffering**: direct effects on needs
-  hit every cell through the existing buckets regardless.
+- Awareness gates **attribution, not suffering**: direct effects hit every
+  cell through the existing buckets regardless.
 - Intent is never modeled — only causal provenance. Unintended blunders
   and engineered crises use the same path. A fabricated emergency works
   only while the Government's causal role is low-visibility; when obvious,
@@ -343,7 +343,7 @@ scope ∈ (Nation, Estate, Region) cell | Estate | Nation | Region | Empire
   (free-capitalism) cells feel it as breaking their expectation of
   government investment, while Extraction-leaning cells comply more easily.
   Hit sizes: numbers pass.
-- **Alpha shape of the direct hit (settled 2026-11-15)**: what the cell feels is **what was taken**, so a requisition that delivered nothing (Control too weak to enforce it) is no hit. Size = a coefficient × **burden**, where burden is the share of the cell's own market output (valued at base value) that was taken: `burden = value taken ÷ (value the cell still sells + value taken)`. It lands as a decaying modifier on Opinion-toward-Government, at full strength when it lands, and is offset only by the ordinary decay and by later benefits (no debt stock). The shape reads delivered goods, not the claim: the claim that went unmet shows up as defiance, not as a second hit. **Not yet in the shape (open)**: weighting by how essential the good is (subsistence above luxury) and softening by crisis acceptance. The *structural* hit is not a separate stock (2026-11-16, proposed): `placeRequisition` is a public Extraction-loaded act, so it enters the Government's action record and reaches each cell through the Opinion-alignment channel (Cell Preferences & Propaganda). The coefficient: numbers pass.
+- **Alpha shape of the direct hit (settled 2026-11-15)**: what the cell feels is **what was taken**, so a requisition that delivered nothing (Control too weak to enforce it) is no hit. Size = a coefficient × **burden**, where burden is the share of the cell's own market output (valued at base value) that was taken: `burden = value taken ÷ (value the cell still sells + value taken)`. It lands as a decaying modifier on Opinion-toward-Government, at full strength when it lands, and is offset only by the ordinary decay and by later benefits (no debt stock). The shape reads delivered goods, not the claim: the claim that went unmet shows up as defiance, not as a second hit. **Not yet in the shape (open)**: weighting by how essential the good is (subsistence above luxury) and softening by crisis acceptance. The *structural* hit is not a separate stock (settled 2026-11-16): a requisition is a public act with a direction on the Extraction↔Investment axis — raising the take is Extraction, lowering or lifting it is Investment — so it enters the Government's action record and reaches each cell through the Opinion-alignment channel (Cell Preferences & Propaganda). The coefficient: numbers pass.
 - Absent a Requisition Duty the Government competes as an ordinary market
   buyer (Ledger Wealth, tariffs, throughput, prices). Planned-economy and
   exploitation play use this plus Administration's planning-posture dial;
@@ -505,7 +505,7 @@ that pole; failure → nudge opposite), magnitude scaled by stakes (open).
 Read (not written) by Administration by design — no automatic feedback
 loop from sustained Control/Persuasion use (open to revisiting).
 
-**Alpha shape (2026-11-16, proposed)**: stored per Country and axis as `{baseline?, modifier_stack}`. A missing baseline reads as the Country's amalgam (so an AI-run Country's Portrait follows its cells; a worldgen-assigned baseline overrides it). Value = clamp(baseline + stack, −1, +1). REINFORCEMENT pushes a decaying entry onto the stack; its size and the success/failure trigger that fires it are **open** (the primitive exists, nothing fires it yet). The Portrait is what AI behaviour reads; what subjects see is the action record below, never the Portrait itself.
+**Alpha shape (2026-11-16, settled)**: stored per Country and axis as `{baseline?, modifier_stack}`. A missing baseline reads as the Country's amalgam (so an AI-run Country's Portrait follows its cells; a worldgen-assigned baseline overrides it). Value = clamp(baseline + stack, −1, +1). **Reinforcement trigger = Government actions/behaviour**: every executed Government act, public or covert, pushes a decaying entry of fixed size onto the Portrait stack toward the pole the act acts on (direction as for the action record, Cell Preferences & Propaganda); there is no success/failure term yet (**open**, with scaling by stakes). The Portrait is what AI behaviour reads; what subjects see is the action record, never the Portrait itself.
 
 **Revision (2026-11-01):** AI-run Countries — the Portrait drives default
 behaviour. Player-run Countries — the Portrait does not constrain; the
@@ -532,18 +532,24 @@ Opinion-toward-Government driver:
 Cells love the Government both when it does a good job and when it acts
 according to their ideals.
 
-**Alpha shape of the alignment channel (2026-11-16, proposed)**:
+**Alpha shape of the alignment channel (2026-11-16, settled; the designer confirmed that an aligned cell also gains, and that direction matters)**:
 ```
 record(Country, axis)         = Σ over public Government acts in the Decision Log of
-                                sign(the act type's load on the axis) × (1 − opinion.modDecay)^age
-observed_portrait(cell, axis) = awareness(cell) × record / (1 + |record|)        // in (−1,+1); covert acts are invisible to cells
-alignment(cell)               = −Σ over axes of |observed_portrait| × |effective_pref − observed_portrait|
+                                load(act, axis) × (1 − opinion.modDecay)^age
+load(act, axis) = ±1: the act's realized direction on the axis when its action type declares one
+                  (a tax rise or a bigger requisition = Extraction (−1); a tax cut or a smaller or lifted requisition = Investment (+1)),
+                  else the action type's static signed load
+observed_portrait(cell, axis) = awareness(cell) × record / (1 + |record|)         // in (−1,+1); covert acts are invisible to cells
+match(cell, axis)             = 1 − |effective_pref − observed_portrait|          // +1: the Government sits at the cell's ideal; 0: half an axis away; −1: opposite poles
+alignment(cell)               = Σ over axes of |observed_portrait| × ( opinion.alignGain × match if match > 0, else match )
 Opinion-toward-Government     = performance + opinion.align × alignment + Σ modifier stack
 ```
-- The record is the Country's own Government acts only (cell acts are not the Government's record); the signed load of an act type on an axis is data on the action type (`axisLoads`). Derived on read, never stored.
-- Each axis term is weighted by how visible the Government's lean on it is (`|observed_portrait|`), so a silent record has no effect and a cell's strong preferences alone never cost the Government anything. The term is ≤ 0, as the −distance form says: a cell at the Government's observed position loses nothing, and the pleasure of being served comes through performance.
-- The structural requisition hit (Requisition Duty (ii)) is this channel: `placeRequisition` and tax laws are public Extraction-loaded acts, so Investment-leaning cells lose more than Extraction-leaning ones. There is no separate stock.
-- **Open**: whether an aligned cell should gain (recentring the distance); the record's memory rate (it reuses `opinion.modDecay`) and whether a standing law renews its own entry (today an act counts when taken and fades, a persisting law does not renew); the direction of an act on an axis (a tax cut and a tax rise carry the same load); the coefficient `opinion.align`.
+- The record is the Country's own Government acts only (cell acts are not the Government's record). The load of an act is derived on read from the Decision Log, never stored as an aggregate.
+- Each axis term is weighted by how visible the Government's lean on it is (`|observed_portrait|`), so a silent record has no effect and a cell's strong preferences alone never cost the Government anything.
+- **An aligned cell gains, a misaligned cell loses**: the gain is a minor-to-moderate modifier that grows with how well the Government's visible behaviour matches the cell's ideal image of it (`opinion.alignGain` < 1 keeps it smaller than the loss of equal mismatch); the loss grows with how far the match falls below 0.
+- A standing law is not renewed: an act counts when taken and fades with age (settled for alpha; the designer accepts the fade).
+- The structural requisition hit (Requisition Duty (ii)) is this channel; tax laws and requisitions are public acts with a direction, so Investment-leaning cells lose more than Extraction-leaning ones when the take rises, and gain when it falls.
+- **Open**: the coefficients `opinion.align` and `opinion.alignGain` and the record's memory rate (it reuses `opinion.modDecay`): numbers pass.
 
 - **Propaganda** = directing Culture / Printed Goods / Teaching pool output
   to push a target cell's preference (directed use of that output,
@@ -628,7 +634,7 @@ foreign-policy and Fervor↔Secular overlaps the open Faith/Cosmology bucket).
 - **UI** — Laws tab columns follow the scope ladder (Estate/Empire columns hidden unless the technology flag enables them); the Value control is generated from ruleset-declared choices (`ui__kb.md`, 2026-11-09).
 - **Events** — causal provenance for attribution (beyond alpha; the Decision Log is the alpha mechanism).
 - **Economics (2026-11-15)** — Economics hands this file the requisition (what was taken, from which cell) and the credit default (creditor, principal) at step 3; the Opinion and Fairness hits are written here, in step 5 (Requisition Duty; Credit default consequences; `economics__kb.md`, Credit).
-- **Actions (2026-11-16)** — the Government's action record is read from the Decision Log through each action type's signed `axisLoads` (`actions__kb.md`, action types); an action type with no load on an axis is silent there (Cell Preferences & Propaganda, alignment channel).
+- **Actions (2026-11-16)** — the Government's action record is read from the Decision Log through each action's signed load on the Portrait axes: the realized direction of the act where its action type declares one (tax law and requisition), else the type's static `axisLoads` (`actions__kb.md`, action types); an act with no load on an axis is silent there (Cell Preferences & Propaganda, alignment channel). The same loads reinforce the Portrait (Government Portrait).
 
 ## Status
 - Actor model, Rights/Duties, Prestige/Weight, Wealth flow, Opinion (both channels), Foreign Standing, subinfeudation, grouping/fracture, Pressure/Question shape, Estate Labor Profile, Estate Convergence, Estate Mobility, Demotion Duty, Outcome Asymmetry, compliance model, Government Portrait: **settled**.
@@ -653,8 +659,8 @@ foreign-policy and Fervor↔Secular overlaps the open Faith/Cosmology bucket).
 - **2026-11-04 — settled**: the eight psychological needs; scale of grievance severity, compliance and need satisfaction is a shared per-cell 0..1; covert-action concealment tier lives on a `CovertOp` record referenced from the Decision Log entry (log schema unchanged); scope ties (Region broader than Estate/Nation; Estate vs Nation latest-declared-wins) — **tie line superseded 2026-11-09 by the scope ladder** (same-rung ties: latest declared wins).
 - **2026-11-09 — designer input**: scope ladder (Cell < Nation < Regional-Estate < Region < Estate < Empire), Precedence flag (Autonomy ↔ Unitarism), administrative-Region laws, Region reorganization gating, consultation/petition handling, Rules 35-37. Tagged **(proposed)** in the text and awaiting the designer's OK: Nation-rung reading, Precedence shape, Country-wide gating reading of "empire-wide question", modifiers landing on the Fairness bucket. **Open**: whether the tech gate also applies to tax law and Requisition scopes (assumed it applies to Rights/Duties states only; tax is a Duty, so tax law would also be Region-level in alpha).
 - **2026-11-13 — designer decisions (cross-module)**: unmet upkeep reaches Administration per pool — the Ledger step writes `unmet(pool)` from the Government's mandatory upkeep rows (`economics__kb.md`, Resolution order); this file's Unmet-upkeep rule is unchanged.
-- **2026-11-15 — settled (designer-confirmed implementation choices)**: the alpha shape of Requisition's direct Opinion hit (what was taken, as a share of the cell's own output; no hit when nothing was delivered) — Requisition Duty rev 2; the credit-default consequences for the creditor (Opinion-toward-Government hit and Fairness grievance by loss share; no extra debtor hit) — new section Credit default consequences rev 1. **Open**: essentialness weighting and crisis-acceptance softening of the direct hit; the structural hit (needs the Opinion-alignment channel); coefficients (numbers pass).
-- **2026-11-16 — proposed (implementation choices, awaiting the designer's OK)**: the alpha shape of the Opinion-alignment channel — observed portrait from the public Government action record, salience-weighted −distance, never above 0 — Cell Preferences & Propaganda rev 2; the stored Portrait (missing baseline reads as the amalgam, decaying stack, no reinforcement trigger yet) — Government Portrait rev 2; the structural requisition hit is this channel, not a separate stock (supersedes the 2026-11-15 open item above) — Requisition Duty rev 3. **Open**: recentring so aligned cells gain; the record's memory rate and standing-law renewal; the direction of an act on an axis; the Portrait reinforcement trigger and size; the `opinion.align` coefficient (numbers pass).
+- **2026-11-15 — settled (designer-confirmed implementation choices)**: the alpha shape of Requisition's direct Opinion hit (what was taken, as a share of the cell's own output; no hit when nothing was delivered) — Requisition Duty rev 2; the credit-default consequences for the creditor (Opinion-toward-Government hit and Fairness grievance by loss share; no extra debtor hit) — new section Credit default consequences rev 1. **Open**: essentialness weighting and crisis-acceptance softening of the direct hit; coefficients (numbers pass). (The structural hit, open on this date, is settled 2026-11-16 below.)
+- **2026-11-16 — settled (designer decisions and confirmed implementation proposals)**: the alignment channel — observed portrait from the public Government action record (awareness-scaled, saturating), salience-weighted match per axis; **an aligned cell also gains** (a minor-to-moderate modifier growing with how well the Government's behaviour matches the cell's ideal image; the loss grows with the mismatch) — Cell Preferences & Propaganda rev 3; **direction matters** (tax rise or bigger requisition = Extraction, tax cut or smaller/lifted requisition = Investment); **a standing law may fade** from the record; the stored Portrait (a missing baseline reads as the amalgam, decaying stack) with **reinforcement triggered by Government actions/behaviour** — Government Portrait rev 3; the structural requisition hit is this channel, not a separate stock — Requisition Duty rev 4. **Open**: the coefficients `opinion.align`, `opinion.alignGain`, `portrait.reinforce` and the record's memory rate (numbers pass); success/failure and stakes scaling of Portrait reinforcement; stance of Veto holders toward an act with a realized direction (gating still reads the static load).
 - **Rev:** (tracked = every `###` under Data Structures; `Rules` as one section while it has no `###`; bootstrap 2026-11-13)
   - Data Structures > Actor (base unit) = 1
   - Data Structures > Government and Ledger (resource-holder, not a will — settled 2026-11-02) = 1
@@ -675,7 +681,7 @@ foreign-policy and Fervor↔Secular overlaps the open Faith/Cosmology bucket).
   - Data Structures > Prestige (derived, recomputed/turn) = 1
   - Data Structures > Duty compliance = 1
   - Data Structures > Skilled-labour Duty — make vs. buy = 1
-  - Data Structures > Requisition Duty (settled 2026-11-01) = 3
+  - Data Structures > Requisition Duty (settled 2026-11-01) = 4
   - Data Structures > Credit default consequences (settled 2026-11-15) = 1
   - Data Structures > Subinfeudation = 1
   - Data Structures > Grouping / Faction computation (Question-time only, never persisted) = 1
@@ -683,6 +689,6 @@ foreign-policy and Fervor↔Secular overlaps the open Faith/Cosmology bucket).
   - Data Structures > Compliance (per Actor cell, per need) = 1
   - Data Structures > Pressure and Question queue = 1
   - Data Structures > Question handling — consultation and petition (2026-11-09, proposed: modifiers land on the Fairness bucket) = 1
-  - Data Structures > Government Portrait (Country-level root trait bundle) = 2
-  - Data Structures > Cell Preferences & Propaganda (settled shape 2026-11-01; mechanics partly proposed) = 2
+  - Data Structures > Government Portrait (Country-level root trait bundle) = 3
+  - Data Structures > Cell Preferences & Propaganda (settled shape 2026-11-01; mechanics partly proposed) = 3
   - Rules = 1
