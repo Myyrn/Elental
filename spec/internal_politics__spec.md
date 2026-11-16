@@ -1,6 +1,6 @@
 # Internal Politics — Specification
 
-KB: `kb/internal_politics__kb.md`. Mirror of its `##/###` headings; cross-references live in kb only. Bootstrapped 2026-11-13 (the older first-pass spec was replaced; its formulas survive where code or kb confirm them); synced to kb 2026-11-15 (Requisition Duty rev 2, new Credit default consequences rev 1). Sources: kb, `src/modules/polity/{derive,step,behaviour,actions,remaining,mobility,demotion,convergence,propaganda,module}.js` (`cellstate.js`, `transfer.js` only through the names the others import), `tests/{econ_polity,behaviour,politics_remaining,polity_queue}.test.js` (files, not individual test names, were checked; `polity_queue.test.js` was written 2026-11-15 and not yet run by the designer). Where code and the old spec disagree, **code wins** (**code-led**); where code lags kb it is listed under Status as outstanding. Anything the kb does not state is **(spec decision)**. Not-yet-written code is **(target)**. Economics half: `economics__spec.md`. Shared scale (confirmed): grievance severity, compliance and need satisfaction are per-cell values in **[0,1]**.
+KB: `kb/internal_politics__kb.md`. Mirror of its `##/###` headings; cross-references live in kb only. Bootstrapped 2026-11-13 (the older first-pass spec was replaced; its formulas survive where code or kb confirm them); synced to kb 2026-11-16 (Cell Preferences & Propaganda rev 2, Government Portrait rev 2, Requisition Duty rev 3). Sources: kb, `src/modules/polity/{derive,step,behaviour,actions,remaining,mobility,demotion,convergence,propaganda,portrait,module}.js` (`cellstate.js`, `transfer.js` only through the names the others import), `tests/{econ_polity,behaviour,politics_remaining,polity_queue,portrait}.test.js` (files, not individual test names, were checked; `polity_queue.test.js` and `portrait.test.js` were written 2026-11-15 and 2026-11-16 and **not yet run by the designer**). Where code and the old spec disagree, **code wins** (**code-led**); where code lags kb it is listed under Status as outstanding. Anything the kb does not state is **(spec decision)**. Not-yet-written code is **(target)**. Economics half: `economics__spec.md`. Shared scale (confirmed): grievance severity, compliance and need satisfaction are per-cell values in **[0,1]**.
 
 ## Data Structures
 
@@ -8,21 +8,23 @@ State and conventions:
 ```js
 state.polity = { cells: Record<CellKey, Cell>, law: Record<Country, {rights: Record<id, Entry[]>, duties: Record<id, Entry[]>, requisitions: ReqEntry[]}>,
                  momentum: Record<`${cellKey}|${need}`, number> /*@cache*/, rung: Record<same, int> /*@cache*/, log: DecisionEntry[], petitions: {cell, need, turn}[],
-                 mobilityGap: Record<Country, Record<`${fromEstate}>${toEstate}`, number>> }
+                 mobilityGap: Record<Country, Record<`${fromEstate}>${toEstate}`, number>>,
+                 portrait?: Record<Country, Record<axis, {baseline?: number, mods: Mod[]}>> }          // baseline absent = the Country's amalgam; written only by reinforcePortrait / worldgen
 Cell = {key: cellKey(nation, estate, region), nation, estate, region, population, labour, labourCommitted, laborProfile, wealth, satisfaction{subsistence,comfort,luxury},
         grievance: Record<need, 0..1>, pref: Record<axis, baseline>, prefMods: Record<axis, Mod[]>, opinionGovMods, prestigeMods, fairnessMods: Mod[], target, delivered, warHarm,
         flags?: {converged, parts}, defiance: {tax?}, hoardFrac}                  // Mod = {id, value, decay: {kind:'exp', rateKey} | {kind:'ctx', fn}, turn, source}
 Entry = {scope, value, declaredTurn, seq?}      // laws are scoped entries per Country (supersedes Cell.rights/duties in modules__spec); ReqEntry = {scope, target:{good}, amount, unit:'fraction'|'absolute', since}
+DecisionEntry (as written by engine `writeLog`) = {actor: {kind:'government', country} | {kind:'cell', key}, action_type, visibility: 'public'|'covert', turn, affected_cells}      // code-led: no `id` is written (see Decision Log)
 ctx.polityQueue = {requisitionHits: Hit[], defaults?: Default[]}      // per-turn hand-off from Economics step 3, drained by readPolityQueue in step 5; never persisted
 countryOf(key) = ctx.derive.worldmap.regionOwner(parseCellKey(key).region);   T = ctx.T (every number is a tuning key; missing key throws)
 ```
-Step 5 order (`step.js`): `stepRemainingPolity` (propaganda → Mobility → Demotion → divergence) → `updateGrievance` per cell → `readDecisionLog` → modifier stacks tick (`opinionGovMods`, `prestigeMods`, `fairnessMods`, `prefMods`) → **`readPolityQueue`** (after the decay pass, so a fresh hit lands at full strength; before `bump`) → Questions → momentum/rungs. Cells act at step 2 from last turn's cached rungs (`decideCellActions`); the Government slate (step 6) is for next turn.
+Step 5 order (`step.js`): `stepRemainingPolity` (propaganda → Mobility → Demotion → divergence) → `updateGrievance` per cell → `readDecisionLog` → modifier stacks tick (`opinionGovMods`, `prestigeMods`, `fairnessMods`, `prefMods`, then **`tickPortrait`**) → **`readPolityQueue`** (after the decay pass, so a fresh hit lands at full strength; before `bump`) → Questions → momentum/rungs. Cells act at step 2 from last turn's cached rungs (`decideCellActions`); the Government slate (step 6) is for next turn.
 
 ### Actor (base unit)
 Code: `state.polity.cells`, `cellKey`/`parseCellKey` (`kernel/ids.js`), `worldmap/regions.js` (`mergeCells`)
 - One cell per `(Nation, Estate, Region)`; no province key. Population-sum constraint holds through `transferCohort` (Mobility/Demotion move population between same-(Nation, Region) cells; extensive stocks move pro rata) and `mergeConverged` (sums).
 - `weight(key) = population × max(eps.prestige, prestige(key))`.
-- **Not in polity code**: Opinion per (Estate, other Nation), Foreign Standing per (cell, foreign Country), Character-leader, Region fracture/merger/reorganization stock split for polity cells, the Reorganization Event gate (every Veto/Council holder in the Country, then self-interest × Preference alignment). Opinion-toward-Government is `opinionGovMods` (a stack) plus performance (see Compliance).
+- **Not in polity code**: Opinion per (Estate, other Nation), Foreign Standing per (cell, foreign Country), Character-leader, Region fracture/merger/reorganization stock split for polity cells, the Reorganization Event gate (every Veto/Council holder in the Country, then self-interest × Preference alignment). Opinion-toward-Government is `opinionGovMods` (a stack) plus performance plus the alignment term (see Compliance).
 
 ### Government and Ledger (resource-holder, not a will — settled 2026-11-02)
 Code: `state.admin.governments[country]` = `{ledger, spendingDial: {entries, reserve, sink}, controlDial, inventory, upkeepFraction, poolUnmet, controlBonus, borrowedThisTurn}`; Ledger resolution is Economics `ledgerUpdate` (`economics__spec.md`, Resolution order)
@@ -33,9 +35,9 @@ Code: `state.admin.governments[country]` = `{ledger, spendingDial: {entries, res
 ### Government values and Government-to-Government standing (settled 2026-11-03)
 Code: `propaganda.js` (`amalgam`), service `polity.amalgam(country)`
 ```js
-amalgam(country)[axis] = Σ_cells weight(k) × effectivePref(cell, axis) / Σ weight          // derived, never stored; no value source yet
+amalgam(country)[axis] = Σ_cells weight(k) × effectivePref(cell, axis) / Σ weight          // derived, never stored; the baseline source of a Portrait with no stored baseline
 ```
-- Used as the default `ideal` of a propaganda commitment with no `ideal`. Feeding an AI Government's values and the player readout: **(target)**, not in polity code.
+- Used as the default `ideal` of a propaganda commitment with no `ideal`, and (since 2026-11-16) as the Portrait baseline when none is stored (see Government Portrait). Feeding an AI Government's decisions from the Portrait and the player readout: **(target)**, not in polity code.
 - **Not in code**: Government-to-Government Foreign Standing (`RelationState.opinion`) as a Weight-aggregate of cells' Foreign Standing + amalgam/Portrait alignment (Countries/Diplomacy side; not verified).
 
 ### Estate Labor Profile (per (Nation, Estate, Region) cell)
@@ -105,10 +107,11 @@ readDecisionLog: for h of ctx.harmQueue {cell, logId, magnitude, kind}:  vis = l
 - **(code-led)** awareness omits Printed Goods consumption, `urbanization_rate` and held political Rights (Council/Petition/Veto); covert acts are simply invisible (no detection tiers, no per-observer reveal, no recency decay of `vis`); redirected blame goes nowhere. These are the kb's targets.
 
 ### Decision Log (alpha causal-provenance mechanism — settled shape 2026-11-01)
-Code: `state.polity.log` (read by `readDecisionLog`); written by the Actions write path (`actions__spec.md`, not re-read this session)
+Code: `state.polity.log` (read by `readDecisionLog` and, since 2026-11-16, by `actionRecord`); written by the engine's `writeLog` (`engine/engine.js`) on every executed action
 ```js
-entry = {id, actor, type, visibility: 'public' | 'covert', turn, affectedCells}          // covert concealment tier lives on a CovertOp referenced from the entry (log schema unchanged)
+entry = {actor, action_type, visibility: 'public' | 'covert', turn, affected_cells}          // as written today; covert concealment tier lives on a CovertOp referenced from the entry (log schema unchanged)
 ```
+- **(code-led, found 2026-11-16)** `writeLog` writes no `id`, while `readDecisionLog` looks entries up by `e.id` from `harmQueue` hand-offs; the field names are `action_type` and `affected_cells`, not the `type`/`affectedCells` an earlier spec wrote. The action record does not need an id. Whether `writeLog` should assign one (via `ctx.nextId`) when a harm producer exists is a **(spec decision)**, open.
 
 ### Rights checklist (universal, per-cell configurable)
 Code: `derive.js` (`right`), `ruleset.rights[id] = {silentDefault, prestigeWeight}`
@@ -148,8 +151,8 @@ delivered = claimed × compliance(key).involuntary          // involuntary from 
 Code: none (target): conscript via Duty (free, uses Control, `labourCommitted`) vs. purchase on the market (money; tariffs partially clawed back). Not in polity or Economics.
 
 ### Requisition Duty (settled 2026-11-01)
-Code: Government action `placeRequisition`, resolution in Economics `requisition` (`economics__spec.md`), hit in `step.js` (`readPolityQueue`)
-- `placeRequisition {good, amount, scope}` (gate domain `market`; impact = cost proportional to amount × `salesValue`/scale) writes `law.requisitions` (replaces any entry for that good; amount 0 removes). Scope is the shared scope filter; pre-cascade resolution with delivered scaled by involuntary compliance; goods go to `gov.inventory`.
+Code: Government action `placeRequisition`, resolution in Economics `requisition` (`economics__spec.md`), hit in `step.js` (`readPolityQueue`), structural hit through `portrait.js` (`alignment`)
+- `placeRequisition {good, amount, scope}` (gate domain `market`; impact = cost proportional to amount × `salesValue`/scale; `axisLoads: {extraction_investment: -1}`) writes `law.requisitions` (replaces any entry for that good; amount 0 removes). Scope is the shared scope filter; pre-cascade resolution with delivered scaled by involuntary compliance; goods go to `gov.inventory`.
 - **Direct Opinion hit (kb rev 2 alpha shape, implemented 2026-11-15)**: Economics pushes `{cell, country, target, claimed, delivered, value, shortfall}` per covered cell to `ctx.polityQueue.requisitionHits`; `readPolityQueue` consumes and drains it:
 ```js
 for h of requisitionHits:  skip if !cell or !(h.value > 0)                        // a requisition that took nothing (no Control) is no hit
@@ -157,9 +160,10 @@ for h of requisitionHits:  skip if !cell or !(h.value > 0)                      
   addOpinionMod(cell, {id: `req.${turn}.${h.target}`, value: −T('req.opinionHit') × burden, decay: exp(opinion.modDecay), turn, source: 'requisition'})
 ```
   The hit is on delivered goods, abundant goods included; the unmet claim shows up as defiance, not a second hit. It enters `opinionGov` (hence voluntary compliance) from the next turn.
-- **Not in code**: pool (labour) targets in the action (the kb scope allows goods or pools); the **structural hit** (Extraction↔Investment alignment; needs the Opinion alignment and Portrait, see Compliance); weighting of the direct hit by how essential the good is and softening by crisis acceptance (kb open); offset by later benefits except through decay.
+- **Structural hit (kb rev 3, 2026-11-16, proposed)**: not a separate stock and no extra code in the queue reader. The executed `placeRequisition` is a public Extraction-loaded entry in the Decision Log, so it feeds `actionRecord` and reaches each cell through `alignment` (Cell Preferences & Propaganda): Investment-leaning cells lose more than Extraction-leaning ones. Open (see that section): the entry fades with age and a standing requisition does not renew it.
+- **Not in code**: pool (labour) targets in the action (the kb scope allows goods or pools); weighting of the direct hit by how essential the good is and softening by crisis acceptance (kb open); offset by later benefits except through decay.
 - Hit size: `req.opinionHit` (placeholder 2, numbers pass).
-- Tests: `tests/polity_queue.test.js` (hit = `req.opinionHit × burden`; nothing delivered is no hit; a bigger take hits harder; no Control, no hit).
+- Tests: `tests/polity_queue.test.js` (hit = `req.opinionHit × burden`; nothing delivered is no hit; a bigger take hits harder; no Control, no hit); `tests/portrait.test.js` (a requisition entry lowers an Investment-leaning cell's Opinion more than an Extraction-leaning one's).
 
 ### Credit default consequences (settled 2026-11-15)
 Code: `step.js` (`readPolityQueue`); the default itself is Economics `debtService` (`economics__spec.md`, Credit)
@@ -185,7 +189,7 @@ factions(ctx) = for each need with live Questions:
   → {need, country, estates, cells, weight, momentum: Weight-aggregated, fullNation: more than one faction in the bloc}
 ```
 - **(code-led)** a factions readout, not acting blocs: nothing consumes it for decisions; `fullNation` is "more than one faction", not "all four Estate cells share the goal"; coordination cost (`bloc.cost`) and the Coordination capacity of cells are not computed; the acting set is each cell's own `decideCellActions`.
-- Stance and agency: per cell, `stance(selfInterest × alignment)` with `alignment = max(0, 1 + stance.align × Σ sign(load) × effectivePref)`.
+- Stance and agency: per cell, `stance(selfInterest × alignment)` with `alignment = max(0, 1 + stance.align × Σ sign(load) × effectivePref)` (this is the action-stance alignment in `behaviour.js`, a different quantity from the Opinion alignment in Compliance).
 - Faction action set in code: `petition`, `taxRefusal`, `hoard`, `buildTradeInfra`, `counterPropaganda`, `forceConvergence`; armed rung → War, kin-state appeal and seek recognition → Countries/Diplomacy (not in polity), strike/Duty-withholding **not in code** (taxRefusal is the withheld duty).
 
 ### Faction escalation state (settled 2026-11-02)
@@ -199,13 +203,13 @@ cellRung(key) = max rung over the cell's needs
 - Cached, re-derivable, carried per (cell, need) not per faction; repression lapses the Question but leaves grievance. Existential shocks skip rungs only through the larger rise. Bloc momentum is the Weight aggregate in `factions`; below-rung members' non-participation is **not** applied (**code-led**). Thresholds: numbers pass.
 
 ### Compliance (per Actor cell, per need)
-Code: `derive.js` (`compliance`, `opinionGov`)
+Code: `derive.js` (`compliance`, `opinionGov`), `portrait.js` (`alignment`)
 ```js
 voluntary = sigmoid(opinion.k × opinionGov);  involuntary = 1 − exp(−controlGrant(key) / (compliance.controlPerCapita × max(1, population)));  total = min(1, voluntary + involuntary)
-opinionGov = opinion.perf × (mean satisfaction − opinion.satNeutral) + Σ opinionGovMods          // (code-led) no alignment term yet
+opinionGov = opinion.perf × (mean satisfaction − opinion.satNeutral) + opinion.align × alignment(key) + Σ opinionGovMods          // alignment ≤ 0, see Cell Preferences & Propaganda
 ```
-- **Outstanding vs kb**: the kb's Opinion-toward-Government driver is performance **plus** alignment `−distance(effective_pref, observed_portrait)`; the code has no alignment term and no `observed_portrait`. **(code to follow kb)**. Persuasion (moves Opinion directly) has no action in polity code. `compliance` is the same scalar for every need (per-need compliance = total). Tested in `tests/econ_polity.test.js`.
-- `opinionGovMods` now also receives the requisition and credit-default hits (above) besides attributed discontent, Mobility, Demotion and civil-war suppression.
+- The alignment term landed 2026-11-16 (kb Cell Preferences & Propaganda rev 2, **proposed**). `opinion.align` (placeholder 1) was a tuning key with no reader until then. Persuasion (moves Opinion directly) has no action in polity code. `compliance` is the same scalar for every need (per-need compliance = total). Tested in `tests/econ_polity.test.js`; the alignment term in `tests/portrait.test.js`.
+- `opinionGovMods` also receives the requisition and credit-default hits (above) besides attributed discontent, Mobility, Demotion and civil-war suppression.
 
 ### Pressure and Question queue
 Code: `derive.js` (`questions`)
@@ -219,11 +223,18 @@ Code: partial — cell action `petition` only
 - `petition` (permitted, minRung 1, proposes the cell's highest-grievance need) appends `{cell, need, turn}` to `state.polity.petitions`. **Not in code**: handling states (`ignored | consulted | debated`), the Fairness modifiers for refusing to hear or refusing after debate, consultation for cells without the Right, slate attention cost of debating. Sizes and decay: numbers pass.
 
 ### Government Portrait (Country-level root trait bundle)
-Code: none in polity; the Portrait axes are `axisLoads` keys on action types (`extraction_investment`, `homogenizing_pluralist`, `conservatism_reformism`, …) and preference axes on cells
-- **Not in code (polity)**: `Portrait(Country) = {axis: {baseline, modifier_stack}}`, REINFORCEMENT of the stack after aligned/failed policy, and `observed_portrait(cell)` = action record filtered by awareness (the missing alignment input). AI-behaviour use of the Portrait is outside this module (`ai_diplomacy` etc.; not verified).
+Code: `portrait.js` (`portrait`, `reinforcePortrait`, `tickPortrait`), derive `polity.portrait(country)`; state `state.polity.portrait`
+```js
+portrait(country)[axis] = clamp(stored[axis]?.baseline ?? amalgam(country)[axis] ?? 0 + stack(stored[axis]?.mods ?? []), -1, +1)          // axes = stored axes ∪ amalgam axes; derived on read
+reinforcePortrait(ctx, country, axis, value): push {id: `portrait.${turn}.${axis}`, value, decay: exp('pref.modDecay'), turn, source: 'reinforcement'} onto stored[axis].mods; ctx.bump()
+tickPortrait(ctx) (step 5, with the other stack decays): every stored stack ticks like a prefMods stack
+```
+- **(spec decision, kb rev 2 proposed)** a missing baseline reads as the amalgam, so an AI-run Country's Portrait follows its cells; a worldgen-assigned baseline (written to `portrait[country][axis].baseline` by the scenario) overrides it. The stack reuses the tuning key `pref.modDecay` (no Portrait-specific key yet: split in the numbers pass).
+- **Not in code**: the REINFORCEMENT trigger (policy aligned to a pole + success/failure) and its size, so the Portrait stack stays empty in play; the use of the Portrait by AI behaviour (outside this module; `ai_diplomacy` etc. not verified); succession-type baseline changes (Characters, post-alpha). The Portrait is never read by cells: they read the action record (below).
+- Tests: `tests/portrait.test.js` (amalgam default, stored baseline wins, reinforcement pushes and clamps, ticking decays the stack).
 
 ### Cell Preferences & Propaganda (settled shape 2026-11-01; mechanics partly proposed)
-Code: `propaganda.js`, `cellstate.js` (`effectivePref`, `prefMods`), `remaining.js` (action types)
+Code: `propaganda.js`, `cellstate.js` (`effectivePref`, `prefMods`), `remaining.js` (action types), `portrait.js` (`actionRecord`, `observedPortrait`, `alignment`)
 ```js
 effectivePref(cell, axis) = clamp(baseline + Σ prefMods[axis], -1, 1)          // cellstate.js (not re-read)
 propaganda (commitment; Government: params.amount of Coordination; others: pool ∈ {Culture, Teaching}, amount ≤ freePoolLabour, zero-sum with ordinary use)
@@ -233,8 +244,17 @@ propaganda (commitment; Government: params.amount of Coordination; others: pool 
 counterPropaganda (cell, permitted, minRung 1, pool Culture): pulls the cell's own effective preference back toward its baseline, re-decided every turn
 liftPropaganda (event) removes a commitment;  commitments of vanished cells lapse
 ```
-- Printed Goods as a directed *good* channel is deferred (`PROPAGANDA_POOLS = ['Culture','Teaching']`); propaganda is covert by default; Persuasion is separate (Opinion). Competing propaganda sums on the same stack. Foreign propaganda reuses `pushPreference` (Diplomacy `foreignPropaganda`). Tested in `tests/politics_remaining.test.js`.
-- Alignment feeding Opinion: see Compliance (outstanding). Resistance to propaganda (`prop.resist` is a flat key; Faith/Identity/awareness resistance is open in kb).
+Alignment channel (kb rev 2, **proposed**, implemented 2026-11-16; all three are derives, memoised per bump, never stored):
+```js
+actionRecord(country)[axis]       = Σ over ctx.state.polity.log entries e with e.visibility === 'public' && e.actor.kind === 'government' && e.actor.country === country:
+                                      sign(registry.types.get(e.action_type).axisLoads[axis]) × (1 − T('opinion.modDecay')) ** max(0, turn − e.turn)          // types missing from the registry or without loads are skipped
+observedPortrait(key)[axis]       = awareness(key) × r / (1 + |r|),  r = actionRecord(countryOf(key))[axis]                  // (−1, +1); the 1 in the denominator is one fresh act's worth, structural
+alignment(key)                    = −Σ over the record's axes of |observedPortrait[axis]| × |effectivePref(cell, axis) − observedPortrait[axis]|        // ≤ 0; silent record → 0
+```
+- The record is the Government's own acts (cell acts are excluded); covert entries are invisible to every cell (as in `readDecisionLog`); the load is the static signed `axisLoads` of the action type (`setTaxLaw` and `placeRequisition` load `extraction_investment` at −1, i.e. the Extraction pole). **Code-led limits**: a tax cut and a tax rise carry the same load; a standing law does not renew its entry; the record's memory reuses `opinion.modDecay`; the whole log is scanned per bump (prune by age if it grows).
+- Salience weighting is a **(spec decision)**: without it, a cell with strong preferences and a silent Government would score a distance from zero. The kb's −distance form is kept (never above 0); whether an aligned cell should gain is open in the kb.
+- Printed Goods as a directed *good* channel is deferred (`PROPAGANDA_POOLS = ['Culture','Teaching']`); propaganda is covert by default; Persuasion is separate (Opinion). Competing propaganda sums on the same stack. Foreign propaganda reuses `pushPreference` (Diplomacy `foreignPropaganda`). Tested in `tests/politics_remaining.test.js`; the alignment channel in `tests/portrait.test.js`.
+- Resistance to propaganda (`prop.resist` is a flat key; Faith/Identity/awareness resistance is open in kb).
 
 ## Rules
 Code: per-rule notes
@@ -247,16 +267,16 @@ Code: per-rule notes
 7–10. Profile rules: `laborProfile` is per-cell data; nothing but Teaching moves actual labour; changing it has no action yet (**target**).
 11. Outcome Asymmetry: `declareConvergence` and `forceConvergence` schedule the same handler (tested).
 12. Mobility and Demotion share the Prestige derivation, independent checklist entries, net position triggers Demotion.
-13. Portrait axes as root traits: **not in code (polity)**.
+13. Portrait axes as root traits: stored Portrait with stack and readout in `portrait.js`; no reinforcement trigger and no AI consumer in polity yet (**target**).
 14. A Question exists per (cell, need) when `grievance > compliance.total`.
 15–17. Ledger stock rules: Economics `ledgerUpdate`; no Ledger-drawing action may touch another Actor's resources (not enforced, no such action exists).
 18–19. Fairness gap and entitlement loss as in their sections.
 20. Awareness gates attribution only; intent never modelled.
 21–22. Factions derived; Questions independent of the slate.
 23. Unmet upkeep: `upkeepFraction` and per-pool `poolUnmet` (both written by `ledgerUpdate`); never spawns Questions.
-24. Requisition scopes and pre-cascade order (Economics); the direct Opinion hit is consumed in polity step 5 (structural hit not in code).
+24. Requisition scopes and pre-cascade order (Economics); the direct Opinion hit is consumed in polity step 5, the structural hit reaches cells through the action record and `alignment`.
 25. Preference baseline + decaying stack; propaganda pool-gated; reversible.
-26. Portrait/AI vs player record: **not in code**.
+26. Portrait/AI vs player record: cells read the action record (`actionRecord`/`observedPortrait`); the Portrait is for AI behaviour only (no consumer in polity).
 27. Bloc coordination cost: **not in code**.
 28. Borrowing/reserve floor: spending dial in code; Borrow event not.
 29. Momentum cached per (cell, need) with banded hysteresis (tested).
@@ -264,21 +284,22 @@ Code: per-rule notes
 31. Convergence/Mobility/Demotion per (Nation, Region); rarity emergent (tested).
 32. No anonymous debts: Economics `Obligation` records.
 33. Cells are actors: `decideCellActions`.
-34. Government values: `amalgam` readout only.
+34. Government values: `amalgam` readout; also the Portrait baseline when none is stored.
 35–36. Per-Region laws, tech-gated Estate/Empire scopes: unverified.
 37. Petition handling penalties: **not in code**.
 
 ## Status
 - **Implemented, with a test file covering it**: grievance accumulator and Fairness gap, Compliance, Questions (iff grievance > compliance), momentum with banded rungs (`tests/econ_polity.test.js`); gating by Veto holders, acceptance, force-through with entitlement-loss modifiers and `lossDecay`, cell action choice (permitted/granted/defiance, rung-gated), `petition`/`taxRefusal`/`hoard`/`buildTradeInfra`, derived factions (`tests/behaviour.test.js`); **Estate Mobility, Demotion, Convergence (declare, force, diverge), propaganda (Government and cell, Teaching education), counter-propaganda** (`tests/politics_remaining.test.js`). Test files were checked; individual test names were **not** re-verified, so the `1` code revs in Sync are provisional until spot-checked.
 - **Implemented 2026-11-15, tests written the same day and not yet run by the designer** (a code rev set below on this basis is to be lowered to `-` if they fail): `readPolityQueue` — the direct requisition Opinion hit and the credit-default consequences (`tests/polity_queue.test.js`).
-- **Outstanding vs kb (code to follow kb, designer to decide order)**: (1) Opinion-toward-Government has no alignment term and there is no `observed_portrait`/Portrait — also blocks the structural requisition hit; (2) essentialness weighting and crisis-acceptance softening of the direct requisition hit (kb open); (3) attribution: covert detection tiers, recency decay, low-awareness redirect; awareness inputs (Printed Goods, urbanization, held Rights); (4) factions as acting blocs with Coordination cost and attention gating of momentum rise; (5) Petition handling and Fairness modifiers; (6) Borrow/Default/debt-forgiveness and Direct/Restructuring actions; (7) benefits, Persuasion action, Labor Profile change channels, Prestige modifier actions; (8) Region reorganization gating and polity-cell split on Region fracture; (9) Foreign Standing and Government-to-Government standing; (10) Skilled-labour Duty make-vs-buy and Subinfeudation.
-- **Not verified this session**: scope ladder and Precedence flag (`kernel/scope.js`), tech gate on Estate/Empire scopes, `cellstate.js`/`transfer.js` internals, Decision Log writers in the Actions path.
-- **(code-led)**: no `warHarm` term on every need (security only), `visibleAlt` from the Ledger alone, awareness from five pools only, momentum attention fixed at 1, `fullNation` = more than one faction, `clamp01` on the Fairness gap, public-or-invisible attribution, propaganda covert by default with Culture/Teaching labour (Printed Goods channel deferred), Mobility needs an explicit `mobilityGap` per Estate pair, Demotion goes to the same-(Nation, Region) cell with the closest Prestige below, Demotion Control gain written to `controlBonus` for next turn, tuning keys listed below.
+- **Implemented 2026-11-16, tests written the same day and not yet run** (same rule; nothing could be executed in the session that wrote them): the Opinion-alignment channel — `actionRecord`, `observedPortrait`, `alignment` and the `opinion.align × alignment` term in `opinionGov`; the stored Portrait — `portrait`, `reinforcePortrait`, `tickPortrait` (`src/modules/polity/portrait.js`, `tests/portrait.test.js`, listed in `npm test`). No tuning keys were added: the record's memory reuses `opinion.modDecay`, the Portrait stack `pref.modDecay`, the term's coefficient is the existing `opinion.align`. **Risk to check first**: any existing test that executes public Government actions and then asserts exact `opinionGov`/`compliance` values for cells with non-zero `pref` now sees the alignment term; cells without `pref` are unaffected (a silent or aligned cell scores 0).
+- **Outstanding vs kb (code to follow kb, designer to decide order)**: (1) the Portrait reinforcement trigger and size, and the Portrait's consumers (AI behaviour, outside this module); (2) essentialness weighting and crisis-acceptance softening of the direct requisition hit (kb open); (3) attribution: covert detection tiers, recency decay, low-awareness redirect; awareness inputs (Printed Goods, urbanization, held Rights); (4) factions as acting blocs with Coordination cost and attention gating of momentum rise; (5) Petition handling and Fairness modifiers; (6) Borrow/Default/debt-forgiveness and Direct/Restructuring actions; (7) benefits, Persuasion action, Labor Profile change channels, Prestige modifier actions; (8) Region reorganization gating and polity-cell split on Region fracture; (9) Foreign Standing and Government-to-Government standing; (10) Skilled-labour Duty make-vs-buy and Subinfeudation; (11) record refinements named open in the kb (direction of an act, standing-law renewal, recentring).
+- **Not verified this session**: scope ladder and Precedence flag (`kernel/scope.js`), tech gate on Estate/Empire scopes, `cellstate.js`/`transfer.js` internals, `kernel/modifiers.js` (`tick` and `value` used as `step.js`/`derive.js` use them), whether `tests/fixtures.js`'s registry carries the polity action types (`tests/portrait.test.js` registers them itself).
+- **(code-led)**: no `warHarm` term on every need (security only), `visibleAlt` from the Ledger alone, awareness from five pools only, momentum attention fixed at 1, `fullNation` = more than one faction, `clamp01` on the Fairness gap, public-or-invisible attribution, propaganda covert by default with Culture/Teaching labour (Printed Goods channel deferred), Mobility needs an explicit `mobilityGap` per Estate pair, Demotion goes to the same-(Nation, Region) cell with the closest Prestige below, Demotion Control gain written to `controlBonus` for next turn, the Decision Log written without `id`, tuning keys listed below.
 - **Confirmed 2026-11-15 (were spec decisions)**: the `polityQueue` hand-offs and their shapes; the burden definition of the direct requisition hit (delivered value ÷ (value still sold + value taken)); the credit-default hits on the creditor (Opinion and Fairness, by loss share) with no extra debtor hit; the three coefficients as placeholders.
-- **(spec decision)** (pending confirmation): laws per Country as scoped entries; `harmQueue` hand-off; formula shapes above; `compliance` shared across needs; Prestige as weighted Rights − Duties; `Forbid.<id>` as the way a law forbids a cell action; `setMobilityGap` as the per-pair gap action.
-- **Open (kb)**: accumulation/decay rates; Opinion fracture thresholds; Prestige weighting; Profile normalisation; Convergence/Mobility/Demotion thresholds; Portrait reinforcement; bloc alignment threshold; rung ordering and band widths; Requisition and default hit sizes; initial Estate world-views; petition modifier sizes; tech gate on tax law and Requisition scopes.
-- **Tuning keys** (first-pass placeholders, authoritative in `tuning.defaults.json`): `eps.modifier` 0.0001, `eps.need` 0.01, `eps.prestige` 0.05, `fair.scale` 1.0, `opinion.k` 3, `opinion.perf` 2, `opinion.satNeutral` 0.7, `opinion.align` 1 (unused until the alignment term lands), `opinion.modDecay` 0.1, `compliance.controlPerCapita` 0.001, `attr.warSteepness` 4, `attr.lowAwareness` 0.2, `tier.existential` 0.5, `tier.structural` 0.2, `faction.fracture` −0.3, `faction.align` 0.6, `bloc.cost` 1 (unused), `mom.rise` 0.5, `mom.decay` 0.1, `rung.enter` [0.2, 0.5, 0.9, 1.4], `rung.exit` [0.1, 0.35, 0.7, 1.1], `stance.align` 0.5, `acc.w0` 0.1, `acc.crisis` 0.5, `acc.exposure` 0.3, `acc.burden` 0.2, `acc.alt` 0.2, `loss.decay.live` 0.05, `loss.decay.restored` 0.3, `loss.decay.inForce` 0.02, `prop.rate` 0.1, `pref.modRange` 2, `pref.modDecay` 0.1, `edu.rate` 0.01, **`req.opinionHit` 2, `default.opinionHit` 2, `default.fairnessHit` 0.3** (2026-11-15); keys seen in code without a recorded placeholder: `aware.base`, `aware.k`, `acc.altScale`, `cell.minUtility`, `defy.risk`, `petition.effect`, `hoard.frac`, `infra.richPerCap`, `infra.costPerCap`, `infra.delta`, `mob.eligibleShare`, `mob.originGain`, `mob.destResent`, `demo.rate`, `demo.control`, `demo.opinion`, `demo.opinionDecay`, `demo.destResent`, `conv.eps`, `conv.force`, `prop.resist`, `cprop.frac`, `cprop.k`.
-- **Sync:** (`<section> = <kb rev> / <code rev>`; `-` = no or insufficient code+tests; `1` = code and a test file present, names not re-verified)
+- **(spec decision)** (pending confirmation): laws per Country as scoped entries; `harmQueue` hand-off; formula shapes above; `compliance` shared across needs; Prestige as weighted Rights − Duties; `Forbid.<id>` as the way a law forbids a cell action; `setMobilityGap` as the per-pair gap action; **2026-11-16**: the alignment channel's shapes (public Government record, `x/(1+|x|)` saturation, awareness scaling, salience-weighted −distance, reuse of `opinion.modDecay`), the Portrait storage and baseline rule, the structural requisition hit as this channel.
+- **Open (kb)**: accumulation/decay rates; Opinion fracture thresholds; Prestige weighting; Profile normalisation; Convergence/Mobility/Demotion thresholds; Portrait reinforcement; bloc alignment threshold; rung ordering and band widths; Requisition and default hit sizes; initial Estate world-views; petition modifier sizes; tech gate on tax law and Requisition scopes; recentring of the alignment term.
+- **Tuning keys** (first-pass placeholders, authoritative in `tuning.defaults.json`): `eps.modifier` 0.0001, `eps.need` 0.01, `eps.prestige` 0.05, `fair.scale` 1.0, `opinion.k` 3, `opinion.perf` 2, `opinion.satNeutral` 0.7, **`opinion.align` 1 (now the coefficient of the alignment term)**, `opinion.modDecay` 0.1 (also the action record's memory), `compliance.controlPerCapita` 0.001, `attr.warSteepness` 4, `attr.lowAwareness` 0.2, `tier.existential` 0.5, `tier.structural` 0.2, `faction.fracture` −0.3, `faction.align` 0.6, `bloc.cost` 1 (unused), `mom.rise` 0.5, `mom.decay` 0.1, `rung.enter` [0.2, 0.5, 0.9, 1.4], `rung.exit` [0.1, 0.35, 0.7, 1.1], `stance.align` 0.5, `acc.w0` 0.1, `acc.crisis` 0.5, `acc.exposure` 0.3, `acc.burden` 0.2, `acc.alt` 0.2, `loss.decay.live` 0.05, `loss.decay.restored` 0.3, `loss.decay.inForce` 0.02, `prop.rate` 0.1, `pref.modRange` 2, `pref.modDecay` 0.1 (also the Portrait stack's decay), `edu.rate` 0.01, `req.opinionHit` 2, `default.opinionHit` 2, `default.fairnessHit` 0.3 (2026-11-15); keys seen in code without a recorded placeholder: `aware.base`, `aware.k`, `acc.altScale`, `cell.minUtility`, `defy.risk`, `petition.effect`, `hoard.frac`, `infra.richPerCap`, `infra.costPerCap`, `infra.delta`, `mob.eligibleShare`, `mob.originGain`, `mob.destResent`, `demo.rate`, `demo.control`, `demo.opinion`, `demo.opinionDecay`, `demo.destResent`, `conv.eps`, `conv.force`, `prop.resist`, `cprop.frac`, `cprop.k`.
+- **Sync:** (`<section> = <kb rev> / <code rev>`; `-` = no or insufficient code+tests; `1` = code and a test file present, names not re-verified; revs set on tests written but not run are provisional)
   - Data Structures > Actor (base unit) = 1 / -
   - Data Structures > Government and Ledger (resource-holder, not a will — settled 2026-11-02) = 1 / -
   - Data Structures > Government values and Government-to-Government standing (settled 2026-11-03) = 1 / -
@@ -298,14 +319,14 @@ Code: per-rule notes
   - Data Structures > Prestige (derived, recomputed/turn) = 1 / 1
   - Data Structures > Duty compliance = 1 / 1
   - Data Structures > Skilled-labour Duty — make vs. buy = 1 / -
-  - Data Structures > Requisition Duty (settled 2026-11-01) = 2 / 2
+  - Data Structures > Requisition Duty (settled 2026-11-01) = 3 / 3
   - Data Structures > Credit default consequences (settled 2026-11-15) = 1 / 1
   - Data Structures > Subinfeudation = 1 / -
   - Data Structures > Grouping / Faction computation (Question-time only, never persisted) = 1 / -
   - Data Structures > Faction escalation state (settled 2026-11-02) = 1 / -
-  - Data Structures > Compliance (per Actor cell, per need) = 1 / -
+  - Data Structures > Compliance (per Actor cell, per need) = 1 / 1
   - Data Structures > Pressure and Question queue = 1 / -
   - Data Structures > Question handling — consultation and petition (2026-11-09, proposed: modifiers land on the Fairness bucket) = 1 / -
-  - Data Structures > Government Portrait (Country-level root trait bundle) = 1 / -
-  - Data Structures > Cell Preferences & Propaganda (settled shape 2026-11-01; mechanics partly proposed) = 1 / -
+  - Data Structures > Government Portrait (Country-level root trait bundle) = 2 / -
+  - Data Structures > Cell Preferences & Propaganda (settled shape 2026-11-01; mechanics partly proposed) = 2 / 2
   - Rules = 1 / -
