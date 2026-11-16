@@ -1,6 +1,6 @@
 # Diplomacy — Specification
 
-KB: `kb/diplomacy__kb.md`. Mirror of its `##/###` headings; cross-references live in kb only. Split out of `admin_war_diplomacy__spec.md` (§5–§7) on 2026-11-12. Besides kb, sources: `src/modules/diplomacy/{actions,common,covert,module,readouts,treaties}.js`, `tests/diplomacy.test.js`, `tests/espionage.test.js`. Where code and the old spec disagree, **code wins** (**code-led**). Anything the kb does not state is **(spec decision)**; both are listed under Status. Parts the code has not reached are **(target)**: the Negotiation Session, most of the Action Catalogue, tariffs, Improve Relations, Government-to-Government `opinion`.
+KB: `kb/diplomacy__kb.md`. Mirror of its `##/###` headings; cross-references live in kb only. Split out of `admin_war_diplomacy__spec.md` (§5–§7) on 2026-11-12; `borderOpenness` added 2026-11-15 for Economics' Trade-Zone Network (its kb home is `economics__kb.md` rev 4, so no Diplomacy section or Sync line is added for it). Besides kb, sources: `src/modules/diplomacy/{actions,common,covert,module,readouts,treaties,border}.js`, `tests/diplomacy.test.js`, `tests/espionage.test.js`, `tests/economics_zones.test.js` (border openness). Where code and the old spec disagree, **code wins** (**code-led**). Anything the kb does not state is **(spec decision)**; both are listed under Status. Parts the code has not reached are **(target)**: the Negotiation Session, most of the Action Catalogue, tariffs, Improve Relations, Government-to-Government `opinion`.
 
 ## Data Structures
 
@@ -29,7 +29,7 @@ externallyRecognised(ctx, cb) = !exists active Sanction with target === cb.holde
 - **Overreach** (per observer, never global): `gap = max(0, goalsRank(war.goals) − bestCBRank(war.a, war.b))`; `mag = T('overreach.k') × gap`; for each observer `o ≠ war.a`: `h = mag × closeness(o, war.b)` → `addReputation(o, war.a, −h, 'overreach')`. `GOAL_TIER = {tribute: Grievance, cede: Rights, dependency: Sovereignty, annex: Sovereignty}`. `closeness = clamp01(max(treatyTier factor `closeness.<tier>`, Dependency `closeness.Dependency`, kin `closeness.kin`) + min(1, tradeDependency/T('overreach.tradeNorm')))`. Applied in `warDeclared` and stored as `war.overreach`.
 - Existential CBs are event-based (granted through `grantCB`); the derivation from the Great-War chain is not automatic **(code-led)**.
 - Sources of event-based CBs in code: ad hoc Sanction (Grievance, `cb.mag.sanction`), detected covert influence (Rights/Grievance, `cb.mag.covert`), exposed false flag (Rights), `denounce` (Rights/Sovereignty `cb.mag.break`), recognising rebels (Sovereignty `cb.mag.recognize`).
-- **Not in code**: Oppression-of-a-Nation CB (tier by kin/titular link), kin-state appeal, tariff-asymmetry and blocked-edge CBs, annexation as a forced-annexation act, the militaristic disposition from the Portrait (code counts started wars), Decision Log input.
+- **Not in code**: Oppression-of-a-Nation CB (tier by kin/titular link), kin-state appeal, tariff-asymmetry and blocked-edge CBs, annexation as a forced-annexation act, the militaristic disposition from the Portrait (code counts started wars), Decision Log input, the Rights-tier CB a creditor Country gets from a cross-Country credit default (Economics kb, Credit; the cell-level hits are polity's).
 
 ### Reputational Leverage
 Code: `readouts.js` (`addReputation`, `reputation`, `decayStacks`, `allianceBonus`)
@@ -72,6 +72,7 @@ leverage(ctx, a, bOrBloc /* Country id or array of Country ids */) = {          
 ```
 - Show of Force feed (`war__spec.md`): add `+ Σ stack value of state.war.showOfForce['a|b']` to `military` (target).
 - Existential-threat override trigger = core province occupied or an Existential CB held against the Country (settled kb); weighting itself is `ai_diplomacy__spec.md` (`edge`, `posture.js`).
+- **Consequence of cross-border zones (2026-11-15, Economics kb Trade-Zone Network rev 4)**: `tradeDependency` counts trade edges between zones owned by different Countries. Zones are no longer bounded by Country borders, so with open borders the cross-Country edges shrink and `economic` leverage (and the trade term of `closeness`) can fall; it rises again where an embargo or bans split the zones. Existing assertions in `tests/diplomacy.test.js` that assumed per-Country zones may need updating; not yet verified.
 
 ### Negotiation Session (2026-11-10)
 Code: none (target)
@@ -87,7 +88,7 @@ meter(viewer, n) = {otherSatisfaction, otherWalkout, stamp: 'live' (alpha) | 'es
 - The Peace Conference (`war__spec.md`) reuses this session (proposed reading in kb).
 
 ### Axis Bundle (shared substrate — Sanctions/Dependency/Alliance)
-Code: `readouts.js` (`axisGrants`, `grantsOver`), `treaties.js` (axis hooks), `ruleset.axes`
+Code: `readouts.js` (`axisGrants`, `grantsOver`), `treaties.js` (axis hooks), `border.js` (`ownerTradeFactor`, `borderOpenness`), `ruleset.axes`
 ```js
 AxisGrant = {axis, terms, scope?}
 axisGrants(ctx) → [{grantor, grantee, axis, terms, scope, treaty}]    // Dependency: subject→overlord; Sanction: target→each imposer; Confederation/Alliance axes symmetric over parties
@@ -98,14 +99,21 @@ grantsOver(ctx, grantor, axis) = axisGrants(ctx).filter(g => g.grantor === grant
 | CultureLanguageSovereignty | `titularForced(country)` = grantees that force titular status; read by Countries |
 | MilitaryCap | `militaryCap(country)` = min `terms.maxMen`; `war.fieldUnits` validate rejects above it (tested); breach CB for neighbours: not in code |
 | ForeignPolicy | `ratify`: the party cannot ratify without the grantee's consent unless `reputation(grantee, party) ≥ veto.repMin` (tested) |
-| TradeAccess | `tradeFactor(za, zb, good)` = 0 for `terms.embargo` against the named third Country (every good) |
-| ResourceExportBan | `tradeFactor` = 0 for `terms.good` between grantor and grantee; Economics reads `derive.diplomacy.tradeFactor` |
+| TradeAccess | `tradeFactor(za, zb, good)` = 0 for `terms.embargo` against the named third Country (every good); also lowers `borderOpenness` to 0 |
+| ResourceExportBan | `tradeFactor` = 0 for `terms.good` between grantor and grantee; Economics reads `derive.diplomacy.tradeFactor`; lowers `borderOpenness` by the share of goods banned |
 | Fortification | no consumer yet |
 | LaborMigrationBan | `laborMigrationBanned(a, b)` derive; no Economics/World Map consumer yet |
 | DomainVeto | `foreignVetoes(ctx, a, domain)` returns grantee Countries whose `reputation(grantee, country) < veto.repMin`; `engine.gate()` refuses unconditionally and Control cannot force it (tested) |
 | Succession / Common Ruler | post-alpha; `axisOk` rejects axes marked `postAlpha` |
 - `ruleset.axes[axis] = {postAlpha?, …}` is the menu; `axisOk` validates `proposeTreaty`/`imposeSanction`.
 - **(code-led)** foreign vetoes are exercised by reputation (a grantee with no grudge lets the act through), not by a full stance computation; `actions__spec.md` Gating records the same.
+- **Border openness (2026-11-15; kb home `economics__kb.md` Trade-Zone Network rev 4; aggregate confirmed by the designer)**:
+```js
+ownerTradeFactor(ctx, a, b, good, grants = axisGrants(ctx)) = 0 if a ResourceExportBan on `good` or a TradeAccess embargo binds the pair (either direction), else 1;  1 when a === b or either is unowned
+borderOpenness(ctx, a, b) = 1 if a === b or either is unowned;  else mean over Object.keys(ruleset.goods) of ownerTradeFactor(a, b, good)       // ∈ [0,1], symmetric; derive.diplomacy.borderOpenness
+```
+  Economics' `hubOf` reads it (`economics__spec.md`, Trade-Zone Network): a border below `zone.openFloor` (placeholder 0.1) counts as closed, above it the pull is multiplied by the openness. An embargo or a ban on every good reads 0; a ban on 2 of 4 goods reads 0.5. **Tariffs do not lower it yet** (not in code; State tariffs will, per the kb "lowered by tariffs and restrictions").
+- **(code-led, to fold later)** `ownerTradeFactor` duplicates the grant matching of `treaties.tradeFactor`, which is keyed by zone hubs (it reads the hubs' owners); `tests/economics_zones.test.js` asserts the two agree for every good in both directions. Fold `tradeFactor` onto `ownerTradeFactor` the next time `treaties.js` is edited.
 
 ### Sanction / Dependency / Alliance
 Code: `actions.js` (`proposeTreaty`, `answerProposal`, `imposeSanction`, `denounceTreaty`, `ratifyTreaty` pseudo-type), `treaties.js` (`ratify`, `treatyValue`, `resolveProposals`, `installTreaty`, `denounce`, `warChain`, `joinWars`, `warDeclared`), `common.js` (`KINDS`, `ALLIANCE_TIERS`, `NON_AGGRESSION`)
@@ -143,7 +151,7 @@ Code: `actions.js`, `covert.js`; most catalogue actions have no ActionType yet
 | Catalogue action | Status | Type id / mapping |
 |---|---|---|
 | Trade Agreement, Tariff Exemption, Impose Tariff | target | new types writing `TradeAccess` terms / Economics tariff rates; `tariff_asymmetry` readout (below) |
-| **Embargo** | partial | `imposeSanction` with `TradeAccess {embargo: <Country>}` or `ResourceExportBan {good}`; **strength, Region scope and goods list are not modelled** (binary, whole-Country) |
+| **Embargo** | partial | `imposeSanction` with `TradeAccess {embargo: <Country>}` or `ResourceExportBan {good}`; **strength, Region scope and goods list are not modelled** (binary, whole-Country). Since 2026-11-15 it also closes the border for zone formation: an embargo reads `borderOpenness` 0, a ban on some goods lowers it by the share banned |
 | Migration Treaty / Migration Ban | target | `LaborMigrationBan` axis exists; no consumer |
 | Military Access | target | needs Supply source extension (`war__spec.md`) |
 | Demand Disarmament | target | `MilitaryCap` axis via Dependency/Confederation (no standalone demand) |
@@ -208,9 +216,12 @@ Code: per-rule notes
 
 ## Status
 - **Implemented and tested** (`tests/diplomacy.test.js`, `tests/espionage.test.js`): Reputational Leverage and alliance bonus readout, CB classes and decay, ad hoc vs backed Sanctions and `stripsCB`, per-observer overreach, ratification with Veto holders and ForeignPolicy, treaty proposals (AI at once, player answers, identical pending rejected), war chain, denounce, axis hooks (MilitaryCap, TradeAccess/ResourceExportBan, DomainVeto, ForeignPolicy), recognition route with Guarantee and Formation, Facilitation Grant, Espionage thresholds, overt/covert propaganda, covert influence, detection tiers, false flag, counter-intelligence, Observation dial, determinism.
-- **Not in code**: Negotiation Session, Improve Relations, tariffs and `tariff_asymmetry`, Embargo strength/scope/goods, Migration/Military Access/Disarmament/Fortification demands and the demand kind, Oppression-of-a-Nation CB and kin-state appeal, Government-to-Government `opinion`, coalition-backing Existential CB, withdrawal mark, Show of Force term in Military Leverage, Portrait-derived militaristic disposition, per-observer detection, Fortification and LaborMigrationBan consumers.
-- **(code-led)**: `step7` order and the scheduler/War handlers; `power` stand-in for great-power ranking; foreign vetoes by reputation threshold; `militaristic-disposition` from war count; `ratify` flow (ForeignPolicy → AI stance → Veto holders); `grantFacilitation` covert by default; `espionage` TYPE ids; detection per defender; Existential CBs only via `grantCB`.
-- **(spec decision)**: opinion mod storage `opinionMods`; Negotiation Session wrapper; `diplomacyKind`; `tariffAsymmetry` formula and `tariff.asym.min`; `neg.withdrawMark`; catalogue mapping table; tuning keys (placeholders): `leverage.decay`, `leverage.exhaustion`, `eps.cb`, `cb.decay.*`, `cb.mag.*`, `rep.*`, `gp.share`, `gp.milWeight`, `cb.nationalism.share`, `cb.militaristic.wars`, `closeness.*`, `overreach.k`, `overreach.tradeNorm`, `treaty.*`, `veto.repMin`, `recog.standing`, `espionage.popUnit`, `thresholds.*`, `conceal.*`, `fprop.magnitude`, `infl.*`, `opinion.modDecay`.
+- **Implemented 2026-11-15, tests written the same day and not yet run by the designer**: `borderOpenness` and `ownerTradeFactor` (`tests/economics_zones.test.js`: values for none/embargo/partial bans, symmetry, registered as a derive, agreement with `tradeFactor` for every good in both directions).
+- **Not in code**: Negotiation Session, Improve Relations, tariffs and `tariff_asymmetry` (so tariffs do not lower border openness), Embargo strength/scope/goods, Migration/Military Access/Disarmament/Fortification demands and the demand kind, Oppression-of-a-Nation CB and kin-state appeal, Government-to-Government `opinion`, coalition-backing Existential CB, withdrawal mark, Show of Force term in Military Leverage, Portrait-derived militaristic disposition, per-observer detection, Fortification and LaborMigrationBan consumers, the Rights-tier CB from a cross-Country credit default.
+- **(code-led)**: `step7` order and the scheduler/War handlers; `power` stand-in for great-power ranking; foreign vetoes by reputation threshold; `militaristic-disposition` from war count; `ratify` flow (ForeignPolicy → AI stance → Veto holders); `grantFacilitation` covert by default; `espionage` TYPE ids; detection per defender; Existential CBs only via `grantCB`; `ownerTradeFactor` duplicating `tradeFactor`'s matching.
+- **Confirmed 2026-11-15 (was a spec decision)**: `borderOpenness` as the mean of per-good trade factors over the ruleset goods.
+- **Watch**: cross-border zones (Economics) lower `tradeDependency` where borders are open; existing `tests/diplomacy.test.js` assertions that assumed per-Country zones (economic leverage, overreach closeness) may fail and need a decision on test vs code.
+- **(spec decision)**: opinion mod storage `opinionMods`; Negotiation Session wrapper; `diplomacyKind`; `tariffAsymmetry` formula and `tariff.asym.min`; `neg.withdrawMark`; catalogue mapping table; tuning keys (placeholders): `leverage.decay`, `leverage.exhaustion`, `eps.cb`, `cb.decay.*`, `cb.mag.*`, `rep.*`, `gp.share`, `gp.milWeight`, `cb.nationalism.share`, `cb.militaristic.wars`, `closeness.*`, `overreach.k`, `overreach.tradeNorm`, `treaty.*`, `veto.repMin`, `recog.standing`, `espionage.popUnit`, `thresholds.*`, `conceal.*`, `fprop.magnitude`, `infl.*`, `opinion.modDecay`; `zone.openFloor` is Economics' (`economics__spec.md`).
 - **Open (kb)**: overreach curve; Improve Relations target-scale; hostile counterpart (Denounce/Insult); satisfaction function and walk-out values; mark sign/holder (proposed); every threshold and parameter (numbers pass); `narrative` texts.
 - **Sync:** (`<section> = <kb rev> / <code rev>`; `-` = no or insufficient code+tests)
   - Data Structures > Casus Belli (CB) = 1 / 1
