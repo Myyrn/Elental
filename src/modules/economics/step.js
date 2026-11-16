@@ -4,6 +4,7 @@ import { resolveState, covers } from '../../kernel/scope.js'
 import { resolveAllocation } from '../../kernel/allocation.js'
 import { scopeCtx } from '../administration/module.js'
 import * as D from './derive.js'
+import { poolUnmetFrom } from './upkeep.js'
 const sum = a => a.reduce((s, x) => s + x, 0), clamp01 = x => Math.min(1, Math.max(0, x))
 const cells = ctx => ctx.state.polity.cells, gov = (ctx, c) => ctx.state.admin.governments[c]
 const W = ctx => ctx.derive.worldmap
@@ -109,7 +110,7 @@ function requisition(ctx) {                                            // PRE-ca
       const inv = ctx.derive.polity.compliance(k).involuntary, delivered = Math.min(have, claimed * inv)
       if (ctx.scratch.prod[k]) ctx.scratch.prod[k][e.target.good] = have - delivered
       const g = gov(ctx, country); g.inventory ??= {}; g.inventory[e.target.good] = (g.inventory[e.target.good] ?? 0) + delivered
-      ctx.polityQueue.requisitionHits.push({ cell: k, target: e.target.good, shortfall: claimed - delivered })
+      ctx.polityQueue.requisitionHits.push({ cell: k, country, target: e.target.good, claimed, delivered, value: delivered * (ctx.ruleset.goods[e.target.good]?.baseValue ?? 1), shortfall: claimed - delivered })   // read by polity step 5 (readPolityQueue)
     } } }
 
 // ---- prices (single pass, nothing stored) and cascade
@@ -184,6 +185,7 @@ function ledgerUpdate(ctx, L0) {
     const r = resolveAllocation(g.spendingDial ?? { entries: [] }, start, scopeCtx(ctx, country))
     const spent = sum(r.rows.map(x => x.grant)); const mand = r.rows.filter(x => x.mandatory), need = sum(mand.map(x => x.floor))
     g.upkeepFraction = need > 0 ? clamp01(1 - sum(mand.map(x => x.grant)) / need) : 0
+    g.poolUnmet = poolUnmetFrom(r.rows)                                 // per-pool upkeep shortfall (kb rev 2); replaces last turn's value, read by produceCCO next turn
     g.ledger = Math.max(0, start - spent + (ctx.scratch.tax[country] ?? 0) + (g.borrowedThisTurn ?? 0)); g.borrowedThisTurn = 0 } }
 
 import { stepTeaching } from './teaching.js'

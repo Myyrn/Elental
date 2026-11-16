@@ -1,0 +1,17 @@
+{"file":"kb/nations__kb.md","headings":[
+  {"l":1,"t":"Nations — Knowledge Base","s":1,"e":130},
+  {"l":2,"t":"Data Structures","s":8,"e":87},
+  {"l":3,"t":"Nation","s":10,"e":13},
+  {"l":3,"t":"Population Presence","s":14,"e":18},
+  {"l":3,"t":"Core (emergent, computed)","s":19,"e":27},
+  {"l":3,"t":"Titular Nation (set, settled 2026-11-02)","s":28,"e":37},
+  {"l":3,"t":"Sympathy (computed, not stored)","s":38,"e":43},
+  {"l":3,"t":"Reaction Temperament","s":44,"e":47},
+  {"l":3,"t":"Nation pool affinity (settled 2026-11-02)","s":48,"e":54},
+  {"l":3,"t":"Assimilation Drift","s":55,"e":65},
+  {"l":3,"t":"Statehood Pathway","s":66,"e":69},
+  {"l":3,"t":"Placeholder world (alpha scenario seed — 2026-11-09)","s":70,"e":87},
+  {"l":2,"t":"Rules","s":88,"e":102},
+  {"l":2,"t":"Cross-references","s":103,"e":111},
+  {"l":2,"t":"Status","s":112,"e":130}
+]}

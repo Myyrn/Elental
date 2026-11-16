@@ -146,6 +146,7 @@ net_position(actor) = Wealth + Σ claims − Σ obligations owed      // derived
 - **Interest is derived** per trade zone from lendable Wealth versus demand, with an **optional legal ceiling** (usury law) as a Right/Duty. Numbers pass.
 - **Range follows the trade-zone network, like goods**: mostly within a zone; inter-zone lending is possible through zone edges (cross-Empire edges gated by Diplomacy). Cross-zone friction (settled 2026-11-03) is a spread between zone rates, derived from the lower of the two hubs' `trade_infrastructure_level` and any Diplomacy gating on the edge; lending flows until the rate gap equals the spread. No new stock. Cross-Country default has no collection mechanism: the creditor's remedy is Opinion/Grievance and a Rights-tier CB for its Country.
 - **Debt service (settled 2026-11-03)** comes after the consumption cascade (necessities first) and taxation; a shortfall is arrears; default costs the creditor its claim and Opinion/Grievance, and the debtor's net position falls (Demotion Duty trigger).
+- **Creditor's Opinion/Grievance (settled 2026-11-15)**: a default hits the creditor cell twice — an Opinion-toward-Government hit and a Fairness grievance — each sized by the creditor's loss share, principal ÷ (Wealth + principal). The debtor takes no extra Opinion hit (its cost is the net-position fall above). The sizing and the hits' decay are Internal Politics' (`internal_politics__kb.md`, Requisition Duty and credit defaults).
 - **Loans stay nominal**: debasement hurts creditors (Money).
 
 ### Prices (settled shape 2026-11-02)
@@ -167,6 +168,7 @@ production → **Land split** → Requisition (pre-cascade) → consumption casc
 - Provinces form a graph via World Map adjacency.
 - Membership **derived, not stored**: `trade-gravity = production_output × trade_infrastructure_level`; resolves to strongest-pulling neighbor hub. No separate hysteresis rule (settled 2026-11-02): membership is always derived at read time (Rule 7) and the slow-moving `trade_infrastructure_level` stock damps hub switching.
 - Not bounded by Country borders (settled 2026-11-13, shape confirmed 2026-11-14 for alpha): the hub climb crosses owner boundaries like any other edge. A border separates zones only where foreign trade is very heavily restricted — the restriction cuts the trade volume the pull reads, and the zones split through that same derived calculation (no border flag, no bespoke rule). A neighbour's pull seen across a border is multiplied by that border's trade openness (Diplomacy gating: 1 unrestricted, lowered by tariffs and restrictions, 0 under embargo); inside one Country the factor is 1. Post-alpha nuance (not designed): an agreement may open the border for border provinces only and keep it closed for the rest. No entity is specially "a capital" — just the highest-gravity province.
+- **Border openness, alpha shape (settled 2026-11-15)**: Diplomacy supplies a border's openness as a number in [0, 1], the **share of goods that can cross it** — a ResourceExportBan closes that good, an embargo closes every good, and a border with every good banned reads 0. (Tariffs lower openness by design; their alpha shape is not designed yet.) Economics counts a border as **closed** (factor 0) when its openness falls below a floor (tuning key `zone.openFloor`, placeholder 0.1); at or above the floor the pull is multiplied by the openness itself. **Unowned land and water never pull across an owner boundary.** Openness is symmetric between two Countries and 1 inside one.
 - `trade_infrastructure_level` is an Economics-owned **per-province stock** (commercial institutions: markets, banks), **distinct** from World Map's `infrastructure_level` (roads/logistics) — settled 2026-11-02: built with Builders + Wealth by **any cell including the Government unless forbidden** (Rights checklist: Trade-infrastructure construction, default permitted); decays without upkeep; **no Trade/Commerce labour cap**. **No builder return (settled 2026-11-02)**: it is a costly public investment whose payoff is the increased flow of goods that benefits everyone if built at the proper time.
 
 ### Trade-Zone Edges
@@ -242,6 +244,7 @@ Government inventory: requisitioned goods go to an abstract Government inventory
 - **Internal Politics / UI (2026-11-09)** — a Government grant of goods is a benefit (pain-alleviating or joy-giving); the UI Trade Zones lens reads derived membership (`ui__kb.md`).
 - **Diplomacy (2026-11-13)** — the border's trade openness (embargo, tariffs, restrictions) also scales the pull a neighbour exerts across it in the zone hub climb.
 - **Administration (2026-11-13)** — reads the per-pool unmet-upkeep fraction written by the Ledger step (`administration__kb.md`, Government upkeep).
+- **Diplomacy / Internal Politics (2026-11-15)** — Diplomacy defines a border's openness as the share of goods that can cross it (this file, Trade-Zone Network); Internal Politics owns the creditor's Opinion and Fairness hits from a credit default (Credit).
 
 ## Status
 - Resource tiers, pool list (19), consumption tiers, money standard, trade-zone shape, estate-tariffs, warehousing ownership: **settled**.
@@ -263,6 +266,7 @@ Government inventory: requisitioned goods go to an abstract Government inventory
 - **2026-11-09 — open (pool wiring audit)**: every one of the 19 pools needs at least one live sink — production pools → goods; Meteomancy/Theurgy → rituals (catalogue empty, so no sink yet); Culture → non-material channel/propaganda; Medicine → epidemic burden; Builders → infrastructure/warehouses/fortifications; Diplomacy/Espionage → their action models; Trade/Commerce → trade gravity; Teaching → retraining/propaganda; Bureaucrats → C/C/O; army pools → armies. Playtest 2026-11-09: only Bureaucrats visibly used. Open: which pools are wired in the engine but unfed by demo labour data (the README claims several are wired).
 - **2026-11-13 — designer decisions on three kb ↔ code conflicts**: (1) trade zones are not bounded by Country borders, except where foreign trade is very heavily restricted (then the trade-volume calculation splits them) — Trade-Zone Network; (2) the Capability Envelope is **per committed unit and linear** (revised 2026-11-14: the first reading, a blend dividing by total committed units, was dropped because output would not grow with the units committed) — Administrative Capability Envelope rev 2; (3) the Ledger step writes the per-pool unmet-upkeep fraction (designer delegated the mechanics, tag of the row's pool confirmed 2026-11-14) — Resolution order rev 2.
 - **2026-11-14 — confirmed**: the multiplicative border-openness shape of Trade-Zone Network for alpha (rev 3; finer border agreements are post-alpha and not designed).
+- **2026-11-15 — settled (designer-confirmed implementation choices)**: border openness as the share of goods that can cross, with a closed-border floor and no pull from unowned land or water across an owner boundary (Trade-Zone Network rev 4); the creditor's Opinion and Fairness hits from a credit default (Credit rev 2, detail in Internal Politics). Floor value and hit sizes: numbers pass.
 - **Rev:** (tracked = every `###` under Data Structures; `Rules` as one section while it has no `###`; bootstrap 2026-11-13)
   - Data Structures > Resource Tiers (45 goods, 5 tiers) = 1
   - Data Structures > Skilled Labor Pools (19, independent, non-fungible) = 1
@@ -272,10 +276,10 @@ Government inventory: requisitioned goods go to an abstract Government inventory
   - Data Structures > Contribution valuation (supplies Internal Politics' Fairness bucket — settled 2026-11-02 except ritual catalogue) = 1
   - Data Structures > Land (ownership share — settled 2026-11-02) = 1
   - Data Structures > Money (settled 2026-11-02) = 1
-  - Data Structures > Credit (obligation records — settled shape 2026-11-02) = 1
+  - Data Structures > Credit (obligation records — settled shape 2026-11-02) = 2
   - Data Structures > Prices (settled shape 2026-11-02) = 1
   - Data Structures > Resolution order within Economics (settled 2026-11-03) = 2
-  - Data Structures > Trade-Zone Network = 3
+  - Data Structures > Trade-Zone Network = 4
   - Data Structures > Trade-Zone Edges = 1
   - Data Structures > Estate-Tariffs = 1
   - Data Structures > Warehousing (per province) = 1

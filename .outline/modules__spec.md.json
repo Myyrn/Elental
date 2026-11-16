@@ -1,0 +1,14 @@
+{"file":"spec/modules__spec.md","headings":[
+  {"l":1,"t":"Simulation Modules — Specification","s":1,"e":349},
+  {"l":2,"t":"Data Structures","s":9,"e":323},
+  {"l":3,"t":"1. World Map, Nations, Countries","s":11,"e":96},
+  {"l":3,"t":"2. Internal Politics (polity)","s":97,"e":163},
+  {"l":3,"t":"3. Economics","s":164,"e":214},
+  {"l":3,"t":"4. Administration","s":215,"e":242},
+  {"l":3,"t":"5. War","s":243,"e":281},
+  {"l":3,"t":"6. Diplomacy","s":282,"e":314},
+  {"l":3,"t":"7. AI interfaces (stubs; AI-Diplomacy / AI-War / AI-Econ-Polity are post-kb)","s":315,"e":323},
+  {"l":2,"t":"Rules","s":324,"e":336},
+  {"l":2,"t":"Cross-references","s":337,"e":339},
+  {"l":2,"t":"Status","s":340,"e":349}
+]}

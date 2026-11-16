@@ -343,10 +343,24 @@ scope ∈ (Nation, Estate, Region) cell | Estate | Nation | Region | Empire
   (free-capitalism) cells feel it as breaking their expectation of
   government investment, while Extraction-leaning cells comply more easily.
   Hit sizes: numbers pass.
+- **Alpha shape of the direct hit (settled 2026-11-15)**: what the cell feels is **what was taken**, so a requisition that delivered nothing (Control too weak to enforce it) is no hit. Size = a coefficient × **burden**, where burden is the share of the cell's own market output (valued at base value) that was taken: `burden = value taken ÷ (value the cell still sells + value taken)`. It lands as a decaying modifier on Opinion-toward-Government, at full strength when it lands, and is offset only by the ordinary decay and by later benefits (no debt stock). The shape reads delivered goods, not the claim: the claim that went unmet shows up as defiance, not as a second hit. **Not yet in the shape (open)**: weighting by how essential the good is (subsistence above luxury), softening by crisis acceptance, and the *structural* hit (it needs the Opinion-alignment channel and the Portrait). The coefficient: numbers pass.
 - Absent a Requisition Duty the Government competes as an ordinary market
   buyer (Ledger Wealth, tariffs, throughput, prices). Planned-economy and
   exploitation play use this plus Administration's planning-posture dial;
   nothing is special-cased.
+
+### Credit default consequences (settled 2026-11-15)
+```
+default: an obligation's arrears pass the arrears limit (Economics, Credit) → the record is removed
+creditor cell takes two decaying modifiers:
+  Opinion-toward-Government hit   = coefficient × loss_share      // the law that should make debts good has failed
+  Fairness grievance modifier      = coefficient × loss_share      // feeds the Fairness bucket like an entitlement loss
+loss_share = principal ÷ (creditor Wealth + principal)           // share of what the creditor held before the loan, never above 1
+```
+- The creditor loses its claim with the removed record; the two hits are the cost beyond it ("Opinion/Grievance", Economics, Credit; the same cost as Debt forgiveness has for creditor Estates).
+- The debtor takes **no additional Opinion hit** here: its cost is the fall in its net position (Demotion Duty's trigger, Wealth flow).
+- Both modifiers decay like the other Opinion modifiers; neither becomes a stored currency. Coefficients: numbers pass.
+- A default across Countries has no collection mechanism; the creditor Country's remedy is a Rights-tier CB (Diplomacy) — the cell hits above apply regardless.
 
 ### Subinfeudation
 Actor A holds Local Jurisdiction over B:
@@ -597,6 +611,7 @@ foreign-policy and Fervor↔Secular overlaps the open Faith/Cosmology bucket).
 - **Actions** — every executed action writes the Decision Log through the Actions write path (`actions__kb.md`); Borrow/Default Events and the spending Allocation Dial (reserve floor) live there.
 - **UI** — Laws tab columns follow the scope ladder (Estate/Empire columns hidden unless the technology flag enables them); the Value control is generated from ruleset-declared choices (`ui__kb.md`, 2026-11-09).
 - **Events** — causal provenance for attribution (beyond alpha; the Decision Log is the alpha mechanism).
+- **Economics (2026-11-15)** — Economics hands this file the requisition (what was taken, from which cell) and the credit default (creditor, principal) at step 3; the Opinion and Fairness hits are written here, in step 5 (Requisition Duty; Credit default consequences; `economics__kb.md`, Credit).
 
 ## Status
 - Actor model, Rights/Duties, Prestige/Weight, Wealth flow, Opinion (both channels), Foreign Standing, subinfeudation, grouping/fracture, Pressure/Question shape, Estate Labor Profile, Estate Convergence, Estate Mobility, Demotion Duty, Outcome Asymmetry, compliance model, Government Portrait: **settled**.
@@ -621,6 +636,7 @@ foreign-policy and Fervor↔Secular overlaps the open Faith/Cosmology bucket).
 - **2026-11-04 — settled**: the eight psychological needs; scale of grievance severity, compliance and need satisfaction is a shared per-cell 0..1; covert-action concealment tier lives on a `CovertOp` record referenced from the Decision Log entry (log schema unchanged); scope ties (Region broader than Estate/Nation; Estate vs Nation latest-declared-wins) — **tie line superseded 2026-11-09 by the scope ladder** (same-rung ties: latest declared wins).
 - **2026-11-09 — designer input**: scope ladder (Cell < Nation < Regional-Estate < Region < Estate < Empire), Precedence flag (Autonomy ↔ Unitarism), administrative-Region laws, Region reorganization gating, consultation/petition handling, Rules 35-37. Tagged **(proposed)** in the text and awaiting the designer's OK: Nation-rung reading, Precedence shape, Country-wide gating reading of "empire-wide question", modifiers landing on the Fairness bucket. **Open**: whether the tech gate also applies to tax law and Requisition scopes (assumed it applies to Rights/Duties states only; tax is a Duty, so tax law would also be Region-level in alpha).
 - **2026-11-13 — designer decisions (cross-module)**: unmet upkeep reaches Administration per pool — the Ledger step writes `unmet(pool)` from the Government's mandatory upkeep rows (`economics__kb.md`, Resolution order); this file's Unmet-upkeep rule is unchanged.
+- **2026-11-15 — settled (designer-confirmed implementation choices)**: the alpha shape of Requisition's direct Opinion hit (what was taken, as a share of the cell's own output; no hit when nothing was delivered) — Requisition Duty rev 2; the credit-default consequences for the creditor (Opinion-toward-Government hit and Fairness grievance by loss share; no extra debtor hit) — new section Credit default consequences rev 1. **Open**: essentialness weighting and crisis-acceptance softening of the direct hit; the structural hit (needs the Opinion-alignment channel); coefficients (numbers pass).
 - **Rev:** (tracked = every `###` under Data Structures; `Rules` as one section while it has no `###`; bootstrap 2026-11-13)
   - Data Structures > Actor (base unit) = 1
   - Data Structures > Government and Ledger (resource-holder, not a will — settled 2026-11-02) = 1
@@ -641,7 +657,8 @@ foreign-policy and Fervor↔Secular overlaps the open Faith/Cosmology bucket).
   - Data Structures > Prestige (derived, recomputed/turn) = 1
   - Data Structures > Duty compliance = 1
   - Data Structures > Skilled-labour Duty — make vs. buy = 1
-  - Data Structures > Requisition Duty (settled 2026-11-01) = 1
+  - Data Structures > Requisition Duty (settled 2026-11-01) = 2
+  - Data Structures > Credit default consequences (settled 2026-11-15) = 1
   - Data Structures > Subinfeudation = 1
   - Data Structures > Grouping / Faction computation (Question-time only, never persisted) = 1
   - Data Structures > Faction escalation state (settled 2026-11-02) = 1

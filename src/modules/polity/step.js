@@ -2,6 +2,7 @@
 import { parseCellKey } from '../../kernel/ids.js'
 import { tick, push, makeStack } from '../../kernel/modifiers.js'
 import { stepRemainingPolity } from './remaining.js'
+import { addOpinionMod } from './cellstate.js'
 const sum = a => a.reduce((s, x) => s + x, 0), clamp01 = x => Math.min(1, Math.max(0, x))
 
 export function updateGrievance(ctx, key) {
@@ -21,6 +22,23 @@ export function readDecisionLog(ctx) {                              // attributi
     if (ctx.derive.polity.awareness(h.cell) < ctx.T('attr.lowAwareness')) k = 0                         // low awareness: blame redirected (fate / local authority)
     c.opinionGovMods ??= []; if (k > 0) c.opinionGovMods.push({ id: `att.${h.logId}`, value: -h.magnitude * k, decay: { kind: 'exp', rateKey: 'opinion.modDecay' }, turn: ctx.state.meta.turn, source: h.logId }) }
   ctx.harmQueue.length = 0 }
+/** Economics hand-offs of step 3 (`ctx.polityQueue`), consumed here and drained (spec decisions, shapes pending OK; sizes are tuning, "numbers pass"):
+ *  requisitionHits {cell, target, claimed, delivered, value, shortfall}: the DIRECT Opinion-toward-Government hit of a Requisition — what the cell feels is what was taken,
+ *    so a requisition that delivered nothing is no hit; size = req.opinionHit × burden, burden = share of the cell's own market output (base value) that was taken.
+ *    The structural hit (Extraction↔Investment alignment) needs Opinion alignment/Portrait and is not in code; the offset by later benefits works only through decay.
+ *  defaults {creditor, debtor, principal}: the creditor loses its claim (already gone with the removed obligation) and takes an Opinion hit and a Fairness grievance, size × loss,
+ *    loss = principal / (wealth + principal). The debtor's net-position effect is Demotion's `netPosition`; the cross-Country remedy (a Rights-tier CB) is Diplomacy's and not wired. */
+export function readPolityQueue(ctx) {
+  const Q = ctx.polityQueue ?? {}, turn = ctx.state.meta.turn, P = ctx.state.polity.cells, decay = { kind: 'exp', rateKey: 'opinion.modDecay' }
+  for (const h of Q.requisitionHits ?? []) { const c = P[h.cell]; if (!c || !(h.value > 0)) continue
+    const burden = h.value / Math.max(1e-9, (c.salesValueBase ?? 0) + h.value)
+    addOpinionMod(c, { id: `req.${turn}.${h.target}`, value: -ctx.T('req.opinionHit') * burden, decay: { ...decay }, turn, source: 'requisition' }) }
+  for (const d of Q.defaults ?? []) { const c = P[d.creditor]; if (!c) continue
+    const loss = d.principal / Math.max(1e-9, (c.wealth ?? 0) + d.principal)
+    addOpinionMod(c, { id: `default.${turn}`, value: -ctx.T('default.opinionHit') * loss, decay: { ...decay }, turn, source: 'default' })
+    ;(c.fairnessMods ??= []).push({ id: `default.${turn}`, value: ctx.T('default.fairnessHit') * loss, decay: { ...decay }, turn, source: 'default' }) }
+  if (Q.requisitionHits) Q.requisitionHits.length = 0
+  if (Q.defaults) Q.defaults.length = 0 }
 const rungOf = (ctx, m, prev) => { const en = ctx.T('rung.enter'), ex = ctx.T('rung.exit'); let r = 0
   for (let i = 0; i < en.length; i++) if (m >= en[i] || (prev >= i + 1 && m >= ex[i])) r = i + 1; return r }
 export function updateMomentum(ctx, q) {
@@ -35,6 +53,7 @@ export function step5(ctx) {
   for (const c of Object.values(P.cells)) { for (const key of ['opinionGovMods', 'prestigeMods', 'fairnessMods']) { if (!c[key]) continue
     const s = { baseline: 0, mods: c[key] }; tick(s, ctx); c[key] = s.mods } }
   for (const c of Object.values(P.cells)) for (const ax of Object.keys(c.prefMods ?? {})) { const st = { baseline: 0, mods: c.prefMods[ax] }; tick(st, ctx); c.prefMods[ax] = st.mods }   // preference modifier stacks decay (pref.modDecay)
+  readPolityQueue(ctx)                                      // after the decay pass: a fresh hit lands at full strength and is read from the next turn on
   ctx.bump()
   const qs = ctx.derive.polity.questions(), live = new Set(qs.map(q => q.key))
   for (const q of qs) updateMomentum(ctx, q)

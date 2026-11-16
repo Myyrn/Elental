@@ -20,17 +20,26 @@ export function extract(ctx, p, good) {                           // pool labour
   const L = labourAt(ctx, p, pool) * weight(good) / tw
   return ctx.T('prod.k') * y(good) * L ** ctx.T('prod.alpha') }
 
-// ---- trade zones: derived, never stored (hub = hill-climb on gravity)
+// ---- trade zones: derived, never stored (hub = hill-climb on pull = gravity x border openness)
 const tie = p => { let h = 0; for (const ch of p) h = (h * 31 + ch.charCodeAt(0)) % 9973; return h / 9973 * 1e-6 }         // deterministic tie-break so hubs form on equal terrain
 const rawGravity = (ctx, p) => (ctx.state.economy.lastOutput?.[p] ?? ctx.state.world.provinces[p].population) * (ctx.state.economy.tradeInfra[p] ?? 0)
 /** gravity = own pull plus half of the neighbours' (smoothed so hubs merge into zones of several provinces); cached per ctx until reset at the end of step 3 */
 export const gravity = (ctx, p) => { const c = (ctx._grav ??= {}); if (c[p] === undefined) c[p] = rawGravity(ctx, p) + 0.5 * sum(W(ctx).neighbors(p).map(q => rawGravity(ctx, q))) + tie(p); return c[p] }
-export function hubOf(ctx, p) {                                       // hill-climb to the strongest neighbouring gravity (ties by id)
-  const owner = ctx.state.world.provinces[p].owner; let cur = p
+/** Border openness between two owners as Economics sees it (kb rev 3): 1 inside a Country; across a border `diplomacy.borderOpenness` (1 when Diplomacy is absent),
+ *  counted as 0 (closed) below T('zone.openFloor'); unowned land or water never pulls across an owner boundary. Cached in the gravity cache, so it is reset with it. */
+const openness = (ctx, a, b) => {
+  if (a === b) return 1
+  if (!a || !b) return 0
+  const c = (ctx._grav ??= {}), k = a < b ? `#open|${a}|${b}` : `#open|${b}|${a}`
+  if (c[k] === undefined) { const o = ctx.derive.diplomacy?.borderOpenness?.(a, b) ?? 1; c[k] = o >= ctx.T('zone.openFloor') ? o : 0 }
+  return c[k] }
+export function hubOf(ctx, p) {                                       // hill-climb over ALL neighbours by pull = gravity x openness (ties by id); gravity strictly rises each step, so it terminates
+  const P = ctx.state.world.provinces; let cur = p
   for (let i = 0; i < 64; i++) {
-    const nb = W(ctx).neighbors(cur).filter(q => ctx.state.world.provinces[q].owner === owner).sort()
-    const best = nb.reduce((b, q) => (b === null || gravity(ctx, q) > gravity(ctx, b)) ? q : b, null)
-    if (best === null || gravity(ctx, best) <= gravity(ctx, cur)) return cur
+    const pull = q => gravity(ctx, q) * openness(ctx, P[cur].owner, P[q].owner)
+    const nb = W(ctx).neighbors(cur).filter(q => pull(q) > 0).sort()
+    const best = nb.reduce((b, q) => (b === null || pull(q) > pull(b)) ? q : b, null)
+    if (best === null || pull(best) <= gravity(ctx, cur)) return cur
     cur = best
   }
   return cur
@@ -50,7 +59,7 @@ export const throughputCap = (ctx, a, b) => ctx.T('zone.capBase') * Math.min(ctx
 export const scarcity = (ctx, S, D) => Math.min(ctx.T('scar.max'), Math.max(ctx.T('scar.min'), (D + ctx.T('scar.eps')) / (S + ctx.T('scar.eps')))) ** ctx.T('scar.elasticity')
 export const priceLevel = ctx => { const e = ctx.state.economy.coinage; return ((e.supply / e.lastVolume) / e.ratio0) ** ctx.T('money.kappa') }
 
-// ---- administrative envelope: blend of committed pool units
+// ---- administrative envelope: linear sum over committed pool units (kb rev 2: no division by total units), each pool degraded by its own upkeep shortfall
 export function produceCCO(ctx, country) {
   const out = { control: 0, coordination: 0, observation: 0 }
   for (const [key, c] of Object.entries(ctx.state.polity.cells)) {
