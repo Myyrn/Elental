@@ -1,6 +1,6 @@
 {"file":"kb/internal_politics__kb.md","headings":[
-  {"l":1,"t":"Internal Politics — Knowledge Base","s":1,"e":671},
-  {"l":2,"t":"Data Structures","s":33,"e":562},
+  {"l":1,"t":"Internal Politics — Knowledge Base","s":1,"e":689},
+  {"l":2,"t":"Data Structures","s":33,"e":578},
   {"l":3,"t":"Actor (base unit)","s":35,"e":64},
   {"l":3,"t":"Government and Ledger (resource-holder, not a will — settled 2026-11-02)","s":65,"e":85},
   {"l":3,"t":"Government values and Government-to-Government standing (settled 2026-11-03)","s":86,"e":98},
@@ -28,9 +28,9 @@
   {"l":3,"t":"Compliance (per Actor cell, per need)","s":435,"e":444},
   {"l":3,"t":"Pressure and Question queue","s":445,"e":474},
   {"l":3,"t":"Question handling — consultation and petition (2026-11-09, proposed: modifiers land on the Fairness bucket)","s":475,"e":487},
-  {"l":3,"t":"Government Portrait (Country-level root trait bundle)","s":488,"e":516},
-  {"l":3,"t":"Cell Preferences & Propaganda (settled shape 2026-11-01; mechanics partly proposed)","s":517,"e":562},
-  {"l":2,"t":"Rules","s":563,"e":601},
-  {"l":2,"t":"Cross-references","s":602,"e":615},
-  {"l":2,"t":"Status","s":616,"e":671}
+  {"l":3,"t":"Government Portrait (Country-level root trait bundle)","s":488,"e":518},
+  {"l":3,"t":"Cell Preferences & Propaganda (settled shape 2026-11-01; mechanics partly proposed)","s":519,"e":578},
+  {"l":2,"t":"Rules","s":579,"e":617},
+  {"l":2,"t":"Cross-references","s":618,"e":632},
+  {"l":2,"t":"Status","s":633,"e":689}
 ]}

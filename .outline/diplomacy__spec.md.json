@@ -1,5 +1,5 @@
 {"file":"spec/diplomacy__spec.md","headings":[
-  {"l":1,"t":"Diplomacy — Specification","s":1,"e":241},
+  {"l":1,"t":"Diplomacy — Specification","s":1,"e":240},
   {"l":2,"t":"Data Structures","s":5,"e":187},
   {"l":3,"t":"Casus Belli (CB)","s":17,"e":33},
   {"l":3,"t":"Reputational Leverage","s":34,"e":44},
@@ -15,5 +15,5 @@
   {"l":3,"t":"Action Catalogue (2026-11-10)","s":149,"e":169},
   {"l":3,"t":"Covert Faction Influence & Foreign Propaganda (settled shape 2026-11-01)","s":170,"e":187},
   {"l":2,"t":"Rules","s":188,"e":216},
-  {"l":2,"t":"Status","s":217,"e":241}
+  {"l":2,"t":"Status","s":217,"e":240}
 ]}

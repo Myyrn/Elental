@@ -1,0 +1,825 @@
+
+> test
+> node --test tests/kernel.test.js tests/worldmap.test.js tests/engine.test.js tests/econ_polity.test.js tests/client.test.js tests/behaviour.test.js tests/war.test.js tests/editor.test.js tests/politics_remaining.test.js tests/internal_conflict.test.js tests/diplomacy.test.js tests/population.test.js tests/ui.test.js tests/espionage.test.js tests/ai_diplomacy.test.js tests/economics_upkeep.test.js tests/economics_zones.test.js tests/polity_queue.test.js tests/portrait.test.js
+
+[32m✔ posture: the player is treated exactly like any other Country [90m(1.682081ms)[39m[39m
+[32m✔ posture: hysteresis keeps the current Posture just under a boundary, a fresh one does not [90m(0.2606ms)[39m[39m
+[32m✔ campaign: switching type needs a margin, so small value changes do not flip it [90m(1.081315ms)[39m[39m
+[31m✖ campaign: a new CB bypasses the margin [90m(8.476052ms)[39m[39m
+[32m✔ campaign: Strike needs a usable CB and finishes with a goal proportionate to its tier [90m(2.99203ms)[39m[39m
+[32m✔ candidates: roles whose ActionType is not registered are skipped [90m(0.90121ms)[39m[39m
+[32m✔ selection: binary thresholds, a candidate is funded fully or skipped, never partially [90m(0.344374ms)[39m[39m
+[32m✔ false flag: a self-targeted one is priced when allowed and dropped when Diplomacy refuses it [90m(0.5681ms)[39m[39m
+[32m✔ false flag: a frame is offered only inside the detection window [90m(1.163639ms)[39m[39m
+[32m✔ negotiation: accept, silence or reject by posture toward the proposer [90m(0.567926ms)[39m[39m
+[32m✔ agent: deterministic, does not mutate state, and persists only through the cache [90m(2.373535ms)[39m[39m
+[31m✖ gating: a Veto holder refuses a costly law; forcing it through registers entitlement loss that decays [90m(102.993594ms)[39m[39m
+[31m✖ gating: no covering Right means the action simply executes; a relief (tax cut) is approved [90m(76.390836ms)[39m[39m
+[32m✔ cell actions: below the rung nothing is available; at rung 2 an angry, uncoerced cell refuses tax; Control suppresses it [90m(102.649736ms)[39m[39m
+[31m✖ taxRefusal reduces delivered tax; hoarding withholds goods and releases them when it stops [90m(123.719745ms)[39m[39m
+[31m✖ buildTradeInfra: rich cells invest unprompted; infrastructure decays without upkeep [90m(31.913864ms)[39m[39m
+[32m✔ factions are derived per issue from live Questions and carry Weight-aggregated momentum [90m(172.800882ms)[39m[39m
+[31m✖ long run (40 turns) with acting cells keeps invariants and stays deterministic [90m(67.3668ms)[39m[39m
+[32m✔ demo package loads: 118 provinces, sea/lake hexes are not provinces, regions 6-12 hexes, cells reference real regions [90m(100.737276ms)[39m[39m
+[31m✖ real Action pipeline: setTaxLaw changes the law, placeRequisition fills Government inventory, bad order is rejected not thrown [90m(129.786042ms)[39m[39m
+[31m✖ 20 turns: invariants hold (Wealth >= 0, Ledger >= 0, grievance/satisfaction in [0,1], population within the 1%-per-turn growth bound) [90m(37.817003ms)[39m[39m
+[31m✖ determinism: two runs of the same scenario give identical state [90m(77.673625ms)[39m[39m
+[31m✖ state shape: no stored aggregate of Leverage; the four categories are readouts, scope = a Country or an alliance bloc [90m(154.564334ms)[39m[39m
+[32m✔ Reputational Leverage: decaying per-(observer, subject) stack, separate from everything else; an active Alliance adds a standing bonus as a readout [90m(28.713693ms)[39m[39m
+[31m✖ proposals: an AI recipient decides at once; a player recipient answers; Dependency burdens are refused; identical pending proposals are rejected [90m(51.672689ms)[39m[39m
+[31m✖ ratification consults the treaty Veto holders like any gated act: a cell holding Veto.treaty can refuse what the Government accepts [90m(53.64945ms)[39m[39m
+[32m✔ CBs: state-based while the fact holds (occupation, no timer); structural derived (claims, nationalism, militaristic); event-based decay and persistence scales with tier [90m(34.767692ms)[39m[39m
+[31m✖ Sanctions: ad hoc ones give the target a Grievance CB, great-power-backed ones do not; stripsCB removes external recognition of the target's CBs [90m(47.285061ms)[39m[39m
+[31m✖ overreach is judged against the goals claimed and applied PER OBSERVER, scaled by closeness to the victim — never global [90m(48.10335ms)[39m[39m
+[31m✖ war chain = treaty-graph propagation: Guarantee and Defensive defend, StandingOffensive/Coalition follow the attacker, Defensive needs a recognised cause, treaties forbid wars between partners [90m(48.977713ms)[39m[39m
+[31m✖ denouncing a treaty is a broken promise: reputation loss with the other party, an event-based CB held by the wronged party; lifting a Sanction is no breach [90m(30.963342ms)[39m[39m
+[31m✖ axis hooks: MilitaryCap bounds fielding, ResourceExportBan/TradeAccess zero the edge, DomainVeto is a foreign Veto that cannot be forced, ForeignPolicy needs the grantee's consent [90m(28.948166ms)[39m[39m
+[31m✖ recognition route: rebels take it (independence goal / refused), a foreign Government recognises, backing secession is CB-generating against the parent, a Guarantee pulls the guarantor into the war [90m(150.013093ms)[39m[39m
+[31m✖ recognition is only open to rebels who took the route (a concession-seeking bloc is not recognisable until refused); AI kin-states recognise and guarantee on their own [90m(159.007977ms)[39m[39m
+[31m✖ FacilitationGrant: a real zero-sum transfer of a good from the grantor's warehouse to a bloc's held province [90m(137.422767ms)[39m[39m
+[31m✖ demo run: diplomacy orders mid-run keep the world consistent and deterministic [90m(35.417712ms)[39m[39m
+[32m✔ turn runs end-to-end; deterministic and pure [90m(28.044791ms)[39m[39m
+[32m✔ production: extraction scales with labour (diminishing) and Wasteland yields nothing [90m(16.085767ms)[39m[39m
+[32m✔ cascade: well supplied cells are fully satisfied; goods are conserved (no creation by buying) [90m(5.551812ms)[39m[39m
+[32m✔ cascade is tier-first under a cash limit: subsistence is bought before comfort [90m(3.681576ms)[39m[39m
+[32m✔ taxation: delivered = claimed x involuntary compliance; Wealth never negative [90m(6.500434ms)[39m[39m
+[32m✔ Ledger: spending dial vs start-of-turn balance; never negative; unmet upkeep fraction [90m(3.834167ms)[39m[39m
+[32m✔ requisition: delivered scaled by involuntary compliance, goods land in Government inventory [90m(5.208999ms)[39m[39m
+[32m✔ polity: shortage accumulates existential grievance fast, then Question + momentum + rung; recovery decays slowly [90m(16.952685ms)[39m[39m
+[32m✔ polity: Question exists iff grievance > compliance (independent of slate) [90m(0.579277ms)[39m[39m
+[32m✔ credit: shortfall cells borrow from cash-rich cells via explicit obligation records (no anonymous debts) [90m(1.918469ms)[39m[39m
+[32m✔ produceCCO: no committed units gives nothing [90m(3.100907ms)[39m[39m
+[32m✔ produceCCO is linear in committed units (kb rev 2: no division by total units) [90m(1.881171ms)[39m[39m
+[32m✔ produceCCO: poolUnmet[pool] = 0.5 halves that pool only [90m(0.545574ms)[39m[39m
+[32m✔ Allocation Dial rows carry the entry pool tag [90m(0.722777ms)[39m[39m
+[32m✔ poolUnmetFrom: only mandatory tagged rows, grants over floors per pool, met pools absent [90m(0.413047ms)[39m[39m
+[32m✔ ledger: poolUnmet written per pool from tagged mandatory rows; replaced every turn; degrades produceCCO next turn [90m(15.651461ms)[39m[39m
+[32m✔ ledger: no tagged rows leaves poolUnmet empty [90m(3.179678ms)[39m[39m
+[32m✔ zones: an unrestricted border does not split a zone (zones are not bounded by Country borders) [90m(5.264762ms)[39m[39m
+[32m✔ zones: a single-owner world is unchanged [90m(0.591493ms)[39m[39m
+[32m✔ zones: an embargo or a ban on every good closes the border and splits the zone [90m(0.941527ms)[39m[39m
+[32m✔ zones: partial restriction scales the pull but does not split above the floor [90m(1.501704ms)[39m[39m
+[32m✔ zones: below zone.openFloor (0.1) a border counts as closed; above it, open [90m(0.858581ms)[39m[39m
+[32m✔ zones: unowned land or water never pulls across an owner boundary [90m(0.362029ms)[39m[39m
+[32m✔ zoneEdges: a split gives one edge between the two hubs; a merged zone has none [90m(0.541466ms)[39m[39m
+[32m✔ borderOpenness: 1 unrestricted / same owner / unowned; 0 under embargo [90m(0.630227ms)[39m[39m
+[32m✔ ownerTradeFactor agrees with treaties.tradeFactor for every good, in both directions [90m(1.027872ms)[39m[39m
+[32m✔ the demo package validates without errors; the numbers-pass worklist lists placeholders [90m(55.388866ms)[39m[39m
+[32m✔ patch engine: apply then inverse restores the documents exactly (objects and arrays) [90m(4.225521ms)[39m[39m
+[32m✔ store: terrain painting clamps forestation, marks provinces manual, undo/redo, and a brush stroke (mergeKey) is ONE undo step [90m(166.824922ms)[39m[39m
+[32m✔ validators catch broken data with a jump-to path [90m(231.799047ms)[39m[39m
+[32m✔ setSurface to sea removes the province, its presence, warehouse and incident edges; the cell sums then need reseeding [90m(108.74869ms)[39m[39m
+[32m✔ generators: seedCells satisfies the sum constraints; derivedWaterSource follows the precedence (river first); normalisePresence fixes sums [90m(88.4295ms)[39m[39m
+[31m✖ editor -> game round trip: a blank scenario from the template is valid, can be edited, saved, bundled, loaded and played headless [90m(56.852901ms)[39m[39m
+[32m✔ resolveTurn is pure and deterministic; steps run in order; RNG only advances state [90m(3.361189ms)[39m[39m
+[32m✔ gating: refusal blocks; forceThroughControl executes and registers entitlement loss [90m(0.727743ms)[39m[39m
+[32m✔ scheduler: war declaration resolves at step 7 now and hostilities at step 4 next turn [90m(0.42469ms)[39m[39m
+[32m✔ registry rejects threshold-bound types without targetScale [90m(0.252204ms)[39m[39m
+[32m✔ the demo now carries Espionage labour, and the free pool is the labour not yet committed to operations or counter-intelligence [90m(36.032769ms)[39m[39m
+[32m✔ threshold: binary, no refund, no benefit beyond it; scaled by the TARGET Region's population and never by the opponent's size [90m(296.16753ms)[39m[39m
+[32m✔ overt propaganda exports the sender's Portrait into the target Region's cells, is open (no CB, sender known); covert pushes any point [90m(112.807421ms)[39m[39m
+[32m✔ covert influence writes Opinion (target-agnostic) and injects Grievance into that Region only [90m(27.087621ms)[39m[39m
+[32m✔ detection = Observation + counter-intelligence (additive); act detected at the concealment threshold, sender revealed only at the higher one [90m(19.051906ms)[39m[39m
+[32m✔ revealing the sender gives the victim a CB (Rights for influence, Grievance for propaganda) and costs the sender Reputational Leverage; a merely detected act names nobody [90m(94.51688ms)[39m[39m
+[32m✔ false flag: the blame lands on the apparent sender until detection reaches the false-flag threshold; seeing through it exposes the TRUE sender (Reputation + CB) [90m(18.562641ms)[39m[39m
+[31m✖ actions: zero-sum Espionage labour, own-Region counter-intelligence, validation, lift; ops run each turn through the engine; Observation dial reallocates detection [90m(40.308558ms)[39m[39m
+[31m✖ whole run with standing operations is deterministic and keeps State sane [90m(28.13315ms)[39m[39m
+[31m✖ no Retinue Right -> no armed rung, however angry; with the Right the cell raises a bloc, a war side that is not a Country [90m(162.420067ms)[39m[39m
+[31m✖ rebel units fight on the same machinery: they are supplied from held territory and the Government can besiege/retake it [90m(156.095694ms)[39m[39m
+[31m✖ suppression: rebels destroyed -> war ends, held provinces released, retinue labour released, martial law on the member cells costs Control and expires [90m(153.658696ms)[39m[39m
+[31m✖ concession: the Government offers Rights/Duties terms at the Peace Conference; accepted -> entries applied, armies disbanded, war ended; an empty offer to independence-seekers is refused [90m(145.065842ms)[39m[39m
+[31m✖ concession by grievance addressed: if every member cell calms (rung 0) for civil.calm.turns the conflict ends without terms [90m(132.126852ms)[39m[39m
+[31m✖ secession: holding all home provinces free of Government armies for civil.secede.turns forms a new Country (Formation); armies and provinces pass to it; the world keeps running [90m(141.760566ms)[39m[39m
+[31m✖ peace terms that grant secession form the Country too (Formation is a peace-conference outcome) [90m(168.761922ms)[39m[39m
+[31m✖ an AI Government fights the bloc with the same Action API; whole run deterministic, no negative stocks [90m(150.861876ms)[39m[39m
+[32m✔ scope coverage and specificity (Region broader than Estate/Nation) [90m(1.812039ms)[39m[39m
+[32m✔ Rights resolve by most specific scope; Estate vs Nation tie -> latest declared; silence undefined [90m(0.335007ms)[39m[39m
+[32m✔ Control stacks additively [90m(0.219195ms)[39m[39m
+[32m✔ ModifierStack decays, has no spend [90m(0.301692ms)[39m[39m
+[32m✔ Allocation Dial: floors by priority, shortfall truncates lowest, surplus by ratio, cap overflow redistributes [90m(0.688318ms)[39m[39m
+[32m✔ Spending dial: reserve floor protects balance from discretionary; mandatory may dip; sink keeps [90m(0.265646ms)[39m[39m
+[32m✔ Threshold binary, no refund; types must declare targetScale [90m(0.321145ms)[39m[39m
+[32m✔ ClaimLedger is zero-sum and all-or-nothing [90m(0.308376ms)[39m[39m
+[32m✔ Rng deterministic and resumable [90m(0.342508ms)[39m[39m
+[32m✔ schema: validates types/enums/refs, fills defaults, lists placeholders [90m(0.91882ms)[39m[39m
+[32m✔ schema: 'any' type accepts anything [90m(0.179595ms)[39m[39m
+[32m✔ Mobility: needs the Right AND a Government gap; moves pro-rata stocks; population conserved; reactions target the Government [90m(3.386461ms)[39m[39m
+[32m✔ Mobility: a too-small prestige gap blocks; revoking the Right stops flow but never reverts movers [90m(0.97127ms)[39m[39m
+[32m✔ Demotion: only on negative net position and with compliance; closest prestige below; debt follows; Control gain; heavy opinion hit [90m(3.323974ms)[39m[39m
+[32m✔ Rights/Duties reform action: sets scoped entries, most specific wins, null removes; unknown ids rejected, not thrown [90m(18.692487ms)[39m[39m
+[32m✔ pipeline: reform + gap orders drive Mobility end to end; population conserved; deterministic [90m(28.392552ms)[39m[39m
+[32m✔ Convergence: trigger is checklist distance 0 (a Council seat blocks it); declared route merges at step 8 and conserves everything [90m(10.987376ms)[39m[39m
+[32m✔ Convergence: estate-forced route (top rung, defiance) runs the same merge; a later reform reverses it by pro-rata split [90m(5.12526ms)[39m[39m
+[32m✔ propaganda (fast): bounded, never overshoots the ideal, reversible past the baseline sign, competing pushes add [90m(1.481256ms)[39m[39m
+[32m✔ propaganda commitment: zero-sum with ordinary Teaching/Culture use; Government draws on its amalgam; Teaching moves the baseline; lift ends it [90m(16.054541ms)[39m[39m
+[32m✔ counterPropaganda: a pushed cell with free Culture labour pulls itself back toward its baseline [90m(1.570489ms)[39m[39m
+[32m✔ Teaching: moves labour toward the Profile, conserves headcount, never past target, committed labour untouched, extinct pools unreachable [90m(26.210085ms)[39m[39m
+[32m✔ Teaching: Nation affinity biases the split; directed Teaching removes retraining capacity [90m(0.497143ms)[39m[39m
+[31m✖ demo scenario, 25 turns with Mobility + Demotion + propaganda ordered: invariants hold and runs are deterministic [90m(65.422788ms)[39m[39m
+[32m✔ readPolityQueue: requisition hit = req.opinionHit x burden (share of the cell's output taken); drained [90m(2.49205ms)[39m[39m
+[32m✔ readPolityQueue: a requisition that took nothing is no hit [90m(0.60547ms)[39m[39m
+[32m✔ readPolityQueue: a credit default hits the creditor (Opinion and Fairness grievance) by its loss share; drained [90m(0.584708ms)[39m[39m
+[32m✔ readPolityQueue: empty or missing queues are fine [90m(0.460492ms)[39m[39m
+[32m✔ turn: a delivered requisition lands an Opinion hit on every requisitioned cell; a bigger take hits harder [90m(14.826393ms)[39m[39m
+[32m✔ turn: without Control nothing is delivered, so there is no requisition hit [90m(3.135607ms)[39m[39m
+[31m✖ turn: an obligation past the arrears limit defaults and hits the creditor [90m(3.75651ms)[39m[39m
+[32m✔ the constant is 0.01 (authored) and f is the shortage of subsistence, else the abundance of comfort [90m(51.758447ms)[39m[39m
+[32m✔ abundance: +1% x comfort satisfaction; the province stock and Nation presence grow by exactly the cell's change [90m(24.990084ms)[39m[39m
+[32m✔ shortage: population falls by 1% x the subsistence shortfall, drawn from the Nation's presence [90m(33.676348ms)[39m[39m
+[32m✔ growth is bounded by max_population_density; Wasteland takes nothing; decrease is never bounded [90m(66.77051ms)[39m[39m
+[32m✔ committed labour (armies, retinues) neither breeds nor starves; free labour scales with the population [90m(26.521586ms)[39m[39m
+[31m✖ 40 turns of the demo: density ceilings, presence <= population, and the Nation x Region population sums all keep holding [90m(90.728329ms)[39m[39m
+[31m✖ pop.growth = 0 switches it off exactly [90m(58.220123ms)[39m[39m
+[32m✔ actionRecord: public Government acts of this Country, signed by axisLoads; covert, cell, other-Country and unknown acts are ignored [90m(2.368767ms)[39m[39m
+[32m✔ actionRecord fades with age [90m(0.411973ms)[39m[39m
+[32m✔ observedPortrait: scaled by awareness, squashed into (-1,+1) [90m(0.69375ms)[39m[39m
+[32m✔ alignment: 0 when the preference sits at the observed portrait, negative when opposed, 0 when the record is silent [90m(0.587583ms)[39m[39m
+[32m✔ opinionGov and compliance carry opinion.align x alignment [90m(0.945787ms)[39m[39m
+[32m✔ the structural requisition hit is this channel: an Investment-leaning cell dislikes a requisition more than an Extraction-leaning one [90m(0.512138ms)[39m[39m
+[32m✔ portrait: missing baseline reads as the amalgam, a stored baseline wins [90m(0.949854ms)[39m[39m
+[32m✔ reinforcePortrait pushes onto the stack, the readout clamps to +-1, ticking decays the stack [90m(0.729537ms)[39m[39m
+[32m✔ scope syntax: the six kinds + empire, and the impossible (Nation, Estate) pair is an error, not a guess [90m(1.807872ms)[39m[39m
+[32m✔ forms: scope-aware drafts carry the chosen Scope; every form builds with its own defaults; JSON/number parsing; gating info [90m(101.925279ms)[39m[39m
+[31m✖ queries are read-only, JSON-serialisable and consistent with State [90m(62.497775ms)[39m[39m
+[31m✖ Laws matrix: a scoped reform shows up as an override in exactly that column [90m(199.583793ms)[39m[39m
+[32m✔ preview: validation, gating verdicts (who would refuse), foreign DomainVeto; orders can be queued and removed [90m(100.604302ms)[39m[39m
+[31m✖ world readouts: pair sheet, mirror and treaties reflect Diplomacy State [90m(132.610771ms)[39m[39m
+[32m✔ movement graph: Mountain interior blocked unless pass; paths exist elsewhere [90m(75.023479ms)[39m[39m
+[31m✖ declareWar: executes (no Veto.war holder), schedules effects: active only after hostilitiesBegin; unknown target rejected [90m(70.360527ms)[39m[39m
+[31m✖ fieldUnits: commits labour, consumes weapons, creates an army; invalid orders are rejected with reasons [90m(40.390316ms)[39m[39m
+[31m✖ battle: the larger, better-supplied army wins; casualties come out of origin cells; war harm and score are logged; loser retreats or dies [90m(59.603916ms)[39m[39m
+[31m✖ siege -> occupation -> peace: capture raises security grievance; ratified peace cedes the province and Regions re-derive with totals conserved [90m(41.45864ms)[39m[39m
+[31m✖ peace is refused when the other side is strong and not exhausted [90m(43.455912ms)[39m[39m
+[31m✖ war run (25 turns) is deterministic and keeps invariants [90m(41.050753ms)[39m[39m
+[31m✖ AI Government (same Action API) raises and marches an army once war is on; run stays deterministic [90m(72.670966ms)[39m[39m
+[32m✔ odd-r neighbours are symmetric and distance matches [90m(8.896881ms)[39m[39m
+[32m✔ mountain interior edges blocked unless pass; mountain<->other open [90m(0.327067ms)[39m[39m
+[32m✔ regions: contiguous, same owner, 6-8 hexes, deterministic, stable under unrelated change [90m(16.207328ms)[39m[39m
+[32m✔ fracture split by Nations presence preserves extensive totals; merge sums [90m(0.966301ms)[39m[39m
+[34mℹ tests 154[39m
+[34mℹ suites 0[39m
+[34mℹ pass 108[39m
+[34mℹ fail 46[39m
+[34mℹ cancelled 0[39m
+[34mℹ skipped 0[39m
+[34mℹ todo 0[39m
+[34mℹ duration_ms 8233.887788[39m
+
+[31m✖ failing tests:[39m
+
+test at tests/ai_diplomacy.test.js:49:1
+[31m✖ campaign: a new CB bypasses the margin [90m(8.476052ms)[39m[39m
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'Support'
+  - 'Secure'
+  
+      at TestContext.<anonymous> (file:///workspaces/Elental/tests/ai_diplomacy.test.js:51:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'Support',
+    expected: 'Secure',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/behaviour.test.js:11:1
+[31m✖ gating: a Veto holder refuses a costly law; forcing it through registers entitlement loss that decays [90m(102.993594ms)[39m[39m
+  Error: missing tuning key zone.openFloor
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at openness (file:///workspaces/Elental/src/modules/economics/derive.js:34:106)
+      at pull (file:///workspaces/Elental/src/modules/economics/derive.js:39:41)
+      at file:///workspaces/Elental/src/modules/economics/derive.js:40:50
+      at Array.filter (<anonymous>)
+      at hubOf (file:///workspaces/Elental/src/modules/economics/derive.js:40:38)
+      at zoneOf (file:///workspaces/Elental/src/modules/economics/derive.js:47:35)
+      at Module.zones (file:///workspaces/Elental/src/modules/economics/derive.js:48:104)
+      at production (file:///workspaces/Elental/src/modules/economics/step.js:30:16)
+      at Object.step3 (file:///workspaces/Elental/src/modules/economics/step.js:195:3)
+
+test at tests/behaviour.test.js:23:1
+[31m✖ gating: no covering Right means the action simply executes; a relief (tax cut) is approved [90m(76.390836ms)[39m[39m
+  Error: missing tuning key zone.openFloor
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at openness (file:///workspaces/Elental/src/modules/economics/derive.js:34:106)
+      at pull (file:///workspaces/Elental/src/modules/economics/derive.js:39:41)
+      at file:///workspaces/Elental/src/modules/economics/derive.js:40:50
+      at Array.filter (<anonymous>)
+      at hubOf (file:///workspaces/Elental/src/modules/economics/derive.js:40:38)
+      at zoneOf (file:///workspaces/Elental/src/modules/economics/derive.js:47:35)
+      at Module.zones (file:///workspaces/Elental/src/modules/economics/derive.js:48:104)
+      at production (file:///workspaces/Elental/src/modules/economics/step.js:30:16)
+      at Object.step3 (file:///workspaces/Elental/src/modules/economics/step.js:195:3)
+
+test at tests/behaviour.test.js:38:1
+[31m✖ taxRefusal reduces delivered tax; hoarding withholds goods and releases them when it stops [90m(123.719745ms)[39m[39m
+  Error: missing tuning key zone.openFloor
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at openness (file:///workspaces/Elental/src/modules/economics/derive.js:34:106)
+      at pull (file:///workspaces/Elental/src/modules/economics/derive.js:39:41)
+      at file:///workspaces/Elental/src/modules/economics/derive.js:40:50
+      at Array.filter (<anonymous>)
+      at hubOf (file:///workspaces/Elental/src/modules/economics/derive.js:40:38)
+      at zoneOf (file:///workspaces/Elental/src/modules/economics/derive.js:47:35)
+      at Module.zones (file:///workspaces/Elental/src/modules/economics/derive.js:48:104)
+      at production (file:///workspaces/Elental/src/modules/economics/step.js:30:16)
+      at Object.step3 (file:///workspaces/Elental/src/modules/economics/step.js:195:3)
+
+test at tests/behaviour.test.js:50:1
+[31m✖ buildTradeInfra: rich cells invest unprompted; infrastructure decays without upkeep [90m(31.913864ms)[39m[39m
+  Error: missing tuning key zone.openFloor
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at openness (file:///workspaces/Elental/src/modules/economics/derive.js:34:106)
+      at pull (file:///workspaces/Elental/src/modules/economics/derive.js:39:41)
+      at file:///workspaces/Elental/src/modules/economics/derive.js:40:50
+      at Array.filter (<anonymous>)
+      at hubOf (file:///workspaces/Elental/src/modules/economics/derive.js:40:38)
+      at zoneOf (file:///workspaces/Elental/src/modules/economics/derive.js:47:35)
+      at Module.zones (file:///workspaces/Elental/src/modules/economics/derive.js:48:104)
+      at production (file:///workspaces/Elental/src/modules/economics/step.js:30:16)
+      at Object.step3 (file:///workspaces/Elental/src/modules/economics/step.js:195:3)
+
+test at tests/behaviour.test.js:63:1
+[31m✖ long run (40 turns) with acting cells keeps invariants and stays deterministic [90m(67.3668ms)[39m[39m
+  Error: missing tuning key zone.openFloor
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at openness (file:///workspaces/Elental/src/modules/economics/derive.js:34:106)
+      at pull (file:///workspaces/Elental/src/modules/economics/derive.js:39:41)
+      at file:///workspaces/Elental/src/modules/economics/derive.js:40:50
+      at Array.filter (<anonymous>)
+      at hubOf (file:///workspaces/Elental/src/modules/economics/derive.js:40:38)
+      at zoneOf (file:///workspaces/Elental/src/modules/economics/derive.js:47:35)
+      at Module.zones (file:///workspaces/Elental/src/modules/economics/derive.js:48:104)
+      at production (file:///workspaces/Elental/src/modules/economics/step.js:30:16)
+      at Object.step3 (file:///workspaces/Elental/src/modules/economics/step.js:195:3)
+
+test at tests/client.test.js:15:1
+[31m✖ real Action pipeline: setTaxLaw changes the law, placeRequisition fills Government inventory, bad order is rejected not thrown [90m(129.786042ms)[39m[39m
+  Error: missing tuning key zone.openFloor
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at openness (file:///workspaces/Elental/src/modules/economics/derive.js:34:106)
+      at pull (file:///workspaces/Elental/src/modules/economics/derive.js:39:41)
+      at file:///workspaces/Elental/src/modules/economics/derive.js:40:50
+      at Array.filter (<anonymous>)
+      at hubOf (file:///workspaces/Elental/src/modules/economics/derive.js:40:38)
+      at zoneOf (file:///workspaces/Elental/src/modules/economics/derive.js:47:35)
+      at Module.zones (file:///workspaces/Elental/src/modules/economics/derive.js:48:104)
+      at production (file:///workspaces/Elental/src/modules/economics/step.js:30:16)
+      at Object.step3 (file:///workspaces/Elental/src/modules/economics/step.js:195:3)
+
+test at tests/client.test.js:25:1
+[31m✖ 20 turns: invariants hold (Wealth >= 0, Ledger >= 0, grievance/satisfaction in [0,1], population within the 1%-per-turn growth bound) [90m(37.817003ms)[39m[39m
+  Error: missing tuning key zone.openFloor
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at openness (file:///workspaces/Elental/src/modules/economics/derive.js:34:106)
+      at pull (file:///workspaces/Elental/src/modules/economics/derive.js:39:41)
+      at file:///workspaces/Elental/src/modules/economics/derive.js:40:50
+      at Array.filter (<anonymous>)
+      at hubOf (file:///workspaces/Elental/src/modules/economics/derive.js:40:38)
+      at zoneOf (file:///workspaces/Elental/src/modules/economics/derive.js:47:35)
+      at Module.zones (file:///workspaces/Elental/src/modules/economics/derive.js:48:104)
+      at production (file:///workspaces/Elental/src/modules/economics/step.js:30:16)
+      at Object.step3 (file:///workspaces/Elental/src/modules/economics/step.js:195:3)
+
+test at tests/client.test.js:33:1
+[31m✖ determinism: two runs of the same scenario give identical state [90m(77.673625ms)[39m[39m
+  Error: missing tuning key zone.openFloor
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at openness (file:///workspaces/Elental/src/modules/economics/derive.js:34:106)
+      at pull (file:///workspaces/Elental/src/modules/economics/derive.js:39:41)
+      at file:///workspaces/Elental/src/modules/economics/derive.js:40:50
+      at Array.filter (<anonymous>)
+      at hubOf (file:///workspaces/Elental/src/modules/economics/derive.js:40:38)
+      at zoneOf (file:///workspaces/Elental/src/modules/economics/derive.js:47:35)
+      at Module.zones (file:///workspaces/Elental/src/modules/economics/derive.js:48:104)
+      at production (file:///workspaces/Elental/src/modules/economics/step.js:30:16)
+      at Object.step3 (file:///workspaces/Elental/src/modules/economics/step.js:195:3)
+
+test at tests/diplomacy.test.js:25:1
+[31m✖ state shape: no stored aggregate of Leverage; the four categories are readouts, scope = a Country or an alliance bloc [90m(154.564334ms)[39m[39m
+  Error: missing tuning key zone.openFloor
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at openness (file:///workspaces/Elental/src/modules/economics/derive.js:34:106)
+      at pull (file:///workspaces/Elental/src/modules/economics/derive.js:39:41)
+      at file:///workspaces/Elental/src/modules/economics/derive.js:40:50
+      at Array.filter (<anonymous>)
+      at hubOf (file:///workspaces/Elental/src/modules/economics/derive.js:40:38)
+      at zoneOf (file:///workspaces/Elental/src/modules/economics/derive.js:47:35)
+      at zones (file:///workspaces/Elental/src/modules/economics/derive.js:48:104)
+      at zoneEdges (file:///workspaces/Elental/src/modules/economics/derive.js:52:46)
+      at tradeDependency (file:///workspaces/Elental/src/modules/diplomacy/readouts.js:52:35)
+
+test at tests/diplomacy.test.js:39:1
+[31m✖ proposals: an AI recipient decides at once; a player recipient answers; Dependency burdens are refused; identical pending proposals are rejected [90m(51.672689ms)[39m[39m
+  Error: missing tuning key zone.openFloor
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at openness (file:///workspaces/Elental/src/modules/economics/derive.js:34:106)
+      at pull (file:///workspaces/Elental/src/modules/economics/derive.js:39:41)
+      at file:///workspaces/Elental/src/modules/economics/derive.js:40:50
+      at Array.filter (<anonymous>)
+      at hubOf (file:///workspaces/Elental/src/modules/economics/derive.js:40:38)
+      at zoneOf (file:///workspaces/Elental/src/modules/economics/derive.js:47:35)
+      at Module.zones (file:///workspaces/Elental/src/modules/economics/derive.js:48:104)
+      at production (file:///workspaces/Elental/src/modules/economics/step.js:30:16)
+      at Object.step3 (file:///workspaces/Elental/src/modules/economics/step.js:195:3)
+
+test at tests/diplomacy.test.js:51:1
+[31m✖ ratification consults the treaty Veto holders like any gated act: a cell holding Veto.treaty can refuse what the Government accepts [90m(53.64945ms)[39m[39m
+  Error: missing tuning key zone.openFloor
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at openness (file:///workspaces/Elental/src/modules/economics/derive.js:34:106)
+      at pull (file:///workspaces/Elental/src/modules/economics/derive.js:39:41)
+      at file:///workspaces/Elental/src/modules/economics/derive.js:40:50
+      at Array.filter (<anonymous>)
+      at hubOf (file:///workspaces/Elental/src/modules/economics/derive.js:40:38)
+      at zoneOf (file:///workspaces/Elental/src/modules/economics/derive.js:47:35)
+      at Module.zones (file:///workspaces/Elental/src/modules/economics/derive.js:48:104)
+      at production (file:///workspaces/Elental/src/modules/economics/step.js:30:16)
+      at Object.step3 (file:///workspaces/Elental/src/modules/economics/step.js:195:3)
+
+test at tests/diplomacy.test.js:74:1
+[31m✖ Sanctions: ad hoc ones give the target a Grievance CB, great-power-backed ones do not; stripsCB removes external recognition of the target's CBs [90m(47.285061ms)[39m[39m
+  Error: missing tuning key zone.openFloor
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at openness (file:///workspaces/Elental/src/modules/economics/derive.js:34:106)
+      at pull (file:///workspaces/Elental/src/modules/economics/derive.js:39:41)
+      at file:///workspaces/Elental/src/modules/economics/derive.js:40:50
+      at Array.filter (<anonymous>)
+      at hubOf (file:///workspaces/Elental/src/modules/economics/derive.js:40:38)
+      at zoneOf (file:///workspaces/Elental/src/modules/economics/derive.js:47:35)
+      at Module.zones (file:///workspaces/Elental/src/modules/economics/derive.js:48:104)
+      at production (file:///workspaces/Elental/src/modules/economics/step.js:30:16)
+      at Object.step3 (file:///workspaces/Elental/src/modules/economics/step.js:195:3)
+
+test at tests/diplomacy.test.js:83:1
+[31m✖ overreach is judged against the goals claimed and applied PER OBSERVER, scaled by closeness to the victim — never global [90m(48.10335ms)[39m[39m
+  Error: missing tuning key zone.openFloor
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at openness (file:///workspaces/Elental/src/modules/economics/derive.js:34:106)
+      at pull (file:///workspaces/Elental/src/modules/economics/derive.js:39:41)
+      at file:///workspaces/Elental/src/modules/economics/derive.js:40:50
+      at Array.filter (<anonymous>)
+      at hubOf (file:///workspaces/Elental/src/modules/economics/derive.js:40:38)
+      at zoneOf (file:///workspaces/Elental/src/modules/economics/derive.js:47:35)
+      at Module.zones (file:///workspaces/Elental/src/modules/economics/derive.js:48:104)
+      at production (file:///workspaces/Elental/src/modules/economics/step.js:30:16)
+      at Object.step3 (file:///workspaces/Elental/src/modules/economics/step.js:195:3)
+
+test at tests/diplomacy.test.js:93:1
+[31m✖ war chain = treaty-graph propagation: Guarantee and Defensive defend, StandingOffensive/Coalition follow the attacker, Defensive needs a recognised cause, treaties forbid wars between partners [90m(48.977713ms)[39m[39m
+  Error: missing tuning key zone.openFloor
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at openness (file:///workspaces/Elental/src/modules/economics/derive.js:34:106)
+      at pull (file:///workspaces/Elental/src/modules/economics/derive.js:39:41)
+      at file:///workspaces/Elental/src/modules/economics/derive.js:40:50
+      at Array.filter (<anonymous>)
+      at hubOf (file:///workspaces/Elental/src/modules/economics/derive.js:40:38)
+      at zoneOf (file:///workspaces/Elental/src/modules/economics/derive.js:47:35)
+      at Module.zones (file:///workspaces/Elental/src/modules/economics/derive.js:48:104)
+      at production (file:///workspaces/Elental/src/modules/economics/step.js:30:16)
+      at Object.step3 (file:///workspaces/Elental/src/modules/economics/step.js:195:3)
+
+test at tests/diplomacy.test.js:109:1
+[31m✖ denouncing a treaty is a broken promise: reputation loss with the other party, an event-based CB held by the wronged party; lifting a Sanction is no breach [90m(30.963342ms)[39m[39m
+  Error: missing tuning key zone.openFloor
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at openness (file:///workspaces/Elental/src/modules/economics/derive.js:34:106)
+      at pull (file:///workspaces/Elental/src/modules/economics/derive.js:39:41)
+      at file:///workspaces/Elental/src/modules/economics/derive.js:40:50
+      at Array.filter (<anonymous>)
+      at hubOf (file:///workspaces/Elental/src/modules/economics/derive.js:40:38)
+      at zoneOf (file:///workspaces/Elental/src/modules/economics/derive.js:47:35)
+      at Module.zones (file:///workspaces/Elental/src/modules/economics/derive.js:48:104)
+      at production (file:///workspaces/Elental/src/modules/economics/step.js:30:16)
+      at Object.step3 (file:///workspaces/Elental/src/modules/economics/step.js:195:3)
+
+test at tests/diplomacy.test.js:117:1
+[31m✖ axis hooks: MilitaryCap bounds fielding, ResourceExportBan/TradeAccess zero the edge, DomainVeto is a foreign Veto that cannot be forced, ForeignPolicy needs the grantee's consent [90m(28.948166ms)[39m[39m
+  Error: missing tuning key zone.openFloor
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at openness (file:///workspaces/Elental/src/modules/economics/derive.js:34:106)
+      at pull (file:///workspaces/Elental/src/modules/economics/derive.js:39:41)
+      at file:///workspaces/Elental/src/modules/economics/derive.js:40:50
+      at Array.filter (<anonymous>)
+      at hubOf (file:///workspaces/Elental/src/modules/economics/derive.js:40:38)
+      at zoneOf (file:///workspaces/Elental/src/modules/economics/derive.js:47:35)
+      at Module.zones (file:///workspaces/Elental/src/modules/economics/derive.js:48:104)
+      at production (file:///workspaces/Elental/src/modules/economics/step.js:30:16)
+      at Object.step3 (file:///workspaces/Elental/src/modules/economics/step.js:195:3)
+
+test at tests/diplomacy.test.js:133:1
+[31m✖ recognition route: rebels take it (independence goal / refused), a foreign Government recognises, backing secession is CB-generating against the parent, a Guarantee pulls the guarantor into the war [90m(150.013093ms)[39m[39m
+  Error: missing tuning key zone.openFloor
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at openness (file:///workspaces/Elental/src/modules/economics/derive.js:34:106)
+      at pull (file:///workspaces/Elental/src/modules/economics/derive.js:39:41)
+      at file:///workspaces/Elental/src/modules/economics/derive.js:40:50
+      at Array.filter (<anonymous>)
+      at hubOf (file:///workspaces/Elental/src/modules/economics/derive.js:40:38)
+      at zoneOf (file:///workspaces/Elental/src/modules/economics/derive.js:47:35)
+      at Module.zones (file:///workspaces/Elental/src/modules/economics/derive.js:48:104)
+      at production (file:///workspaces/Elental/src/modules/economics/step.js:30:16)
+      at Object.step3 (file:///workspaces/Elental/src/modules/economics/step.js:195:3)
+
+test at tests/diplomacy.test.js:152:1
+[31m✖ recognition is only open to rebels who took the route (a concession-seeking bloc is not recognisable until refused); AI kin-states recognise and guarantee on their own [90m(159.007977ms)[39m[39m
+  Error: missing tuning key zone.openFloor
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at openness (file:///workspaces/Elental/src/modules/economics/derive.js:34:106)
+      at pull (file:///workspaces/Elental/src/modules/economics/derive.js:39:41)
+      at file:///workspaces/Elental/src/modules/economics/derive.js:40:50
+      at Array.filter (<anonymous>)
+      at hubOf (file:///workspaces/Elental/src/modules/economics/derive.js:40:38)
+      at zoneOf (file:///workspaces/Elental/src/modules/economics/derive.js:47:35)
+      at Module.zones (file:///workspaces/Elental/src/modules/economics/derive.js:48:104)
+      at production (file:///workspaces/Elental/src/modules/economics/step.js:30:16)
+      at Object.step3 (file:///workspaces/Elental/src/modules/economics/step.js:195:3)
+
+test at tests/diplomacy.test.js:163:1
+[31m✖ FacilitationGrant: a real zero-sum transfer of a good from the grantor's warehouse to a bloc's held province [90m(137.422767ms)[39m[39m
+  Error: missing tuning key zone.openFloor
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at openness (file:///workspaces/Elental/src/modules/economics/derive.js:34:106)
+      at pull (file:///workspaces/Elental/src/modules/economics/derive.js:39:41)
+      at file:///workspaces/Elental/src/modules/economics/derive.js:40:50
+      at Array.filter (<anonymous>)
+      at hubOf (file:///workspaces/Elental/src/modules/economics/derive.js:40:38)
+      at zoneOf (file:///workspaces/Elental/src/modules/economics/derive.js:47:35)
+      at Module.zones (file:///workspaces/Elental/src/modules/economics/derive.js:48:104)
+      at production (file:///workspaces/Elental/src/modules/economics/step.js:30:16)
+      at Object.step3 (file:///workspaces/Elental/src/modules/economics/step.js:195:3)
+
+test at tests/diplomacy.test.js:173:1
+[31m✖ demo run: diplomacy orders mid-run keep the world consistent and deterministic [90m(35.417712ms)[39m[39m
+  Error: missing tuning key zone.openFloor
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at openness (file:///workspaces/Elental/src/modules/economics/derive.js:34:106)
+      at pull (file:///workspaces/Elental/src/modules/economics/derive.js:39:41)
+      at file:///workspaces/Elental/src/modules/economics/derive.js:40:50
+      at Array.filter (<anonymous>)
+      at hubOf (file:///workspaces/Elental/src/modules/economics/derive.js:40:38)
+      at zoneOf (file:///workspaces/Elental/src/modules/economics/derive.js:47:35)
+      at Module.zones (file:///workspaces/Elental/src/modules/economics/derive.js:48:104)
+      at production (file:///workspaces/Elental/src/modules/economics/step.js:30:16)
+      at Object.step3 (file:///workspaces/Elental/src/modules/economics/step.js:195:3)
+
+test at tests/editor.test.js:52:1
+[31m✖ editor -> game round trip: a blank scenario from the template is valid, can be edited, saved, bundled, loaded and played headless [90m(56.852901ms)[39m[39m
+  Error: missing tuning key zone.openFloor
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at openness (file:///workspaces/Elental/src/modules/economics/derive.js:34:106)
+      at pull (file:///workspaces/Elental/src/modules/economics/derive.js:39:41)
+      at file:///workspaces/Elental/src/modules/economics/derive.js:40:50
+      at Array.filter (<anonymous>)
+      at hubOf (file:///workspaces/Elental/src/modules/economics/derive.js:40:38)
+      at zoneOf (file:///workspaces/Elental/src/modules/economics/derive.js:47:35)
+      at Module.zones (file:///workspaces/Elental/src/modules/economics/derive.js:48:104)
+      at production (file:///workspaces/Elental/src/modules/economics/step.js:30:16)
+      at Object.step3 (file:///workspaces/Elental/src/modules/economics/step.js:195:3)
+
+test at tests/espionage.test.js:79:1
+[31m✖ actions: zero-sum Espionage labour, own-Region counter-intelligence, validation, lift; ops run each turn through the engine; Observation dial reallocates detection [90m(40.308558ms)[39m[39m
+  Error: missing tuning key zone.openFloor
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at openness (file:///workspaces/Elental/src/modules/economics/derive.js:34:106)
+      at pull (file:///workspaces/Elental/src/modules/economics/derive.js:39:41)
+      at file:///workspaces/Elental/src/modules/economics/derive.js:40:50
+      at Array.filter (<anonymous>)
+      at hubOf (file:///workspaces/Elental/src/modules/economics/derive.js:40:38)
+      at zoneOf (file:///workspaces/Elental/src/modules/economics/derive.js:47:35)
+      at Module.zones (file:///workspaces/Elental/src/modules/economics/derive.js:48:104)
+      at production (file:///workspaces/Elental/src/modules/economics/step.js:30:16)
+      at Object.step3 (file:///workspaces/Elental/src/modules/economics/step.js:195:3)
+
+test at tests/espionage.test.js:93:1
+[31m✖ whole run with standing operations is deterministic and keeps State sane [90m(28.13315ms)[39m[39m
+  Error: missing tuning key zone.openFloor
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at openness (file:///workspaces/Elental/src/modules/economics/derive.js:34:106)
+      at pull (file:///workspaces/Elental/src/modules/economics/derive.js:39:41)
+      at file:///workspaces/Elental/src/modules/economics/derive.js:40:50
+      at Array.filter (<anonymous>)
+      at hubOf (file:///workspaces/Elental/src/modules/economics/derive.js:40:38)
+      at zoneOf (file:///workspaces/Elental/src/modules/economics/derive.js:47:35)
+      at Module.zones (file:///workspaces/Elental/src/modules/economics/derive.js:48:104)
+      at production (file:///workspaces/Elental/src/modules/economics/step.js:30:16)
+      at Object.step3 (file:///workspaces/Elental/src/modules/economics/step.js:195:3)
+
+test at tests/internal_conflict.test.js:25:1
+[31m✖ no Retinue Right -> no armed rung, however angry; with the Right the cell raises a bloc, a war side that is not a Country [90m(162.420067ms)[39m[39m
+  Error: missing tuning key zone.openFloor
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at openness (file:///workspaces/Elental/src/modules/economics/derive.js:34:106)
+      at pull (file:///workspaces/Elental/src/modules/economics/derive.js:39:41)
+      at file:///workspaces/Elental/src/modules/economics/derive.js:40:50
+      at Array.filter (<anonymous>)
+      at hubOf (file:///workspaces/Elental/src/modules/economics/derive.js:40:38)
+      at zoneOf (file:///workspaces/Elental/src/modules/economics/derive.js:47:35)
+      at Module.zones (file:///workspaces/Elental/src/modules/economics/derive.js:48:104)
+      at production (file:///workspaces/Elental/src/modules/economics/step.js:30:16)
+      at Object.step3 (file:///workspaces/Elental/src/modules/economics/step.js:195:3)
+
+test at tests/internal_conflict.test.js:40:1
+[31m✖ rebel units fight on the same machinery: they are supplied from held territory and the Government can besiege/retake it [90m(156.095694ms)[39m[39m
+  Error: missing tuning key zone.openFloor
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at openness (file:///workspaces/Elental/src/modules/economics/derive.js:34:106)
+      at pull (file:///workspaces/Elental/src/modules/economics/derive.js:39:41)
+      at file:///workspaces/Elental/src/modules/economics/derive.js:40:50
+      at Array.filter (<anonymous>)
+      at hubOf (file:///workspaces/Elental/src/modules/economics/derive.js:40:38)
+      at zoneOf (file:///workspaces/Elental/src/modules/economics/derive.js:47:35)
+      at Module.zones (file:///workspaces/Elental/src/modules/economics/derive.js:48:104)
+      at production (file:///workspaces/Elental/src/modules/economics/step.js:30:16)
+      at Object.step3 (file:///workspaces/Elental/src/modules/economics/step.js:195:3)
+
+test at tests/internal_conflict.test.js:49:1
+[31m✖ suppression: rebels destroyed -> war ends, held provinces released, retinue labour released, martial law on the member cells costs Control and expires [90m(153.658696ms)[39m[39m
+  Error: missing tuning key zone.openFloor
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at openness (file:///workspaces/Elental/src/modules/economics/derive.js:34:106)
+      at pull (file:///workspaces/Elental/src/modules/economics/derive.js:39:41)
+      at file:///workspaces/Elental/src/modules/economics/derive.js:40:50
+      at Array.filter (<anonymous>)
+      at hubOf (file:///workspaces/Elental/src/modules/economics/derive.js:40:38)
+      at zoneOf (file:///workspaces/Elental/src/modules/economics/derive.js:47:35)
+      at Module.zones (file:///workspaces/Elental/src/modules/economics/derive.js:48:104)
+      at production (file:///workspaces/Elental/src/modules/economics/step.js:30:16)
+      at Object.step3 (file:///workspaces/Elental/src/modules/economics/step.js:195:3)
+
+test at tests/internal_conflict.test.js:67:1
+[31m✖ concession: the Government offers Rights/Duties terms at the Peace Conference; accepted -> entries applied, armies disbanded, war ended; an empty offer to independence-seekers is refused [90m(145.065842ms)[39m[39m
+  Error: missing tuning key zone.openFloor
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at openness (file:///workspaces/Elental/src/modules/economics/derive.js:34:106)
+      at pull (file:///workspaces/Elental/src/modules/economics/derive.js:39:41)
+      at file:///workspaces/Elental/src/modules/economics/derive.js:40:50
+      at Array.filter (<anonymous>)
+      at hubOf (file:///workspaces/Elental/src/modules/economics/derive.js:40:38)
+      at zoneOf (file:///workspaces/Elental/src/modules/economics/derive.js:47:35)
+      at Module.zones (file:///workspaces/Elental/src/modules/economics/derive.js:48:104)
+      at production (file:///workspaces/Elental/src/modules/economics/step.js:30:16)
+      at Object.step3 (file:///workspaces/Elental/src/modules/economics/step.js:195:3)
+
+test at tests/internal_conflict.test.js:78:1
+[31m✖ concession by grievance addressed: if every member cell calms (rung 0) for civil.calm.turns the conflict ends without terms [90m(132.126852ms)[39m[39m
+  Error: missing tuning key zone.openFloor
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at openness (file:///workspaces/Elental/src/modules/economics/derive.js:34:106)
+      at pull (file:///workspaces/Elental/src/modules/economics/derive.js:39:41)
+      at file:///workspaces/Elental/src/modules/economics/derive.js:40:50
+      at Array.filter (<anonymous>)
+      at hubOf (file:///workspaces/Elental/src/modules/economics/derive.js:40:38)
+      at zoneOf (file:///workspaces/Elental/src/modules/economics/derive.js:47:35)
+      at Module.zones (file:///workspaces/Elental/src/modules/economics/derive.js:48:104)
+      at production (file:///workspaces/Elental/src/modules/economics/step.js:30:16)
+      at Object.step3 (file:///workspaces/Elental/src/modules/economics/step.js:195:3)
+
+test at tests/internal_conflict.test.js:84:1
+[31m✖ secession: holding all home provinces free of Government armies for civil.secede.turns forms a new Country (Formation); armies and provinces pass to it; the world keeps running [90m(141.760566ms)[39m[39m
+  Error: missing tuning key zone.openFloor
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at openness (file:///workspaces/Elental/src/modules/economics/derive.js:34:106)
+      at pull (file:///workspaces/Elental/src/modules/economics/derive.js:39:41)
+      at file:///workspaces/Elental/src/modules/economics/derive.js:40:50
+      at Array.filter (<anonymous>)
+      at hubOf (file:///workspaces/Elental/src/modules/economics/derive.js:40:38)
+      at zoneOf (file:///workspaces/Elental/src/modules/economics/derive.js:47:35)
+      at Module.zones (file:///workspaces/Elental/src/modules/economics/derive.js:48:104)
+      at production (file:///workspaces/Elental/src/modules/economics/step.js:30:16)
+      at Object.step3 (file:///workspaces/Elental/src/modules/economics/step.js:195:3)
+
+test at tests/internal_conflict.test.js:95:1
+[31m✖ peace terms that grant secession form the Country too (Formation is a peace-conference outcome) [90m(168.761922ms)[39m[39m
+  Error: missing tuning key zone.openFloor
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at openness (file:///workspaces/Elental/src/modules/economics/derive.js:34:106)
+      at pull (file:///workspaces/Elental/src/modules/economics/derive.js:39:41)
+      at file:///workspaces/Elental/src/modules/economics/derive.js:40:50
+      at Array.filter (<anonymous>)
+      at hubOf (file:///workspaces/Elental/src/modules/economics/derive.js:40:38)
+      at zoneOf (file:///workspaces/Elental/src/modules/economics/derive.js:47:35)
+      at Module.zones (file:///workspaces/Elental/src/modules/economics/derive.js:48:104)
+      at production (file:///workspaces/Elental/src/modules/economics/step.js:30:16)
+      at Object.step3 (file:///workspaces/Elental/src/modules/economics/step.js:195:3)
+
+test at tests/internal_conflict.test.js:100:1
+[31m✖ an AI Government fights the bloc with the same Action API; whole run deterministic, no negative stocks [90m(150.861876ms)[39m[39m
+  Error: missing tuning key zone.openFloor
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at openness (file:///workspaces/Elental/src/modules/economics/derive.js:34:106)
+      at pull (file:///workspaces/Elental/src/modules/economics/derive.js:39:41)
+      at file:///workspaces/Elental/src/modules/economics/derive.js:40:50
+      at Array.filter (<anonymous>)
+      at hubOf (file:///workspaces/Elental/src/modules/economics/derive.js:40:38)
+      at zoneOf (file:///workspaces/Elental/src/modules/economics/derive.js:47:35)
+      at Module.zones (file:///workspaces/Elental/src/modules/economics/derive.js:48:104)
+      at production (file:///workspaces/Elental/src/modules/economics/step.js:30:16)
+      at Object.step3 (file:///workspaces/Elental/src/modules/economics/step.js:195:3)
+
+test at tests/politics_remaining.test.js:173:1
+[31m✖ demo scenario, 25 turns with Mobility + Demotion + propaganda ordered: invariants hold and runs are deterministic [90m(65.422788ms)[39m[39m
+  Error: missing tuning key zone.openFloor
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at openness (file:///workspaces/Elental/src/modules/economics/derive.js:34:106)
+      at pull (file:///workspaces/Elental/src/modules/economics/derive.js:39:41)
+      at file:///workspaces/Elental/src/modules/economics/derive.js:40:50
+      at Array.filter (<anonymous>)
+      at hubOf (file:///workspaces/Elental/src/modules/economics/derive.js:40:38)
+      at zoneOf (file:///workspaces/Elental/src/modules/economics/derive.js:47:35)
+      at Module.zones (file:///workspaces/Elental/src/modules/economics/derive.js:48:104)
+      at production (file:///workspaces/Elental/src/modules/economics/step.js:30:16)
+      at Object.step3 (file:///workspaces/Elental/src/modules/economics/step.js:195:3)
+
+test at tests/polity_queue.test.js:53:1
+[31m✖ turn: an obligation past the arrears limit defaults and hits the creditor [90m(3.75651ms)[39m[39m
+  AssertionError [ERR_ASSERTION]: defaulted obligation removed
+      at TestContext.<anonymous> (file:///workspaces/Elental/tests/polity_queue.test.js:58:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests/population.test.js:46:1
+[31m✖ 40 turns of the demo: density ceilings, presence <= population, and the Nation x Region population sums all keep holding [90m(90.728329ms)[39m[39m
+  Error: missing tuning key zone.openFloor
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at openness (file:///workspaces/Elental/src/modules/economics/derive.js:34:106)
+      at pull (file:///workspaces/Elental/src/modules/economics/derive.js:39:41)
+      at file:///workspaces/Elental/src/modules/economics/derive.js:40:50
+      at Array.filter (<anonymous>)
+      at hubOf (file:///workspaces/Elental/src/modules/economics/derive.js:40:38)
+      at zoneOf (file:///workspaces/Elental/src/modules/economics/derive.js:47:35)
+      at Module.zones (file:///workspaces/Elental/src/modules/economics/derive.js:48:104)
+      at production (file:///workspaces/Elental/src/modules/economics/step.js:30:16)
+      at Object.step3 (file:///workspaces/Elental/src/modules/economics/step.js:195:3)
+
+test at tests/population.test.js:55:1
+[31m✖ pop.growth = 0 switches it off exactly [90m(58.220123ms)[39m[39m
+  Error: missing tuning key zone.openFloor
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at openness (file:///workspaces/Elental/src/modules/economics/derive.js:34:106)
+      at pull (file:///workspaces/Elental/src/modules/economics/derive.js:39:41)
+      at file:///workspaces/Elental/src/modules/economics/derive.js:40:50
+      at Array.filter (<anonymous>)
+      at hubOf (file:///workspaces/Elental/src/modules/economics/derive.js:40:38)
+      at zoneOf (file:///workspaces/Elental/src/modules/economics/derive.js:47:35)
+      at Module.zones (file:///workspaces/Elental/src/modules/economics/derive.js:48:104)
+      at production (file:///workspaces/Elental/src/modules/economics/step.js:30:16)
+      at Object.step3 (file:///workspaces/Elental/src/modules/economics/step.js:195:3)
+
+test at tests/ui.test.js:36:1
+[31m✖ queries are read-only, JSON-serialisable and consistent with State [90m(62.497775ms)[39m[39m
+  Error: missing tuning key zone.openFloor
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at openness (file:///workspaces/Elental/src/modules/economics/derive.js:34:106)
+      at pull (file:///workspaces/Elental/src/modules/economics/derive.js:39:41)
+      at file:///workspaces/Elental/src/modules/economics/derive.js:40:50
+      at Array.filter (<anonymous>)
+      at hubOf (file:///workspaces/Elental/src/modules/economics/derive.js:40:38)
+      at zoneOf (file:///workspaces/Elental/src/modules/economics/derive.js:47:35)
+      at Module.zones (file:///workspaces/Elental/src/modules/economics/derive.js:48:104)
+      at production (file:///workspaces/Elental/src/modules/economics/step.js:30:16)
+      at Object.step3 (file:///workspaces/Elental/src/modules/economics/step.js:195:3)
+
+test at tests/ui.test.js:49:1
+[31m✖ Laws matrix: a scoped reform shows up as an override in exactly that column [90m(199.583793ms)[39m[39m
+  Error: missing tuning key zone.openFloor
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at openness (file:///workspaces/Elental/src/modules/economics/derive.js:34:106)
+      at pull (file:///workspaces/Elental/src/modules/economics/derive.js:39:41)
+      at file:///workspaces/Elental/src/modules/economics/derive.js:40:50
+      at Array.filter (<anonymous>)
+      at hubOf (file:///workspaces/Elental/src/modules/economics/derive.js:40:38)
+      at zoneOf (file:///workspaces/Elental/src/modules/economics/derive.js:47:35)
+      at Module.zones (file:///workspaces/Elental/src/modules/economics/derive.js:48:104)
+      at production (file:///workspaces/Elental/src/modules/economics/step.js:30:16)
+      at Object.step3 (file:///workspaces/Elental/src/modules/economics/step.js:195:3)
+
+test at tests/ui.test.js:61:1
+[31m✖ world readouts: pair sheet, mirror and treaties reflect Diplomacy State [90m(132.610771ms)[39m[39m
+  Error: missing tuning key zone.openFloor
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at openness (file:///workspaces/Elental/src/modules/economics/derive.js:34:106)
+      at pull (file:///workspaces/Elental/src/modules/economics/derive.js:39:41)
+      at file:///workspaces/Elental/src/modules/economics/derive.js:40:50
+      at Array.filter (<anonymous>)
+      at hubOf (file:///workspaces/Elental/src/modules/economics/derive.js:40:38)
+      at zoneOf (file:///workspaces/Elental/src/modules/economics/derive.js:47:35)
+      at zones (file:///workspaces/Elental/src/modules/economics/derive.js:48:104)
+      at zoneEdges (file:///workspaces/Elental/src/modules/economics/derive.js:52:46)
+      at tradeDependency (file:///workspaces/Elental/src/modules/diplomacy/readouts.js:52:35)
+
+test at tests/war.test.js:21:1
+[31m✖ declareWar: executes (no Veto.war holder), schedules effects: active only after hostilitiesBegin; unknown target rejected [90m(70.360527ms)[39m[39m
+  Error: missing tuning key zone.openFloor
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at openness (file:///workspaces/Elental/src/modules/economics/derive.js:34:106)
+      at pull (file:///workspaces/Elental/src/modules/economics/derive.js:39:41)
+      at file:///workspaces/Elental/src/modules/economics/derive.js:40:50
+      at Array.filter (<anonymous>)
+      at hubOf (file:///workspaces/Elental/src/modules/economics/derive.js:40:38)
+      at zoneOf (file:///workspaces/Elental/src/modules/economics/derive.js:47:35)
+      at Module.zones (file:///workspaces/Elental/src/modules/economics/derive.js:48:104)
+      at production (file:///workspaces/Elental/src/modules/economics/step.js:30:16)
+      at Object.step3 (file:///workspaces/Elental/src/modules/economics/step.js:195:3)
+
+test at tests/war.test.js:25:1
+[31m✖ fieldUnits: commits labour, consumes weapons, creates an army; invalid orders are rejected with reasons [90m(40.390316ms)[39m[39m
+  Error: missing tuning key zone.openFloor
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at openness (file:///workspaces/Elental/src/modules/economics/derive.js:34:106)
+      at pull (file:///workspaces/Elental/src/modules/economics/derive.js:39:41)
+      at file:///workspaces/Elental/src/modules/economics/derive.js:40:50
+      at Array.filter (<anonymous>)
+      at hubOf (file:///workspaces/Elental/src/modules/economics/derive.js:40:38)
+      at zoneOf (file:///workspaces/Elental/src/modules/economics/derive.js:47:35)
+      at Module.zones (file:///workspaces/Elental/src/modules/economics/derive.js:48:104)
+      at production (file:///workspaces/Elental/src/modules/economics/step.js:30:16)
+      at Object.step3 (file:///workspaces/Elental/src/modules/economics/step.js:195:3)
+
+test at tests/war.test.js:33:1
+[31m✖ battle: the larger, better-supplied army wins; casualties come out of origin cells; war harm and score are logged; loser retreats or dies [90m(59.603916ms)[39m[39m
+  Error: missing tuning key zone.openFloor
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at openness (file:///workspaces/Elental/src/modules/economics/derive.js:34:106)
+      at pull (file:///workspaces/Elental/src/modules/economics/derive.js:39:41)
+      at file:///workspaces/Elental/src/modules/economics/derive.js:40:50
+      at Array.filter (<anonymous>)
+      at hubOf (file:///workspaces/Elental/src/modules/economics/derive.js:40:38)
+      at zoneOf (file:///workspaces/Elental/src/modules/economics/derive.js:47:35)
+      at Module.zones (file:///workspaces/Elental/src/modules/economics/derive.js:48:104)
+      at production (file:///workspaces/Elental/src/modules/economics/step.js:30:16)
+      at Object.step3 (file:///workspaces/Elental/src/modules/economics/step.js:195:3)
+
+test at tests/war.test.js:43:1
+[31m✖ siege -> occupation -> peace: capture raises security grievance; ratified peace cedes the province and Regions re-derive with totals conserved [90m(41.45864ms)[39m[39m
+  Error: missing tuning key zone.openFloor
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at openness (file:///workspaces/Elental/src/modules/economics/derive.js:34:106)
+      at pull (file:///workspaces/Elental/src/modules/economics/derive.js:39:41)
+      at file:///workspaces/Elental/src/modules/economics/derive.js:40:50
+      at Array.filter (<anonymous>)
+      at hubOf (file:///workspaces/Elental/src/modules/economics/derive.js:40:38)
+      at zoneOf (file:///workspaces/Elental/src/modules/economics/derive.js:47:35)
+      at Module.zones (file:///workspaces/Elental/src/modules/economics/derive.js:48:104)
+      at production (file:///workspaces/Elental/src/modules/economics/step.js:30:16)
+      at Object.step3 (file:///workspaces/Elental/src/modules/economics/step.js:195:3)
+
+test at tests/war.test.js:58:1
+[31m✖ peace is refused when the other side is strong and not exhausted [90m(43.455912ms)[39m[39m
+  Error: missing tuning key zone.openFloor
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at openness (file:///workspaces/Elental/src/modules/economics/derive.js:34:106)
+      at pull (file:///workspaces/Elental/src/modules/economics/derive.js:39:41)
+      at file:///workspaces/Elental/src/modules/economics/derive.js:40:50
+      at Array.filter (<anonymous>)
+      at hubOf (file:///workspaces/Elental/src/modules/economics/derive.js:40:38)
+      at zoneOf (file:///workspaces/Elental/src/modules/economics/derive.js:47:35)
+      at Module.zones (file:///workspaces/Elental/src/modules/economics/derive.js:48:104)
+      at production (file:///workspaces/Elental/src/modules/economics/step.js:30:16)
+      at Object.step3 (file:///workspaces/Elental/src/modules/economics/step.js:195:3)
+
+test at tests/war.test.js:63:1
+[31m✖ war run (25 turns) is deterministic and keeps invariants [90m(41.050753ms)[39m[39m
+  Error: missing tuning key zone.openFloor
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at openness (file:///workspaces/Elental/src/modules/economics/derive.js:34:106)
+      at pull (file:///workspaces/Elental/src/modules/economics/derive.js:39:41)
+      at file:///workspaces/Elental/src/modules/economics/derive.js:40:50
+      at Array.filter (<anonymous>)
+      at hubOf (file:///workspaces/Elental/src/modules/economics/derive.js:40:38)
+      at zoneOf (file:///workspaces/Elental/src/modules/economics/derive.js:47:35)
+      at Module.zones (file:///workspaces/Elental/src/modules/economics/derive.js:48:104)
+      at production (file:///workspaces/Elental/src/modules/economics/step.js:30:16)
+      at Object.step3 (file:///workspaces/Elental/src/modules/economics/step.js:195:3)
+
+test at tests/war.test.js:71:1
+[31m✖ AI Government (same Action API) raises and marches an army once war is on; run stays deterministic [90m(72.670966ms)[39m[39m
+  Error: missing tuning key zone.openFloor
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at openness (file:///workspaces/Elental/src/modules/economics/derive.js:34:106)
+      at pull (file:///workspaces/Elental/src/modules/economics/derive.js:39:41)
+      at file:///workspaces/Elental/src/modules/economics/derive.js:40:50
+      at Array.filter (<anonymous>)
+      at hubOf (file:///workspaces/Elental/src/modules/economics/derive.js:40:38)
+      at zoneOf (file:///workspaces/Elental/src/modules/economics/derive.js:47:35)
+      at Module.zones (file:///workspaces/Elental/src/modules/economics/derive.js:48:104)
+      at production (file:///workspaces/Elental/src/modules/economics/step.js:30:16)
+      at Object.step3 (file:///workspaces/Elental/src/modules/economics/step.js:195:3)
