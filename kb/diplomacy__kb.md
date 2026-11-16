@@ -24,6 +24,8 @@ as a symmetric bundle, Leverage Categories as readouts.
 
 **2026-11-10 designer input**: a Negotiation Session model — no fixed term, either side may withdraw at any time (restart from scratch), a satisfaction meter for the other side, and a decaying Reputational Leverage mark when the stronger Country withdraws. **The Diplomacy action catalogue is now written (Action Catalogue, below)**: one direction per action, grouped by axis, with Embargo (strength / Country or Regions / goods) and Tariffs replacing Trade Sanctions, separate alliance actions with a Benevolent Neutrality → Defensive Pact → Standing Offensive chain, and Improve Relations as a decaying opinion modifier. Show of Force is not a diplomatic action — it is derived from border deployment (`war__kb.md`). Items tagged **(proposed)** await the designer's OK.
 
+**2026-11-15**: the trade axes now define a border's **openness** (Axis Bundle), which Economics reads to decide whether a border splits trade zones; the Economic Leverage readout notes the consequence for trade dependency (Leverage Categories).
+
 ## Data Structures
 
 ### Casus Belli (CB)
@@ -115,6 +117,7 @@ Leverage(A, B or Bloc) = { Economic, Diplomatic(Reputational), Military, Cultura
   Country's observed Portrait. The other categories likewise read existing
   data: Economic from trade dependency (throughput), Military from War
   (Show of Force, exhaustion readout), Diplomatic = the Reputational stack.
+- **Economic category and cross-border zones (2026-11-15)**: trade dependency counts the trade edges that cross between zones of different Countries. Trade zones are not bounded by Country borders (`economics__kb.md`, Trade-Zone Network), so with an open border the cross-Country edges shrink and the Economic readout falls; an embargo or bans split the zones again and it rises. This is a consequence of the derivation, not a separate rule.
 - Aggregation formula, per-category computation (beyond Military's War-kb
   feed), country-profile-driven weighting, threshold trigger condition:
   **open, implementation-deferred**.
@@ -150,6 +153,8 @@ AxisGrant = { axis, terms, scope }
 | Resource export ban | single-good embargo, `throughput_cap → 0` on that edge |
 | Labor migration ban | blocks cross-Country Teaching-recruitment |
 | Domain Veto (2026-11-02) | grantee holds a Veto over named Rights/Duties domains of the grantor (reuses Internal Politics' consent gating); replaces Countries' `government_form` |
+
+- **Border openness (settled 2026-11-15, alpha shape)**: the trade axes also fix how open the border between two Countries is. **Openness** is a number in [0, 1], the **share of goods that can cross the border**: a Resource export ban closes one good, a TradeAccess embargo (or an Embargo action) closes every good, and a border with every good closed reads 0; an unrestricted border, or two provinces of one Country, read 1. It is symmetric between the two Countries and never stored. Economics reads it to scale the pull a neighbour exerts across the border in the trade-zone hub climb, and counts the border as closed below a floor (`economics__kb.md`, Trade-Zone Network). **Tariffs** will lower openness by their rate once designed (Action Catalogue, Trade); until then only embargoes and export bans do.
 
 ### Sanction / Dependency / Alliance
 ```
@@ -204,7 +209,7 @@ The player-facing list of Diplomacy actions, grouped by axis and phrased in comm
 | Impose Tariff | unilateral | tariff −100–0 (0 none, −100 prohibitive); goods (all or chosen); duration |
 | **Embargo** | unilateral, one or more imposers | strength −100–0; target scope: the **entire Country** or **chosen Regions**; goods: **all of the market** or **chosen goods**; duration |
 
-- **Embargo replaces "Trade Sanctions"** (they were the same thing). It writes a `Sanction` with the TradeAccess or ResourceExportBan axis: strength scales `throughput_cap` toward 0 on the affected edges and goods; a single chosen good at full strength is the old ResourceExportBan. Imposers are ad hoc or great-power-backed as before. Region-targeted embargoes scale their threshold by those Regions' own parameters.
+- **Embargo replaces "Trade Sanctions"** (they were the same thing). It writes a `Sanction` with the TradeAccess or ResourceExportBan axis: strength scales `throughput_cap` toward 0 on the affected edges and goods; a single chosen good at full strength is the old ResourceExportBan. Imposers are ad hoc or great-power-backed as before. Region-targeted embargoes scale their threshold by those Regions' own parameters. An Embargo also lowers the border's **openness** (Axis Bundle) — to 0 for the whole market at full strength.
 - **Tariffs replace the Sanction tiers.** Tariff mechanics (rates on goods crossing the border) are Economics' (`economics__kb.md`); this action only sets them diplomatically **(proposed alignment with Economics' Estate-Tariffs/zone tolls)**.
 - **Tariff asymmetry (derived, proposed)**: `tariff_asymmetry(A, B)` is a readout comparing the tariffs each Country imposes on the other, weighted by trade dependency. Uneven tariffs give the disadvantaged side a **Grievance-tier, state-based CB while the asymmetry holds** and an opinion modifier, so mutual tariffs the parties feel are uneven can harm relations; **Embargo is the escalation** the disadvantaged side may choose.
 
@@ -310,7 +315,7 @@ deniability cost.
 ## Cross-references
 - **Internal Politics** — Ratification/Veto reads IP's `treaty` Veto domain directly; Foreign Standing is a per-(cell, foreign Country) derived value (Nation Sympathy + cell-specific terms); propaganda and covert influence write into the cell-specific terms; nothing aggregates back into Sympathy. The Domain checklist of Demand a Say in Domestic Law reads IP's Veto domain list.
 - **Nations** — kin-state Sympathy baseline (non-decaying, live-recomputed off titular declaration); spent-resource soft power is a decaying standing-modifier. The kin-state toolkit has no separate mechanic (2026-11-02).
-- **Economics** — TradeAccess/ResourceExportBan read `throughput_cap` directly (Embargo scales it); Impose Tariff / Tariff Exemption set tariff rates whose mechanics Economics owns (alignment proposed); LaborMigrationBan exposes the open "external pool recruitment" question.
+- **Economics** — TradeAccess/ResourceExportBan read `throughput_cap` directly (Embargo scales it); Impose Tariff / Tariff Exemption set tariff rates whose mechanics Economics owns (alignment proposed); LaborMigrationBan exposes the open "external pool recruitment" question. **(2026-11-15)** a border's openness (Axis Bundle) is read by Economics' trade-zone hub climb (`economics__kb.md`, Trade-Zone Network rev 4); cross-border zones lower the Economic Leverage readout where borders are open.
 - **Administration** — Covert Faction Influence targets the settled Actor-cell model (`administration__kb.md` + `internal_politics__kb.md`) — re-verified 2026-11-01; Observation there contributes additively with counter-intelligence Espionage to detection (2026-11-02).
 - **War** — Show of Force (formerly Troop Training) feeds this file's Military Leverage category; the Peace Conference reuses the Negotiation Session and builds proposal stacks inside it; Declare War / Propose Peace are War's; see `war__kb.md`.
 - **UI** — the negotiation meter and the Withdraw warning render this file's Negotiation Session; the action catalogue renders in the Treaties tab (`ui__kb.md`, 2026-11-10).
@@ -332,15 +337,16 @@ deniability cost.
 - **2026-11-03 — settled**: Concert as a derived great-power-backing predicate; Government-to-Government standing (`opinion`); Leverage weights from the Portrait with the override trigger; militaristic-disposition derivation; per-action target-scale parameter; Annexation as a forced-annexation CB; per-observer attribution.
 - **2026-11-10 — designer input (settled as answered)**: negotiations have no fixed term and either side may withdraw at any time, after which negotiation restarts from scratch; the other side's satisfaction is shown as a meter (exact now, fog-of-war estimate post-alpha); withdrawal leaves a decaying mark that feeds Reputational Leverage of the stronger Country when it is the one that withdraws. **Proposed (awaiting OK)**: the mark's sign (negative) and holder (the stronger Country's own stack toward the other party); the session covering the Peace Conference too. **Open**: satisfaction function details and walk-out threshold values (numbers pass).
 - **2026-11-10 (later) — Action Catalogue, designer input (settled as answered)**: one direction per action (positive 0–100, hostile −100–0, tiers, duration), positive and negative split into separate actions; **Embargo** (strength, entire Country or chosen Regions, all goods or chosen goods) replaces Trade Sanctions; **Tariffs** replace the Sanction tiers and uneven mutual tariffs can turn into grievances; Alliance actions as a Military subsection, five separate actions with the Benevolent Neutrality → Defensive Pact → Standing Offensive chain (higher covers and disables lower in negotiation) and **Coalition independent**; **Improve Relations** confirmed (decaying opinion modifier; repeating refreshes, never stacks); **Show of Force** confirmed as non-diplomatic (derived from deployment). **Proposed (awaiting OK)**: the agreement / unilateral / demand kinds; Guarantee as independent; the tariff-asymmetry readout and its state-based Grievance CB; alignment of Impose Tariff / Tariff Exemption with Economics' tariff mechanics; Embargo and tariffs as the same Sanction record. **Open**: a hostile counterpart to Improve Relations; Improve Relations' target-scale; every parameter value and threshold (numbers pass); `narrative` text for each action.
+- **2026-11-15 — settled (designer-confirmed implementation choice)**: a border's openness is the share of goods that can cross it (embargo or all goods banned = 0), symmetric and derived; tariffs will lower it once designed (Axis Bundle rev 2). The Economic Leverage readout falls where open borders merge trade zones, by derivation (Leverage Categories rev 2). The closed-border floor and the pull rule are Economics' (`economics__kb.md`).
 - **Rev:** (tracked = every `###` under Data Structures; `Rules` as one section while it has no `###`; bootstrap 2026-11-12)
   - Data Structures > Casus Belli (CB) = 1
   - Data Structures > Reputational Leverage = 1
   - Data Structures > Great-power backing (derived — replaces "Concert", 2026-11-03) = 1
   - Data Structures > Government-to-Government standing (settled 2026-11-03) = 1
   - Data Structures > Leverage (general) = 1
-  - Data Structures > Leverage Categories (readouts settled 2026-11-02; weights by AI-Diplomacy from the Portrait, settled 2026-11-03) = 1
+  - Data Structures > Leverage Categories (readouts settled 2026-11-02; weights by AI-Diplomacy from the Portrait, settled 2026-11-03) = 2
   - Data Structures > Negotiation Session (2026-11-10) = 1
-  - Data Structures > Axis Bundle (shared substrate — Sanctions/Dependency/Alliance) = 1
+  - Data Structures > Axis Bundle (shared substrate — Sanctions/Dependency/Alliance) = 2
   - Data Structures > Sanction / Dependency / Alliance = 1
   - Data Structures > Cooperation / Facilitation Grant = 1
   - Data Structures > Diplomacy/Espionage Action Threshold (settled 2026-11-02) = 1
