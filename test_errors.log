@@ -1,0 +1,868 @@
+
+> test
+> node --test tests/kernel.test.js tests/worldmap.test.js tests/engine.test.js tests/econ_polity.test.js tests/client.test.js tests/behaviour.test.js tests/war.test.js tests/editor.test.js tests/politics_remaining.test.js tests/internal_conflict.test.js tests/diplomacy.test.js tests/population.test.js tests/ui.test.js tests/espionage.test.js tests/ai_diplomacy.test.js tests/economics_upkeep.test.js tests/economics_zones.test.js tests/polity_queue.test.js tests/portrait.test.js
+
+[32m✔ posture: the player is treated exactly like any other Country [90m(2.335602ms)[39m[39m
+[32m✔ posture: hysteresis keeps the current Posture just under a boundary, a fresh one does not [90m(0.419669ms)[39m[39m
+[32m✔ campaign: switching type needs a margin, so small value changes do not flip it [90m(1.803089ms)[39m[39m
+[31m✖ campaign: a new CB bypasses the margin [90m(18.996215ms)[39m[39m
+[32m✔ campaign: Strike needs a usable CB and finishes with a goal proportionate to its tier [90m(3.444987ms)[39m[39m
+[32m✔ candidates: roles whose ActionType is not registered are skipped [90m(0.825695ms)[39m[39m
+[32m✔ selection: binary thresholds, a candidate is funded fully or skipped, never partially [90m(0.525657ms)[39m[39m
+[32m✔ false flag: a self-targeted one is priced when allowed and dropped when Diplomacy refuses it [90m(1.124072ms)[39m[39m
+[32m✔ false flag: a frame is offered only inside the detection window [90m(1.362579ms)[39m[39m
+[32m✔ negotiation: accept, silence or reject by posture toward the proposer [90m(0.995588ms)[39m[39m
+[32m✔ agent: deterministic, does not mutate state, and persists only through the cache [90m(3.186723ms)[39m[39m
+[31m✖ gating: a Veto holder refuses a costly law; forcing it through registers entitlement loss that decays [90m(48.219187ms)[39m[39m
+[31m✖ gating: no covering Right means the action simply executes; a relief (tax cut) is approved [90m(42.961979ms)[39m[39m
+[31m✖ cell actions: below the rung nothing is available; at rung 2 an angry, uncoerced cell refuses tax; Control suppresses it [90m(96.857009ms)[39m[39m
+[31m✖ taxRefusal reduces delivered tax; hoarding withholds goods and releases them when it stops [90m(108.495391ms)[39m[39m
+[31m✖ buildTradeInfra: rich cells invest unprompted; infrastructure decays without upkeep [90m(21.093044ms)[39m[39m
+[31m✖ factions are derived per issue from live Questions and carry Weight-aggregated momentum [90m(28.983833ms)[39m[39m
+[31m✖ long run (40 turns) with acting cells keeps invariants and stays deterministic [90m(80.929005ms)[39m[39m
+[31m✖ demo package loads: 118 provinces, sea/lake hexes are not provinces, regions 6-12 hexes, cells reference real regions [90m(51.809971ms)[39m[39m
+[31m✖ real Action pipeline: setTaxLaw changes the law, placeRequisition fills Government inventory, bad order is rejected not thrown [90m(34.892677ms)[39m[39m
+[31m✖ 20 turns: invariants hold (Wealth >= 0, Ledger >= 0, grievance/satisfaction in [0,1], population within the 1%-per-turn growth bound) [90m(34.978201ms)[39m[39m
+[31m✖ determinism: two runs of the same scenario give identical state [90m(87.740401ms)[39m[39m
+[31m✖ state shape: no stored aggregate of Leverage; the four categories are readouts, scope = a Country or an alliance bloc [90m(196.401849ms)[39m[39m
+[32m✔ Reputational Leverage: decaying per-(observer, subject) stack, separate from everything else; an active Alliance adds a standing bonus as a readout [90m(23.692581ms)[39m[39m
+[31m✖ proposals: an AI recipient decides at once; a player recipient answers; Dependency burdens are refused; identical pending proposals are rejected [90m(46.78083ms)[39m[39m
+[31m✖ ratification consults the treaty Veto holders like any gated act: a cell holding Veto.treaty can refuse what the Government accepts [90m(50.043887ms)[39m[39m
+[32m✔ CBs: state-based while the fact holds (occupation, no timer); structural derived (claims, nationalism, militaristic); event-based decay and persistence scales with tier [90m(42.268659ms)[39m[39m
+[31m✖ Sanctions: ad hoc ones give the target a Grievance CB, great-power-backed ones do not; stripsCB removes external recognition of the target's CBs [90m(49.481684ms)[39m[39m
+[31m✖ overreach is judged against the goals claimed and applied PER OBSERVER, scaled by closeness to the victim — never global [90m(63.007461ms)[39m[39m
+[31m✖ war chain = treaty-graph propagation: Guarantee and Defensive defend, StandingOffensive/Coalition follow the attacker, Defensive needs a recognised cause, treaties forbid wars between partners [90m(44.125156ms)[39m[39m
+[31m✖ denouncing a treaty is a broken promise: reputation loss with the other party, an event-based CB held by the wronged party; lifting a Sanction is no breach [90m(34.111938ms)[39m[39m
+[31m✖ axis hooks: MilitaryCap bounds fielding, ResourceExportBan/TradeAccess zero the edge, DomainVeto is a foreign Veto that cannot be forced, ForeignPolicy needs the grantee's consent [90m(27.748056ms)[39m[39m
+[31m✖ recognition route: rebels take it (independence goal / refused), a foreign Government recognises, backing secession is CB-generating against the parent, a Guarantee pulls the guarantor into the war [90m(23.170364ms)[39m[39m
+[31m✖ recognition is only open to rebels who took the route (a concession-seeking bloc is not recognisable until refused); AI kin-states recognise and guarantee on their own [90m(26.614459ms)[39m[39m
+[31m✖ FacilitationGrant: a real zero-sum transfer of a good from the grantor's warehouse to a bloc's held province [90m(31.091717ms)[39m[39m
+[31m✖ demo run: diplomacy orders mid-run keep the world consistent and deterministic [90m(31.732718ms)[39m[39m
+[32m✔ turn runs end-to-end; deterministic and pure [90m(27.198792ms)[39m[39m
+[32m✔ production: extraction scales with labour (diminishing) and Wasteland yields nothing [90m(26.513284ms)[39m[39m
+[32m✔ cascade: well supplied cells are fully satisfied; goods are conserved (no creation by buying) [90m(3.823493ms)[39m[39m
+[32m✔ cascade is tier-first under a cash limit: subsistence is bought before comfort [90m(3.682342ms)[39m[39m
+[32m✔ taxation: delivered = claimed x involuntary compliance; Wealth never negative [90m(8.176069ms)[39m[39m
+[32m✔ Ledger: spending dial vs start-of-turn balance; never negative; unmet upkeep fraction [90m(3.301999ms)[39m[39m
+[32m✔ requisition: delivered scaled by involuntary compliance, goods land in Government inventory [90m(3.370752ms)[39m[39m
+[32m✔ polity: shortage accumulates existential grievance fast, then Question + momentum + rung; recovery decays slowly [90m(20.601441ms)[39m[39m
+[32m✔ polity: Question exists iff grievance > compliance (independent of slate) [90m(2.012298ms)[39m[39m
+[32m✔ credit: shortfall cells borrow from cash-rich cells via explicit obligation records (no anonymous debts) [90m(3.609582ms)[39m[39m
+[32m✔ produceCCO: no committed units gives nothing [90m(2.641625ms)[39m[39m
+[32m✔ produceCCO is linear in committed units (kb rev 2: no division by total units) [90m(1.169611ms)[39m[39m
+[32m✔ produceCCO: poolUnmet[pool] = 0.5 halves that pool only [90m(0.383306ms)[39m[39m
+[32m✔ Allocation Dial rows carry the entry pool tag [90m(0.461545ms)[39m[39m
+[32m✔ poolUnmetFrom: only mandatory tagged rows, grants over floors per pool, met pools absent [90m(0.357674ms)[39m[39m
+[32m✔ ledger: poolUnmet written per pool from tagged mandatory rows; replaced every turn; degrades produceCCO next turn [90m(18.647476ms)[39m[39m
+[32m✔ ledger: no tagged rows leaves poolUnmet empty [90m(4.357579ms)[39m[39m
+[32m✔ zones: an unrestricted border does not split a zone (zones are not bounded by Country borders) [90m(5.092355ms)[39m[39m
+[32m✔ zones: a single-owner world is unchanged [90m(0.667057ms)[39m[39m
+[32m✔ zones: an embargo or a ban on every good closes the border and splits the zone [90m(1.297152ms)[39m[39m
+[32m✔ zones: partial restriction scales the pull but does not split above the floor [90m(1.409306ms)[39m[39m
+[32m✔ zones: below zone.openFloor (0.1) a border counts as closed; above it, open [90m(0.986396ms)[39m[39m
+[32m✔ zones: unowned land or water never pulls across an owner boundary [90m(0.52068ms)[39m[39m
+[32m✔ zoneEdges: a split gives one edge between the two hubs; a merged zone has none [90m(0.831971ms)[39m[39m
+[32m✔ borderOpenness: 1 unrestricted / same owner / unowned; 0 under embargo [90m(0.63461ms)[39m[39m
+[32m✔ ownerTradeFactor agrees with treaties.tradeFactor for every good, in both directions [90m(1.844032ms)[39m[39m
+[32m✔ the demo package validates without errors; the numbers-pass worklist lists placeholders [90m(51.072072ms)[39m[39m
+[32m✔ patch engine: apply then inverse restores the documents exactly (objects and arrays) [90m(5.827076ms)[39m[39m
+[32m✔ store: terrain painting clamps forestation, marks provinces manual, undo/redo, and a brush stroke (mergeKey) is ONE undo step [90m(205.327271ms)[39m[39m
+[32m✔ validators catch broken data with a jump-to path [90m(255.681913ms)[39m[39m
+[32m✔ setSurface to sea removes the province, its presence, warehouse and incident edges; the cell sums then need reseeding [90m(103.495248ms)[39m[39m
+[32m✔ generators: seedCells satisfies the sum constraints; derivedWaterSource follows the precedence (river first); normalisePresence fixes sums [90m(110.457217ms)[39m[39m
+[31m✖ editor -> game round trip: a blank scenario from the template is valid, can be edited, saved, bundled, loaded and played headless [90m(48.936034ms)[39m[39m
+[32m✔ resolveTurn is pure and deterministic; steps run in order; RNG only advances state [90m(3.33219ms)[39m[39m
+[32m✔ gating: refusal blocks; forceThroughControl executes and registers entitlement loss [90m(0.779838ms)[39m[39m
+[32m✔ scheduler: war declaration resolves at step 7 now and hostilities at step 4 next turn [90m(0.474849ms)[39m[39m
+[32m✔ registry rejects threshold-bound types without targetScale [90m(0.253799ms)[39m[39m
+[32m✔ the demo now carries Espionage labour, and the free pool is the labour not yet committed to operations or counter-intelligence [90m(39.545909ms)[39m[39m
+[32m✔ threshold: binary, no refund, no benefit beyond it; scaled by the TARGET Region's population and never by the opponent's size [90m(319.451586ms)[39m[39m
+[32m✔ overt propaganda exports the sender's Portrait into the target Region's cells, is open (no CB, sender known); covert pushes any point [90m(125.853986ms)[39m[39m
+[32m✔ covert influence writes Opinion (target-agnostic) and injects Grievance into that Region only [90m(41.865629ms)[39m[39m
+[32m✔ detection = Observation + counter-intelligence (additive); act detected at the concealment threshold, sender revealed only at the higher one [90m(20.166273ms)[39m[39m
+[32m✔ revealing the sender gives the victim a CB (Rights for influence, Grievance for propaganda) and costs the sender Reputational Leverage; a merely detected act names nobody [90m(128.741584ms)[39m[39m
+[32m✔ false flag: the blame lands on the apparent sender until detection reaches the false-flag threshold; seeing through it exposes the TRUE sender (Reputation + CB) [90m(26.116216ms)[39m[39m
+[31m✖ actions: zero-sum Espionage labour, own-Region counter-intelligence, validation, lift; ops run each turn through the engine; Observation dial reallocates detection [90m(28.25002ms)[39m[39m
+[31m✖ whole run with standing operations is deterministic and keeps State sane [90m(20.54716ms)[39m[39m
+[31m✖ no Retinue Right -> no armed rung, however angry; with the Right the cell raises a bloc, a war side that is not a Country [90m(48.787181ms)[39m[39m
+[31m✖ rebel units fight on the same machinery: they are supplied from held territory and the Government can besiege/retake it [90m(27.26044ms)[39m[39m
+[31m✖ suppression: rebels destroyed -> war ends, held provinces released, retinue labour released, martial law on the member cells costs Control and expires [90m(38.821597ms)[39m[39m
+[31m✖ concession: the Government offers Rights/Duties terms at the Peace Conference; accepted -> entries applied, armies disbanded, war ended; an empty offer to independence-seekers is refused [90m(33.375232ms)[39m[39m
+[31m✖ concession by grievance addressed: if every member cell calms (rung 0) for civil.calm.turns the conflict ends without terms [90m(29.933118ms)[39m[39m
+[31m✖ secession: holding all home provinces free of Government armies for civil.secede.turns forms a new Country (Formation); armies and provinces pass to it; the world keeps running [90m(33.32196ms)[39m[39m
+[31m✖ peace terms that grant secession form the Country too (Formation is a peace-conference outcome) [90m(28.610812ms)[39m[39m
+[31m✖ an AI Government fights the bloc with the same Action API; whole run deterministic, no negative stocks [90m(30.359739ms)[39m[39m
+[32m✔ scope coverage and specificity (Region broader than Estate/Nation) [90m(2.638445ms)[39m[39m
+[32m✔ Rights resolve by most specific scope; Estate vs Nation tie -> latest declared; silence undefined [90m(0.346318ms)[39m[39m
+[32m✔ Control stacks additively [90m(0.304013ms)[39m[39m
+[32m✔ ModifierStack decays, has no spend [90m(0.618079ms)[39m[39m
+[32m✔ Allocation Dial: floors by priority, shortfall truncates lowest, surplus by ratio, cap overflow redistributes [90m(0.765155ms)[39m[39m
+[32m✔ Spending dial: reserve floor protects balance from discretionary; mandatory may dip; sink keeps [90m(0.310211ms)[39m[39m
+[32m✔ Threshold binary, no refund; types must declare targetScale [90m(0.328455ms)[39m[39m
+[32m✔ ClaimLedger is zero-sum and all-or-nothing [90m(0.472724ms)[39m[39m
+[32m✔ Rng deterministic and resumable [90m(0.740047ms)[39m[39m
+[32m✔ schema: validates types/enums/refs, fills defaults, lists placeholders [90m(1.702802ms)[39m[39m
+[32m✔ schema: 'any' type accepts anything [90m(0.213201ms)[39m[39m
+[32m✔ Mobility: needs the Right AND a Government gap; moves pro-rata stocks; population conserved; reactions target the Government [90m(4.646234ms)[39m[39m
+[32m✔ Mobility: a too-small prestige gap blocks; revoking the Right stops flow but never reverts movers [90m(1.405692ms)[39m[39m
+[32m✔ Demotion: only on negative net position and with compliance; closest prestige below; debt follows; Control gain; heavy opinion hit [90m(3.981791ms)[39m[39m
+[32m✔ Rights/Duties reform action: sets scoped entries, most specific wins, null removes; unknown ids rejected, not thrown [90m(23.530768ms)[39m[39m
+[32m✔ pipeline: reform + gap orders drive Mobility end to end; population conserved; deterministic [90m(33.981258ms)[39m[39m
+[32m✔ Convergence: trigger is checklist distance 0 (a Council seat blocks it); declared route merges at step 8 and conserves everything [90m(12.149426ms)[39m[39m
+[32m✔ Convergence: estate-forced route (top rung, defiance) runs the same merge; a later reform reverses it by pro-rata split [90m(7.774012ms)[39m[39m
+[32m✔ propaganda (fast): bounded, never overshoots the ideal, reversible past the baseline sign, competing pushes add [90m(1.464557ms)[39m[39m
+[32m✔ propaganda commitment: zero-sum with ordinary Teaching/Culture use; Government draws on its amalgam; Teaching moves the baseline; lift ends it [90m(14.375392ms)[39m[39m
+[32m✔ counterPropaganda: a pushed cell with free Culture labour pulls itself back toward its baseline [90m(1.409391ms)[39m[39m
+[32m✔ Teaching: moves labour toward the Profile, conserves headcount, never past target, committed labour untouched, extinct pools unreachable [90m(42.840855ms)[39m[39m
+[32m✔ Teaching: Nation affinity biases the split; directed Teaching removes retraining capacity [90m(0.516419ms)[39m[39m
+[31m✖ demo scenario, 25 turns with Mobility + Demotion + propaganda ordered: invariants hold and runs are deterministic [90m(37.248441ms)[39m[39m
+[32m✔ readPolityQueue: requisition hit = req.opinionHit x burden (share of the cell's output taken); drained [90m(2.410135ms)[39m[39m
+[32m✔ readPolityQueue: a requisition that took nothing is no hit [90m(0.36057ms)[39m[39m
+[32m✔ readPolityQueue: a credit default hits the creditor (Opinion and Fairness grievance) by its loss share; drained [90m(0.419941ms)[39m[39m
+[32m✔ readPolityQueue: empty or missing queues are fine [90m(0.279283ms)[39m[39m
+[32m✔ turn: a delivered requisition lands an Opinion hit on every requisitioned cell; a bigger take hits harder [90m(14.994828ms)[39m[39m
+[32m✔ turn: without Control nothing is delivered, so there is no requisition hit [90m(3.155594ms)[39m[39m
+[32m✔ turn: an obligation past the arrears limit defaults and hits the creditor [90m(3.356341ms)[39m[39m
+[32m✔ the constant is 0.01 (authored) and f is the shortage of subsistence, else the abundance of comfort [90m(39.230222ms)[39m[39m
+[32m✔ abundance: +1% x comfort satisfaction; the province stock and Nation presence grow by exactly the cell's change [90m(35.033121ms)[39m[39m
+[32m✔ shortage: population falls by 1% x the subsistence shortfall, drawn from the Nation's presence [90m(67.629325ms)[39m[39m
+[32m✔ growth is bounded by max_population_density; Wasteland takes nothing; decrease is never bounded [90m(77.489681ms)[39m[39m
+[32m✔ committed labour (armies, retinues) neither breeds nor starves; free labour scales with the population [90m(41.384384ms)[39m[39m
+[31m✖ 40 turns of the demo: density ceilings, presence <= population, and the Nation x Region population sums all keep holding [90m(41.268432ms)[39m[39m
+[31m✖ pop.growth = 0 switches it off exactly [90m(34.89936ms)[39m[39m
+[32m✔ actionRecord: public Government acts of this Country, signed by their loads; covert, cell, other-Country and unknown acts are ignored [90m(2.17195ms)[39m[39m
+[32m✔ actionRecord: the realized direction on the entry (loads) wins over the type's static load; empty loads are silent [90m(0.387611ms)[39m[39m
+[32m✔ actionRecord fades with age [90m(0.325893ms)[39m[39m
+[32m✔ observedPortrait: scaled by awareness, squashed into (-1,+1) [90m(0.775414ms)[39m[39m
+[32m✔ alignment: an aligned cell gains (scaled by opinion.alignGain), an opposed one loses, a silent record changes nothing [90m(0.971568ms)[39m[39m
+[32m✔ opinionGov and compliance carry opinion.align x alignment: serving the cell's ideal raises them, opposing it lowers them [90m(0.915099ms)[39m[39m
+[32m✔ the structural requisition hit is this channel, and direction matters: raising the take hurts an Investment-leaning cell, lifting it pleases it [90m(0.875404ms)[39m[39m
+[32m✔ axisShift: a tax rise is Extraction, a cut is Investment, no change is silent [90m(1.87451ms)[39m[39m
+[32m✔ axisShift: a bigger requisition is Extraction, a smaller or lifted one is Investment [90m(1.609464ms)[39m[39m
+[32m✔ engine: the Decision Log entry carries the action id and the realized direction, taken before the law changed [90m(33.371442ms)[39m[39m
+[32m✔ portrait: missing baseline reads as the amalgam, a stored baseline wins [90m(6.229865ms)[39m[39m
+[32m✔ reinforcePortrait pushes onto the stack, the readout clamps to +-1, ticking decays the stack [90m(0.746122ms)[39m[39m
+[32m✔ a Government act reinforces its own Portrait toward the pole it acts on: a tax rise toward Extraction, a cut toward Investment (covert acts count too) [90m(7.406326ms)[39m[39m
+[32m✔ scope syntax: the six kinds + empire, and the impossible (Nation, Estate) pair is an error, not a guess [90m(2.78152ms)[39m[39m
+[32m✔ forms: scope-aware drafts carry the chosen Scope; every form builds with its own defaults; JSON/number parsing; gating info [90m(112.431121ms)[39m[39m
+[31m✖ queries are read-only, JSON-serialisable and consistent with State [90m(27.389705ms)[39m[39m
+[31m✖ Laws matrix: a scoped reform shows up as an override in exactly that column [90m(172.703796ms)[39m[39m
+[31m✖ preview: validation, gating verdicts (who would refuse), foreign DomainVeto; orders can be queued and removed [90m(57.989478ms)[39m[39m
+[31m✖ world readouts: pair sheet, mirror and treaties reflect Diplomacy State [90m(232.599868ms)[39m[39m
+[32m✔ movement graph: Mountain interior blocked unless pass; paths exist elsewhere [90m(37.725743ms)[39m[39m
+[31m✖ declareWar: executes (no Veto.war holder), schedules effects: active only after hostilitiesBegin; unknown target rejected [90m(31.662231ms)[39m[39m
+[31m✖ fieldUnits: commits labour, consumes weapons, creates an army; invalid orders are rejected with reasons [90m(33.066897ms)[39m[39m
+[31m✖ battle: the larger, better-supplied army wins; casualties come out of origin cells; war harm and score are logged; loser retreats or dies [90m(41.089001ms)[39m[39m
+[31m✖ siege -> occupation -> peace: capture raises security grievance; ratified peace cedes the province and Regions re-derive with totals conserved [90m(40.845202ms)[39m[39m
+[31m✖ peace is refused when the other side is strong and not exhausted [90m(33.153894ms)[39m[39m
+[31m✖ war run (25 turns) is deterministic and keeps invariants [90m(29.613945ms)[39m[39m
+[31m✖ AI Government (same Action API) raises and marches an army once war is on; run stays deterministic [90m(34.89506ms)[39m[39m
+[32m✔ odd-r neighbours are symmetric and distance matches [90m(13.385066ms)[39m[39m
+[32m✔ mountain interior edges blocked unless pass; mountain<->other open [90m(0.358239ms)[39m[39m
+[32m✔ regions: contiguous, same owner, 6-8 hexes, deterministic, stable under unrelated change [90m(8.720019ms)[39m[39m
+[32m✔ fracture split by Nations presence preserves extensive totals; merge sums [90m(0.683771ms)[39m[39m
+[34mℹ tests 159[39m
+[34mℹ suites 0[39m
+[34mℹ pass 110[39m
+[34mℹ fail 49[39m
+[34mℹ cancelled 0[39m
+[34mℹ skipped 0[39m
+[34mℹ todo 0[39m
+[34mℹ duration_ms 6906.034607[39m
+
+[31m✖ failing tests:[39m
+
+test at tests/ai_diplomacy.test.js:49:1
+[31m✖ campaign: a new CB bypasses the margin [90m(18.996215ms)[39m[39m
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'Support'
+  - 'Secure'
+  
+      at TestContext.<anonymous> (file:///workspaces/Elental/tests/ai_diplomacy.test.js:51:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'Support',
+    expected: 'Secure',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/behaviour.test.js:11:1
+[31m✖ gating: a Veto holder refuses a costly law; forcing it through registers entitlement loss that decays [90m(48.219187ms)[39m[39m
+  Error: missing tuning key opinion.alignGain
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at alignment (file:///workspaces/Elental/src/modules/polity/portrait.js:30:100)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.alignment (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at opinionGov (file:///workspaces/Elental/src/modules/polity/derive.js:32:115)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.opinionGov (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at compliance (file:///workspaces/Elental/src/modules/polity/derive.js:34:82)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.compliance (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+
+test at tests/behaviour.test.js:23:1
+[31m✖ gating: no covering Right means the action simply executes; a relief (tax cut) is approved [90m(42.961979ms)[39m[39m
+  Error: missing tuning key opinion.alignGain
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at alignment (file:///workspaces/Elental/src/modules/polity/portrait.js:30:100)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.alignment (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at opinionGov (file:///workspaces/Elental/src/modules/polity/derive.js:32:115)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.opinionGov (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at compliance (file:///workspaces/Elental/src/modules/polity/derive.js:34:82)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.compliance (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+
+test at tests/behaviour.test.js:27:1
+[31m✖ cell actions: below the rung nothing is available; at rung 2 an angry, uncoerced cell refuses tax; Control suppresses it [90m(96.857009ms)[39m[39m
+  Error: missing tuning key opinion.alignGain
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at alignment (file:///workspaces/Elental/src/modules/polity/portrait.js:30:100)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.alignment (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at opinionGov (file:///workspaces/Elental/src/modules/polity/derive.js:32:115)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.opinionGov (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at compliance (file:///workspaces/Elental/src/modules/polity/derive.js:34:82)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.compliance (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+
+test at tests/behaviour.test.js:38:1
+[31m✖ taxRefusal reduces delivered tax; hoarding withholds goods and releases them when it stops [90m(108.495391ms)[39m[39m
+  Error: missing tuning key opinion.alignGain
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at alignment (file:///workspaces/Elental/src/modules/polity/portrait.js:30:100)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.alignment (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at opinionGov (file:///workspaces/Elental/src/modules/polity/derive.js:32:115)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.opinionGov (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at compliance (file:///workspaces/Elental/src/modules/polity/derive.js:34:82)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.compliance (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+
+test at tests/behaviour.test.js:50:1
+[31m✖ buildTradeInfra: rich cells invest unprompted; infrastructure decays without upkeep [90m(21.093044ms)[39m[39m
+  Error: missing tuning key opinion.alignGain
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at alignment (file:///workspaces/Elental/src/modules/polity/portrait.js:30:100)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.alignment (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at opinionGov (file:///workspaces/Elental/src/modules/polity/derive.js:32:115)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.opinionGov (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at compliance (file:///workspaces/Elental/src/modules/polity/derive.js:34:82)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.compliance (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+
+test at tests/behaviour.test.js:55:1
+[31m✖ factions are derived per issue from live Questions and carry Weight-aggregated momentum [90m(28.983833ms)[39m[39m
+  Error: missing tuning key opinion.alignGain
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at alignment (file:///workspaces/Elental/src/modules/polity/portrait.js:30:100)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.alignment (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at opinionGov (file:///workspaces/Elental/src/modules/polity/derive.js:32:115)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.opinionGov (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at compliance (file:///workspaces/Elental/src/modules/polity/derive.js:34:82)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.compliance (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+
+test at tests/behaviour.test.js:63:1
+[31m✖ long run (40 turns) with acting cells keeps invariants and stays deterministic [90m(80.929005ms)[39m[39m
+  Error: missing tuning key opinion.alignGain
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at alignment (file:///workspaces/Elental/src/modules/polity/portrait.js:30:100)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.alignment (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at opinionGov (file:///workspaces/Elental/src/modules/polity/derive.js:32:115)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.opinionGov (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at compliance (file:///workspaces/Elental/src/modules/polity/derive.js:34:82)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.compliance (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+
+test at tests/client.test.js:9:1
+[31m✖ demo package loads: 118 provinces, sea/lake hexes are not provinces, regions 6-12 hexes, cells reference real regions [90m(51.809971ms)[39m[39m
+  Error: missing tuning key opinion.alignGain
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at alignment (file:///workspaces/Elental/src/modules/polity/portrait.js:30:100)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.alignment (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at opinionGov (file:///workspaces/Elental/src/modules/polity/derive.js:32:115)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.opinionGov (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at compliance (file:///workspaces/Elental/src/modules/polity/derive.js:34:82)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.compliance (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+
+test at tests/client.test.js:15:1
+[31m✖ real Action pipeline: setTaxLaw changes the law, placeRequisition fills Government inventory, bad order is rejected not thrown [90m(34.892677ms)[39m[39m
+  Error: missing tuning key opinion.alignGain
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at alignment (file:///workspaces/Elental/src/modules/polity/portrait.js:30:100)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.alignment (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at opinionGov (file:///workspaces/Elental/src/modules/polity/derive.js:32:115)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.opinionGov (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at compliance (file:///workspaces/Elental/src/modules/polity/derive.js:34:82)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.compliance (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+
+test at tests/client.test.js:25:1
+[31m✖ 20 turns: invariants hold (Wealth >= 0, Ledger >= 0, grievance/satisfaction in [0,1], population within the 1%-per-turn growth bound) [90m(34.978201ms)[39m[39m
+  Error: missing tuning key opinion.alignGain
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at alignment (file:///workspaces/Elental/src/modules/polity/portrait.js:30:100)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.alignment (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at opinionGov (file:///workspaces/Elental/src/modules/polity/derive.js:32:115)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.opinionGov (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at compliance (file:///workspaces/Elental/src/modules/polity/derive.js:34:82)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.compliance (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+
+test at tests/client.test.js:33:1
+[31m✖ determinism: two runs of the same scenario give identical state [90m(87.740401ms)[39m[39m
+  Error: missing tuning key opinion.alignGain
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at alignment (file:///workspaces/Elental/src/modules/polity/portrait.js:30:100)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.alignment (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at opinionGov (file:///workspaces/Elental/src/modules/polity/derive.js:32:115)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.opinionGov (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at compliance (file:///workspaces/Elental/src/modules/polity/derive.js:34:82)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.compliance (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+
+test at tests/diplomacy.test.js:25:1
+[31m✖ state shape: no stored aggregate of Leverage; the four categories are readouts, scope = a Country or an alliance bloc [90m(196.401849ms)[39m[39m
+  Error: missing tuning key zone.openFloor
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at openness (file:///workspaces/Elental/src/modules/economics/derive.js:34:106)
+      at pull (file:///workspaces/Elental/src/modules/economics/derive.js:39:41)
+      at file:///workspaces/Elental/src/modules/economics/derive.js:40:50
+      at Array.filter (<anonymous>)
+      at hubOf (file:///workspaces/Elental/src/modules/economics/derive.js:40:38)
+      at zoneOf (file:///workspaces/Elental/src/modules/economics/derive.js:47:35)
+      at zones (file:///workspaces/Elental/src/modules/economics/derive.js:48:104)
+      at zoneEdges (file:///workspaces/Elental/src/modules/economics/derive.js:52:46)
+      at tradeDependency (file:///workspaces/Elental/src/modules/diplomacy/readouts.js:52:35)
+
+test at tests/diplomacy.test.js:39:1
+[31m✖ proposals: an AI recipient decides at once; a player recipient answers; Dependency burdens are refused; identical pending proposals are rejected [90m(46.78083ms)[39m[39m
+  Error: missing tuning key opinion.alignGain
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at alignment (file:///workspaces/Elental/src/modules/polity/portrait.js:30:100)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.alignment (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at opinionGov (file:///workspaces/Elental/src/modules/polity/derive.js:32:115)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.opinionGov (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at compliance (file:///workspaces/Elental/src/modules/polity/derive.js:34:82)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.compliance (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+
+test at tests/diplomacy.test.js:51:1
+[31m✖ ratification consults the treaty Veto holders like any gated act: a cell holding Veto.treaty can refuse what the Government accepts [90m(50.043887ms)[39m[39m
+  Error: missing tuning key opinion.alignGain
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at alignment (file:///workspaces/Elental/src/modules/polity/portrait.js:30:100)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.alignment (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at opinionGov (file:///workspaces/Elental/src/modules/polity/derive.js:32:115)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.opinionGov (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at compliance (file:///workspaces/Elental/src/modules/polity/derive.js:34:82)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.compliance (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+
+test at tests/diplomacy.test.js:74:1
+[31m✖ Sanctions: ad hoc ones give the target a Grievance CB, great-power-backed ones do not; stripsCB removes external recognition of the target's CBs [90m(49.481684ms)[39m[39m
+  Error: missing tuning key opinion.alignGain
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at alignment (file:///workspaces/Elental/src/modules/polity/portrait.js:30:100)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.alignment (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at opinionGov (file:///workspaces/Elental/src/modules/polity/derive.js:32:115)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.opinionGov (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at compliance (file:///workspaces/Elental/src/modules/polity/derive.js:34:82)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.compliance (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+
+test at tests/diplomacy.test.js:83:1
+[31m✖ overreach is judged against the goals claimed and applied PER OBSERVER, scaled by closeness to the victim — never global [90m(63.007461ms)[39m[39m
+  Error: missing tuning key opinion.alignGain
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at alignment (file:///workspaces/Elental/src/modules/polity/portrait.js:30:100)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.alignment (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at opinionGov (file:///workspaces/Elental/src/modules/polity/derive.js:32:115)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.opinionGov (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at compliance (file:///workspaces/Elental/src/modules/polity/derive.js:34:82)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.compliance (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+
+test at tests/diplomacy.test.js:93:1
+[31m✖ war chain = treaty-graph propagation: Guarantee and Defensive defend, StandingOffensive/Coalition follow the attacker, Defensive needs a recognised cause, treaties forbid wars between partners [90m(44.125156ms)[39m[39m
+  Error: missing tuning key opinion.alignGain
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at alignment (file:///workspaces/Elental/src/modules/polity/portrait.js:30:100)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.alignment (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at opinionGov (file:///workspaces/Elental/src/modules/polity/derive.js:32:115)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.opinionGov (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at compliance (file:///workspaces/Elental/src/modules/polity/derive.js:34:82)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.compliance (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+
+test at tests/diplomacy.test.js:109:1
+[31m✖ denouncing a treaty is a broken promise: reputation loss with the other party, an event-based CB held by the wronged party; lifting a Sanction is no breach [90m(34.111938ms)[39m[39m
+  Error: missing tuning key opinion.alignGain
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at alignment (file:///workspaces/Elental/src/modules/polity/portrait.js:30:100)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.alignment (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at opinionGov (file:///workspaces/Elental/src/modules/polity/derive.js:32:115)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.opinionGov (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at compliance (file:///workspaces/Elental/src/modules/polity/derive.js:34:82)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.compliance (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+
+test at tests/diplomacy.test.js:117:1
+[31m✖ axis hooks: MilitaryCap bounds fielding, ResourceExportBan/TradeAccess zero the edge, DomainVeto is a foreign Veto that cannot be forced, ForeignPolicy needs the grantee's consent [90m(27.748056ms)[39m[39m
+  Error: missing tuning key opinion.alignGain
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at alignment (file:///workspaces/Elental/src/modules/polity/portrait.js:30:100)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.alignment (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at opinionGov (file:///workspaces/Elental/src/modules/polity/derive.js:32:115)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.opinionGov (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at compliance (file:///workspaces/Elental/src/modules/polity/derive.js:34:82)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.compliance (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+
+test at tests/diplomacy.test.js:133:1
+[31m✖ recognition route: rebels take it (independence goal / refused), a foreign Government recognises, backing secession is CB-generating against the parent, a Guarantee pulls the guarantor into the war [90m(23.170364ms)[39m[39m
+  Error: missing tuning key opinion.alignGain
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at alignment (file:///workspaces/Elental/src/modules/polity/portrait.js:30:100)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.alignment (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at opinionGov (file:///workspaces/Elental/src/modules/polity/derive.js:32:115)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.opinionGov (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at compliance (file:///workspaces/Elental/src/modules/polity/derive.js:34:82)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.compliance (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+
+test at tests/diplomacy.test.js:152:1
+[31m✖ recognition is only open to rebels who took the route (a concession-seeking bloc is not recognisable until refused); AI kin-states recognise and guarantee on their own [90m(26.614459ms)[39m[39m
+  Error: missing tuning key opinion.alignGain
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at alignment (file:///workspaces/Elental/src/modules/polity/portrait.js:30:100)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.alignment (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at opinionGov (file:///workspaces/Elental/src/modules/polity/derive.js:32:115)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.opinionGov (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at compliance (file:///workspaces/Elental/src/modules/polity/derive.js:34:82)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.compliance (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+
+test at tests/diplomacy.test.js:163:1
+[31m✖ FacilitationGrant: a real zero-sum transfer of a good from the grantor's warehouse to a bloc's held province [90m(31.091717ms)[39m[39m
+  Error: missing tuning key opinion.alignGain
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at alignment (file:///workspaces/Elental/src/modules/polity/portrait.js:30:100)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.alignment (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at opinionGov (file:///workspaces/Elental/src/modules/polity/derive.js:32:115)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.opinionGov (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at compliance (file:///workspaces/Elental/src/modules/polity/derive.js:34:82)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.compliance (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+
+test at tests/diplomacy.test.js:173:1
+[31m✖ demo run: diplomacy orders mid-run keep the world consistent and deterministic [90m(31.732718ms)[39m[39m
+  Error: missing tuning key opinion.alignGain
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at alignment (file:///workspaces/Elental/src/modules/polity/portrait.js:30:100)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.alignment (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at opinionGov (file:///workspaces/Elental/src/modules/polity/derive.js:32:115)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.opinionGov (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at compliance (file:///workspaces/Elental/src/modules/polity/derive.js:34:82)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.compliance (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+
+test at tests/editor.test.js:52:1
+[31m✖ editor -> game round trip: a blank scenario from the template is valid, can be edited, saved, bundled, loaded and played headless [90m(48.936034ms)[39m[39m
+  Error: missing tuning key opinion.alignGain
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at alignment (file:///workspaces/Elental/src/modules/polity/portrait.js:30:100)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.alignment (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at opinionGov (file:///workspaces/Elental/src/modules/polity/derive.js:32:115)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.opinionGov (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at compliance (file:///workspaces/Elental/src/modules/polity/derive.js:34:82)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.compliance (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+
+test at tests/espionage.test.js:79:1
+[31m✖ actions: zero-sum Espionage labour, own-Region counter-intelligence, validation, lift; ops run each turn through the engine; Observation dial reallocates detection [90m(28.25002ms)[39m[39m
+  Error: missing tuning key opinion.alignGain
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at alignment (file:///workspaces/Elental/src/modules/polity/portrait.js:30:100)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.alignment (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at opinionGov (file:///workspaces/Elental/src/modules/polity/derive.js:32:115)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.opinionGov (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at compliance (file:///workspaces/Elental/src/modules/polity/derive.js:34:82)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.compliance (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+
+test at tests/espionage.test.js:93:1
+[31m✖ whole run with standing operations is deterministic and keeps State sane [90m(20.54716ms)[39m[39m
+  Error: missing tuning key opinion.alignGain
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at alignment (file:///workspaces/Elental/src/modules/polity/portrait.js:30:100)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.alignment (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at opinionGov (file:///workspaces/Elental/src/modules/polity/derive.js:32:115)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.opinionGov (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at compliance (file:///workspaces/Elental/src/modules/polity/derive.js:34:82)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.compliance (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+
+test at tests/internal_conflict.test.js:25:1
+[31m✖ no Retinue Right -> no armed rung, however angry; with the Right the cell raises a bloc, a war side that is not a Country [90m(48.787181ms)[39m[39m
+  Error: missing tuning key opinion.alignGain
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at alignment (file:///workspaces/Elental/src/modules/polity/portrait.js:30:100)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.alignment (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at opinionGov (file:///workspaces/Elental/src/modules/polity/derive.js:32:115)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.opinionGov (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at compliance (file:///workspaces/Elental/src/modules/polity/derive.js:34:82)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.compliance (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+
+test at tests/internal_conflict.test.js:40:1
+[31m✖ rebel units fight on the same machinery: they are supplied from held territory and the Government can besiege/retake it [90m(27.26044ms)[39m[39m
+  Error: missing tuning key opinion.alignGain
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at alignment (file:///workspaces/Elental/src/modules/polity/portrait.js:30:100)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.alignment (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at opinionGov (file:///workspaces/Elental/src/modules/polity/derive.js:32:115)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.opinionGov (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at compliance (file:///workspaces/Elental/src/modules/polity/derive.js:34:82)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.compliance (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+
+test at tests/internal_conflict.test.js:49:1
+[31m✖ suppression: rebels destroyed -> war ends, held provinces released, retinue labour released, martial law on the member cells costs Control and expires [90m(38.821597ms)[39m[39m
+  Error: missing tuning key opinion.alignGain
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at alignment (file:///workspaces/Elental/src/modules/polity/portrait.js:30:100)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.alignment (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at opinionGov (file:///workspaces/Elental/src/modules/polity/derive.js:32:115)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.opinionGov (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at compliance (file:///workspaces/Elental/src/modules/polity/derive.js:34:82)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.compliance (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+
+test at tests/internal_conflict.test.js:67:1
+[31m✖ concession: the Government offers Rights/Duties terms at the Peace Conference; accepted -> entries applied, armies disbanded, war ended; an empty offer to independence-seekers is refused [90m(33.375232ms)[39m[39m
+  Error: missing tuning key opinion.alignGain
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at alignment (file:///workspaces/Elental/src/modules/polity/portrait.js:30:100)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.alignment (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at opinionGov (file:///workspaces/Elental/src/modules/polity/derive.js:32:115)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.opinionGov (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at compliance (file:///workspaces/Elental/src/modules/polity/derive.js:34:82)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.compliance (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+
+test at tests/internal_conflict.test.js:78:1
+[31m✖ concession by grievance addressed: if every member cell calms (rung 0) for civil.calm.turns the conflict ends without terms [90m(29.933118ms)[39m[39m
+  Error: missing tuning key opinion.alignGain
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at alignment (file:///workspaces/Elental/src/modules/polity/portrait.js:30:100)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.alignment (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at opinionGov (file:///workspaces/Elental/src/modules/polity/derive.js:32:115)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.opinionGov (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at compliance (file:///workspaces/Elental/src/modules/polity/derive.js:34:82)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.compliance (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+
+test at tests/internal_conflict.test.js:84:1
+[31m✖ secession: holding all home provinces free of Government armies for civil.secede.turns forms a new Country (Formation); armies and provinces pass to it; the world keeps running [90m(33.32196ms)[39m[39m
+  Error: missing tuning key opinion.alignGain
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at alignment (file:///workspaces/Elental/src/modules/polity/portrait.js:30:100)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.alignment (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at opinionGov (file:///workspaces/Elental/src/modules/polity/derive.js:32:115)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.opinionGov (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at compliance (file:///workspaces/Elental/src/modules/polity/derive.js:34:82)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.compliance (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+
+test at tests/internal_conflict.test.js:95:1
+[31m✖ peace terms that grant secession form the Country too (Formation is a peace-conference outcome) [90m(28.610812ms)[39m[39m
+  Error: missing tuning key opinion.alignGain
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at alignment (file:///workspaces/Elental/src/modules/polity/portrait.js:30:100)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.alignment (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at opinionGov (file:///workspaces/Elental/src/modules/polity/derive.js:32:115)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.opinionGov (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at compliance (file:///workspaces/Elental/src/modules/polity/derive.js:34:82)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.compliance (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+
+test at tests/internal_conflict.test.js:100:1
+[31m✖ an AI Government fights the bloc with the same Action API; whole run deterministic, no negative stocks [90m(30.359739ms)[39m[39m
+  Error: missing tuning key opinion.alignGain
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at alignment (file:///workspaces/Elental/src/modules/polity/portrait.js:30:100)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.alignment (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at opinionGov (file:///workspaces/Elental/src/modules/polity/derive.js:32:115)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.opinionGov (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at compliance (file:///workspaces/Elental/src/modules/polity/derive.js:34:82)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.compliance (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+
+test at tests/politics_remaining.test.js:173:1
+[31m✖ demo scenario, 25 turns with Mobility + Demotion + propaganda ordered: invariants hold and runs are deterministic [90m(37.248441ms)[39m[39m
+  Error: missing tuning key opinion.alignGain
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at alignment (file:///workspaces/Elental/src/modules/polity/portrait.js:30:100)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.alignment (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at opinionGov (file:///workspaces/Elental/src/modules/polity/derive.js:32:115)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.opinionGov (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at compliance (file:///workspaces/Elental/src/modules/polity/derive.js:34:82)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.compliance (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+
+test at tests/population.test.js:46:1
+[31m✖ 40 turns of the demo: density ceilings, presence <= population, and the Nation x Region population sums all keep holding [90m(41.268432ms)[39m[39m
+  Error: missing tuning key opinion.alignGain
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at alignment (file:///workspaces/Elental/src/modules/polity/portrait.js:30:100)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.alignment (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at opinionGov (file:///workspaces/Elental/src/modules/polity/derive.js:32:115)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.opinionGov (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at compliance (file:///workspaces/Elental/src/modules/polity/derive.js:34:82)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.compliance (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+
+test at tests/population.test.js:55:1
+[31m✖ pop.growth = 0 switches it off exactly [90m(34.89936ms)[39m[39m
+  Error: missing tuning key opinion.alignGain
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at alignment (file:///workspaces/Elental/src/modules/polity/portrait.js:30:100)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.alignment (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at opinionGov (file:///workspaces/Elental/src/modules/polity/derive.js:32:115)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.opinionGov (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at compliance (file:///workspaces/Elental/src/modules/polity/derive.js:34:82)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.compliance (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+
+test at tests/ui.test.js:36:1
+[31m✖ queries are read-only, JSON-serialisable and consistent with State [90m(27.389705ms)[39m[39m
+  Error: missing tuning key opinion.alignGain
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at alignment (file:///workspaces/Elental/src/modules/polity/portrait.js:30:100)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.alignment (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at opinionGov (file:///workspaces/Elental/src/modules/polity/derive.js:32:115)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.opinionGov (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at compliance (file:///workspaces/Elental/src/modules/polity/derive.js:34:82)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.compliance (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+
+test at tests/ui.test.js:49:1
+[31m✖ Laws matrix: a scoped reform shows up as an override in exactly that column [90m(172.703796ms)[39m[39m
+  Error: missing tuning key opinion.alignGain
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at alignment (file:///workspaces/Elental/src/modules/polity/portrait.js:30:100)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.alignment (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at opinionGov (file:///workspaces/Elental/src/modules/polity/derive.js:32:115)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.opinionGov (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at compliance (file:///workspaces/Elental/src/modules/polity/derive.js:34:82)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.compliance (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+
+test at tests/ui.test.js:54:1
+[31m✖ preview: validation, gating verdicts (who would refuse), foreign DomainVeto; orders can be queued and removed [90m(57.989478ms)[39m[39m
+  Error: missing tuning key opinion.alignGain
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at alignment (file:///workspaces/Elental/src/modules/polity/portrait.js:30:100)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.alignment (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at opinionGov (file:///workspaces/Elental/src/modules/polity/derive.js:32:115)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.opinionGov (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at compliance (file:///workspaces/Elental/src/modules/polity/derive.js:34:82)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.compliance (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+
+test at tests/ui.test.js:61:1
+[31m✖ world readouts: pair sheet, mirror and treaties reflect Diplomacy State [90m(232.599868ms)[39m[39m
+  Error: missing tuning key zone.openFloor
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at openness (file:///workspaces/Elental/src/modules/economics/derive.js:34:106)
+      at pull (file:///workspaces/Elental/src/modules/economics/derive.js:39:41)
+      at file:///workspaces/Elental/src/modules/economics/derive.js:40:50
+      at Array.filter (<anonymous>)
+      at hubOf (file:///workspaces/Elental/src/modules/economics/derive.js:40:38)
+      at zoneOf (file:///workspaces/Elental/src/modules/economics/derive.js:47:35)
+      at zones (file:///workspaces/Elental/src/modules/economics/derive.js:48:104)
+      at zoneEdges (file:///workspaces/Elental/src/modules/economics/derive.js:52:46)
+      at tradeDependency (file:///workspaces/Elental/src/modules/diplomacy/readouts.js:52:35)
+
+test at tests/war.test.js:21:1
+[31m✖ declareWar: executes (no Veto.war holder), schedules effects: active only after hostilitiesBegin; unknown target rejected [90m(31.662231ms)[39m[39m
+  Error: missing tuning key opinion.alignGain
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at alignment (file:///workspaces/Elental/src/modules/polity/portrait.js:30:100)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.alignment (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at opinionGov (file:///workspaces/Elental/src/modules/polity/derive.js:32:115)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.opinionGov (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at compliance (file:///workspaces/Elental/src/modules/polity/derive.js:34:82)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.compliance (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+
+test at tests/war.test.js:25:1
+[31m✖ fieldUnits: commits labour, consumes weapons, creates an army; invalid orders are rejected with reasons [90m(33.066897ms)[39m[39m
+  Error: missing tuning key opinion.alignGain
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at alignment (file:///workspaces/Elental/src/modules/polity/portrait.js:30:100)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.alignment (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at opinionGov (file:///workspaces/Elental/src/modules/polity/derive.js:32:115)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.opinionGov (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at compliance (file:///workspaces/Elental/src/modules/polity/derive.js:34:82)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.compliance (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+
+test at tests/war.test.js:33:1
+[31m✖ battle: the larger, better-supplied army wins; casualties come out of origin cells; war harm and score are logged; loser retreats or dies [90m(41.089001ms)[39m[39m
+  Error: missing tuning key opinion.alignGain
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at alignment (file:///workspaces/Elental/src/modules/polity/portrait.js:30:100)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.alignment (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at opinionGov (file:///workspaces/Elental/src/modules/polity/derive.js:32:115)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.opinionGov (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at compliance (file:///workspaces/Elental/src/modules/polity/derive.js:34:82)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.compliance (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+
+test at tests/war.test.js:43:1
+[31m✖ siege -> occupation -> peace: capture raises security grievance; ratified peace cedes the province and Regions re-derive with totals conserved [90m(40.845202ms)[39m[39m
+  Error: missing tuning key opinion.alignGain
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at alignment (file:///workspaces/Elental/src/modules/polity/portrait.js:30:100)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.alignment (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at opinionGov (file:///workspaces/Elental/src/modules/polity/derive.js:32:115)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.opinionGov (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at compliance (file:///workspaces/Elental/src/modules/polity/derive.js:34:82)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.compliance (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+
+test at tests/war.test.js:58:1
+[31m✖ peace is refused when the other side is strong and not exhausted [90m(33.153894ms)[39m[39m
+  Error: missing tuning key opinion.alignGain
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at alignment (file:///workspaces/Elental/src/modules/polity/portrait.js:30:100)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.alignment (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at opinionGov (file:///workspaces/Elental/src/modules/polity/derive.js:32:115)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.opinionGov (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at compliance (file:///workspaces/Elental/src/modules/polity/derive.js:34:82)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.compliance (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+
+test at tests/war.test.js:63:1
+[31m✖ war run (25 turns) is deterministic and keeps invariants [90m(29.613945ms)[39m[39m
+  Error: missing tuning key opinion.alignGain
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at alignment (file:///workspaces/Elental/src/modules/polity/portrait.js:30:100)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.alignment (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at opinionGov (file:///workspaces/Elental/src/modules/polity/derive.js:32:115)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.opinionGov (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at compliance (file:///workspaces/Elental/src/modules/polity/derive.js:34:82)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.compliance (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+
+test at tests/war.test.js:71:1
+[31m✖ AI Government (same Action API) raises and marches an army once war is on; run stays deterministic [90m(34.89506ms)[39m[39m
+  Error: missing tuning key opinion.alignGain
+      at Object.T (file:///workspaces/Elental/src/engine/engine.js:17:62)
+      at alignment (file:///workspaces/Elental/src/modules/polity/portrait.js:30:100)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.alignment (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at opinionGov (file:///workspaces/Elental/src/modules/polity/derive.js:32:115)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.opinionGov (file:///workspaces/Elental/src/kernel/derive.js:6:118)
+      at compliance (file:///workspaces/Elental/src/modules/polity/derive.js:34:82)
+      at file:///workspaces/Elental/src/engine/engine.js:21:282
+      at Object.compliance (file:///workspaces/Elental/src/kernel/derive.js:6:118)
