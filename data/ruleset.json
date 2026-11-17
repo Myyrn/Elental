@@ -1552,6 +1552,10 @@
    "value": 100,
    "status": "placeholder"
   },
+  "zone.openFloor": {
+   "value": 0.1,
+   "status": "placeholder"
+  },
   "money.kappa": {
    "value": 1,
    "status": "placeholder"
@@ -1602,6 +1606,10 @@
   },
   "opinion.align": {
    "value": 1,
+   "status": "placeholder"
+  },
+  "opinion.alignGain": {
+   "value": 0.5,
    "status": "placeholder"
   },
   "opinion.modDecay": {
@@ -1720,6 +1728,10 @@
   },
   "edu.rate": {
    "value": 0.01,
+   "status": "placeholder"
+  },
+  "portrait.reinforce": {
+   "value": 0.05,
    "status": "placeholder"
   },
   "admin.routineOverhead": {
@@ -1984,6 +1996,18 @@
   },
   "petition.effect": {
    "value": 0.2,
+   "status": "placeholder"
+  },
+  "req.opinionHit": {
+   "value": 2,
+   "status": "placeholder"
+  },
+  "default.opinionHit": {
+   "value": 2,
+   "status": "placeholder"
+  },
+  "default.fairnessHit": {
+   "value": 0.3,
    "status": "placeholder"
   },
   "cell.minUtility": {
