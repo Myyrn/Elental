@@ -1,6 +1,6 @@
 # Administration — Specification
 
-KB: `kb/administration__kb.md`. Mirror of its `##/###` headings; cross-references live in kb only. Split out of `admin_war_diplomacy__spec.md` (§1) on 2026-11-12. Besides kb, sources: `src/modules/administration/module.js`, `src/modules/polity/actions.js` (`setControlAllocation`), `src/modules/diplomacy/covert.js` (Observation dial and detection), `tests/espionage.test.js`. Where code and the old spec disagree, **code wins** (**code-led**). Anything the kb does not state is **(spec decision)**; both are listed under Status. Sections the code has not reached are **(target)**: the administration module today holds only the Control derives (no step 6, no slate, no assembly queue).
+KB: `kb/administration__kb.md`. Mirror of its `##/###` headings; cross-references live in kb only. Split out of `admin_war_diplomacy__spec.md` (§1) on 2026-11-12. Besides kb, sources: `src/modules/administration/{module,step}.js`, `src/modules/polity/actions.js` (`setControlAllocation`), `src/modules/diplomacy/covert.js` (Observation dial and detection), `tests/{espionage,administration}.test.js`. Where code and the old spec disagree, **code wins** (**code-led**); where the old spec and the kb disagree, **the kb wins** (the slate section below was corrected on 2026-11-17). Anything the kb does not state is **(spec decision)**; both are listed under Status. Sections the code has not reached are **(target)**: the administration module holds the Control derives and, since 2026-11-17, step 6 (the slate); no assembly queue yet.
 
 ## Data Structures
 
@@ -9,8 +9,10 @@ State (code today and target):
 state.admin.governments[country] = {
   controlDial: {entries}, observationDial: {entries}, spendingDial: {entries, reserve, sink},   // in code
   controlSupply?: number /*scenario/test override of the produced Control*/, controlBonus?: number /*coercion gains (Demotion Duty)*/,   // in code
+  coordinationSupply?: number /*scenario/test override of the produced Coordination (same role as controlSupply)*/,   // in code (2026-11-17)
+  attention: [{questionKey, coordinationCommitted}], standing: string[] /*routine Question keys handled by standing administration*/,   // in code (2026-11-17, written by step 6)
   poolSplit: Record<pool, AllocationDial>, planningPosture: 0..1, borderPolicy, emergency: null | {magnitude, since, addresses: string[]},   // target
-  attention: [{questionKey, coordinationCommitted}], upkeepFraction: 0..1, observationCache: Record<`${kind}|${target}`, {turn, value}>, inventory: Record<good, number> }   // target
+  upkeepFraction: 0..1, observationCache: Record<`${kind}|${target}`, {turn, value}>, inventory: Record<good, number> }   // upkeepFraction/inventory written by Economics; observationCache target
 ```
 
 ### Control Allocation (settled; Allocation Dial semantics settled 2026-11-03)
@@ -48,20 +50,24 @@ stampFor(ctx, viewer, kind, target) =
 - Stamp wire format and `EngineClient.query` stamps: `actions__spec.md` (not in code).
 
 ### Question Active Slate (attention commitment — revised 2026-11-02)
-Code: none (target `src/modules/administration/step.js`, pipeline step 6)
+Code: `src/modules/administration/step.js` (`step6`, `questionPriority`), `module.js` (`steps: {6}`, derive `coordinationSupply`); tests `tests/administration.test.js` (written 2026-11-17, **not yet run**)
 ```js
-step6(ctx) — slate for NEXT turn (lags one turn):
-  for country of countries:
-    coord  = envelopeSupply(ctx, country).coordination          // = produceCCO(c).coordination − emergencyCost(c)
-    coord -= T('admin.routineOverhead') × count(routine Questions)        // continuous overhead; shortfall → routine Questions unaddressed (never removed)
-    coord -= propagandaDraw(ctx, country)                       // Government propaganda draws on the Coordination pool
-    g.attention = []
-    for q of questions(country) sorted existential > structural > routine, then queue_priority:
-      th = T(`slate.${q.tier}`); if (coord ≥ th) { g.attention.push({questionKey: q.key, coordinationCommitted: th}); coord -= th }   // fixed threshold, no slot formula
+coordinationSupply(ctx, c) = max(0, gov.coordinationSupply ?? economics.produceCCO(c).coordination)      // Emergency Powers' cost joins here when they exist (target); degraded output already comes from produceCCO
+step6(ctx) — runs after polity step 5; writes the slate for NEXT turn (it lags one turn); for each Country with a Government:
+  qs = live Questions of the Country's cells (polity.questions, independent of the slate), sorted: tier existential > structural > routine, then priority desc, then key
+  priority(q) = q.gap × Weight(q.cell) × (right(q.cell, 'Petition') ? T('queue.petitionMult') : 1)             // (spec decision) the instantiation of polity's queue_priority
+  coord = coordinationSupply(c)
+  routine tier: standing administration, NO slate commitment (kb): handled = min(#routine, floor(coord / T('admin.routineOverhead')));  coord -= T('admin.routineOverhead') × handled
+                gov.standing = keys of the `handled` highest-priority routine Questions; the rest are unaddressed (never removed; their factions may escalate)
+  coord -= propagandaDraw(c)                                    // Government propaganda draws on the Coordination pool (the sum of its commitments' params.amount)
+  gov.attention = []
+  for q of qs (existential, then structural): th = T(`slate.${q.tier}`); if (coord ≥ th) { gov.attention.push({questionKey: q.key, coordinationCommitted: th}); coord −= th }      // fixed threshold, no slot formula; skipped Questions do not stop lower ones that still fit
 ```
-- `Question.severity ∈ {existential, structural, routine}` comes from polity (`state.polity.questions`); Questions exist independent of the slate (trigger `grievance_bucket_severity > compliance`); off-slate Questions keep accumulating and their factions may escalate (polity).
-- Routine tier: handled by standing administration without a slate commitment at a continuous Coordination overhead scaling with their number.
-- Tuning keys (placeholders): `slate.existential` 10, `slate.structural` 5, `slate.routine` 1, `admin.routineOverhead` 0.1.
+- `Question.tier ∈ {existential, structural, routine}` comes from polity (`derive.polity.questions`, thresholds `tier.existential`, `tier.structural`); Questions exist independent of the slate (trigger `grievance > compliance`); off-slate Questions keep accumulating and their factions may escalate (polity).
+- **(code-led, kb wins over the 2026-11-13 sketch)** the old spec looped over routine Questions with a `slate.routine` threshold as well as the overhead; the kb (settled 2026-11-02) says routine Questions are handled by standing administration without a slate commitment, so `slate.routine` is **not read** by the code.
+- **(spec decision)** the overhead is charged first and routine Questions are cut by lowest priority when Coordination runs short; the Government's propaganda draw is charged next; `gov.standing` records which routine Questions are handled. Nothing reads `attention` or `standing` yet (consumers: Question handling and Persuasion in polity, the UI, AI Governments — target).
+- **(spec decision)** `queue.petitionMult` (placeholder 2) multiplies the priority of a Question whose cell holds the Petition Right; `Weight × gap` is the "f(severity, Weight)" of the polity kb, and the existential > structural > routine tier order comes first. Not touched: polity's Pressure and Question queue section (still lists `queue_priority` as not in code; update it at the next polity sync).
+- Tuning keys (placeholders): `slate.existential` 10, `slate.structural` 5, `slate.routine` 1 (unused), `admin.routineOverhead` 0.1, `queue.petitionMult` 2.
 
 ### Assembly Queue and Question Resolution Time (2026-11-10)
 Code: none (target); Question debate state belongs to polity (`state.polity.questions[key].debate`)
@@ -79,14 +85,14 @@ duration(q) = scope(q) is one Region ? 1 : spans several Regions but not the Cou
 - **(spec decision)** an assembly is addressed as `region:<id>` / `empire:<country>` in `state.polity.questions[key].debate = {assembly, holder, since, duration}`.
 
 ### Government upkeep (execution side — settled 2026-11-02)
-Code: none in `administration/`; Economics step 3 is expected to apply degradation (not verified in this pass)
+Code: Economics (`economics/upkeep.js` `poolUnmetFrom`, `ledgerUpdate` writes `gov.poolUnmet` each turn; `produceCCO` applies it — see `economics__spec.md`, Resolution order); nothing in `administration/`
 ```js
 unmetFraction(pool) = 1 − granted/needed for the upkeep items of that pool, from the spending dial's waterline (resolveAllocation rows; cut order = the dial's priority order)
 pool.cco *= (1 − unmetFraction(pool))           // applied by economics.ledgerUpdate (step 3); proportional; never spawns Questions
 leaderlessDefection(pool): if unmetFraction(pool) > T('defect.threshold') → labour returns to ORIGIN cells (dual-claim reverses → production);
                            optional: cell at the armed rung with the Retinue Right → labour joins the rebels (War resolves)
 ```
-- Degraded Control lowers `involuntary_compliance` (it reads the degraded `produceCCO`). Computed in step 3 so polity step 5 reads it the same turn. Curve beyond proportional: numbers pass. `defect.threshold` 0.3.
+- Degraded Control lowers `involuntary_compliance` (it reads the degraded `produceCCO`), and degraded Coordination now also shrinks the slate (step 6 reads `produceCCO`). Computed in step 3 so polity step 5 reads it the same turn. Curve beyond proportional: numbers pass. `defect.threshold` 0.3 (defection itself: **not in code**).
 
 ### Emergency Powers (settled 2026-11-02)
 Code: none (target)
@@ -96,7 +102,7 @@ envelopeSupply: control += emergency.magnitude ; coordination −= emergencyCost
 emergencyCost(ctx, c) = emergency.magnitude × (1 − ctx.derive.polity.acceptanceOfEmergency(c))      // derived EVERY turn; NO duration term
 ```
 - `acceptanceOfEmergency` = the polity entitlement-loss acceptance function (live crisis severity from current Question state, the faction's own exposure, burden share, visible alternatives); the cost lands as the usual decaying Opinion/Fairness modifier. Only time-dependence: decay of modifiers already applied.
-- Hook `acceptanceOfEmergency` is **not** exported by polity today (spec decision: add it to `polity.derive`).
+- Hook `acceptanceOfEmergency` is **not** exported by polity today (spec decision: add it to `polity.derive`); `coordinationSupply` is where its Coordination cost would be subtracted.
 
 ### Administration actions (execution layer; classes per `actions__kb.md`)
 Code: `polity/actions.js` (`setControlAllocation`, `placeRequisition`), `diplomacy/covert.js` (`setObservationAllocation`); the rest none
@@ -109,7 +115,7 @@ Code: `polity/actions.js` (`setControlAllocation`, `placeRequisition`), `diploma
 | `escalateExternalQuestion {questionKey}` | event | — | target: marks an external Question existential for this turn's slate |
 | `setPlanningPosture {value 0..1}` | dial | — | target: Economics reads `gov.planningPosture` |
 | `setBorderPolicy {scope, policy}` | dial | market | target: Economics `frictionOf` / `zoneEdgeGate` read it |
-| `placeRequisition`, `liftRequisition` | event | market / skilled-labour | `placeRequisition` in code (polity, enforcement via Control grant); `liftRequisition` not seen |
+| `placeRequisition`, `liftRequisition` | event | market / skilled-labour | `placeRequisition` in code (polity, enforcement via Control grant); `liftRequisition` not seen (`placeRequisition` with amount 0 lifts) |
 | `commissionAudit {region \| cell \| rumor}` | event, covert | — | target: consumes Observation; surfaces hidden Grievance/compliance state: sets `observationCache` (stamp `live`) for the target for the turn **(spec decision)** |
 - Informational actions never mutate simulation state beyond the Decision Log and `observationCache`.
 
@@ -117,12 +123,12 @@ Code: `polity/actions.js` (`setControlAllocation`, `placeRequisition`), `diploma
 Code: per-rule notes
 1. Control Allocation is an `AllocationDial`: per-cell floors by priority, surplus by weight, additive stacking, lowest priority truncated (`resolveAllocation`, tested in `tests/kernel.test.js`).
 2. `setControlAllocation` has no costs; only the compliance shift follows.
-3. Slate thresholds are fixed per tier (`slate.*`); existential Questions can displace lower ones from `attention`, never from existence (target).
-4. Upkeep degradation proportional, cut order from the spending dial; leaderless defection returns labour to origin cells (target).
-5. Questions are polity state, independent of `attention` (target step 6 writes only `attention`).
+3. Slate thresholds are fixed per tier (`slate.existential`, `slate.structural`); existential Questions come first and can displace lower ones from `attention`, never from existence (`step6`; routine Questions have no slate threshold).
+4. Upkeep degradation proportional, cut order from the spending dial (Economics, in code); leaderless defection returns labour to origin cells (target).
+5. Questions are polity state, independent of `attention` (step 6 writes only `attention` and `standing`).
 6. Requisition scope is enforced through `controlGrant` additively per covered cell (target: `requisitionEnforcementShare`).
-7. Government propaganda draws on Coordination (`propagandaDraw`, target).
-8. Observation controls the stamp of off-slate escalation; routine Questions cost `admin.routineOverhead` each (target).
+7. Government propaganda draws on Coordination (step 6 subtracts the draw of its commitments before the slate).
+8. Routine Questions cost `admin.routineOverhead` each of Coordination (in code); Observation controls the stamp of off-slate escalation (target).
 9. `detectionStrength = observationAt + counterIntel` (in code; Diplomacy owns the thresholds).
 10. Default unit of a dial is the cell (`cellsCovered`).
 11. Surplus auto-fill costs nothing: no claim, no order (in `resolveAllocation`).
@@ -132,15 +138,15 @@ Code: per-rule notes
 15. Slate and queue are independent limits (target).
 
 ## Status
-- **In code**: Control derives, Observation dial and `observationAt`/`detectionStrength`, `setControlAllocation`, `setObservationAllocation`, `placeRequisition`. `tests/espionage.test.js` covers the Observation dial and additive detection. No test asserts `controlGrant` directly (it is exercised through polity compliance and `tests/internal_conflict.test.js`).
-- **Not in code**: `step6` (slate, routine overhead), assembly queue, upkeep degradation/defection (Economics side unverified), Emergency Powers, audits, planning posture, border policy, pool split action, stamps, Observation stamp wiring.
-- **(code-led)**: `controlSupply` override and martial-law subtraction; Observation default spread by population with `obs.defaultSpread`; `setObservationAllocation` registered as an event.
-- **(spec decision)**: group targets allocation-local; `produceCCOByRegion`; `acceptanceOfEmergency` export; `emergency.obsShare`; audit as an `observationCache` refresh; `state.polity.questions[key].debate`; tuning keys `slate.*`, `admin.routineOverhead`, `defect.threshold`, `observe.*`, `assembly.k`, `assembly.agendaK`, `question.turns.*`, `emergency.obsShare` (placeholders; values in `tuning.defaults.json` when implemented).
+- **In code**: Control derives, Observation dial and `observationAt`/`detectionStrength`, `setControlAllocation`, `setObservationAllocation`, `placeRequisition`; **since 2026-11-17 step 6**: `coordinationSupply`, `questionPriority`, `step6` writing `gov.attention` and `gov.standing`, tuning key `queue.petitionMult` (**run `npm run build:data`**). `tests/espionage.test.js` covers the Observation dial and additive detection; `tests/administration.test.js` (2026-11-17, **not yet run**) covers the slate: tier order, thresholds, routine overhead and shortfall, propaganda draw, priority within a tier, the one-turn lag through a real turn. No test asserts `controlGrant` directly (it is exercised through polity compliance and `tests/internal_conflict.test.js`).
+- **Not in code**: assembly queue, defection (Economics side unverified), Emergency Powers, audits, planning posture, border policy, pool split action, stamps, Observation stamp wiring, any consumer of `attention`/`standing`, the Petition-holder test of `questionPriority` (the scope syntax for a single cell was not verified, so it is untested).
+- **(code-led)**: `controlSupply` override and martial-law subtraction; `coordinationSupply` override (same role); Observation default spread by population with `obs.defaultSpread`; `setObservationAllocation` registered as an event; routine Questions have no slate threshold (kb), `slate.routine` unused.
+- **(spec decision)**: group targets allocation-local; `produceCCOByRegion`; `acceptanceOfEmergency` export; `emergency.obsShare`; audit as an `observationCache` refresh; `state.polity.questions[key].debate`; the slate details above (overhead first, then propaganda draw, cut routine by lowest priority, `gov.standing`, `questionPriority` = gap × Weight × Petition multiplier); tuning keys `slate.*`, `admin.routineOverhead`, `queue.petitionMult`, `defect.threshold`, `observe.*`, `assembly.k`, `assembly.agendaK`, `question.turns.*`, `emergency.obsShare` (placeholders; values in `tuning.defaults.json` when implemented).
 - **Open (kb)**: existential Questions bypassing the cap; `g(Coordination)` shape; Weight × right-strength split; degradation curve beyond proportional; numbers pass.
-- **Sync:** (`<section> = <kb rev> / <code rev>`; `-` = no or insufficient code+tests)
+- **Sync:** (`<section> = <kb rev> / <code rev>`; `-` = no or insufficient code+tests; revs set on tests written but not yet run are provisional)
   - Data Structures > Control Allocation (settled; Allocation Dial semantics settled 2026-11-03) = 1 / -
   - Data Structures > Observation Allocation (settled 2026-11-01; detection settled 2026-11-02) = 1 / 1
-  - Data Structures > Question Active Slate (attention commitment — revised 2026-11-02) = 1 / -
+  - Data Structures > Question Active Slate (attention commitment — revised 2026-11-02) = 1 / 1
   - Data Structures > Assembly Queue and Question Resolution Time (2026-11-10) = 1 / -
   - Data Structures > Government upkeep (execution side — settled 2026-11-02) = 1 / -
   - Data Structures > Emergency Powers (settled 2026-11-02) = 1 / -
