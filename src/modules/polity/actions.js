@@ -1,18 +1,27 @@
 // polity/actions.js — Government action types (with `impact` for gating/acceptance) and the first cell action types.
 import { scopeCtx } from '../administration/module.js'
 import { covers } from '../../kernel/scope.js'
+import { parseCellKey } from '../../kernel/ids.js'
 const clamp01 = x => Math.min(1, Math.max(0, x))
 const cellsMap = ctx => ctx.state.polity.cells
 const entryKey = e => JSON.stringify(e.scope)
 const scale = (ctx, c) => Math.max(1, (c.salesValue ?? 0) + c.wealth)
 const maxGrievance = (c, needs) => Math.max(0, ...needs.map(n => c.grievance?.[n] ?? 0))
 const tax = (ctx, key) => ctx.derive.polity.duty(key, 'Taxation', { market: 0, wealth: 0 })
+const EI = 'extraction_investment'
 
 export function registerPolityActions(reg) {
   // ---------------- Government (and Country) actions
+  // `axisShift(ctx, a)` (optional) = the act's realized direction on the Portrait axes, evaluated by the engine BEFORE apply and snapshotted on the Decision Log entry (`loads`);
+  // `axisLoads` stays the static default (gating stance, older log entries). Tax rise / bigger requisition = Extraction (-1); tax cut / smaller or lifted requisition = Investment (+1).
   reg.register({ id: 'setTaxLaw', module: 'polity', class: 'event', gateDomain: () => 'taxLaw', defaultVisibility: 'public',
     validate: (ctx, a) => (a.params && typeof a.params.market === 'number' && typeof a.params.wealth === 'number' ? { ok: true } : { ok: false, reasons: ['market and wealth rates required'] }),
-    costs: () => [], axisLoads: { extraction_investment: -1 },
+    costs: () => [], axisLoads: { [EI]: -1 },
+    axisShift: (ctx, a) => { const country = a.actor.country, scope = a.params.scope ?? { kind: 'empire' }, sc = scopeCtx(ctx, country); let d = 0, r = 0      // d = value-weighted change of the take, r = plain sum of rate changes (fallback)
+      for (const [key, c] of Object.entries(cellsMap(ctx))) { if (ctx.derive.worldmap.regionOwner(parseCellKey(key).region) !== country || !covers(scope, key, sc)) continue
+        const cur = tax(ctx, key), dm = a.params.market - cur.market, dw = a.params.wealth - cur.wealth
+        d += dm * (c.salesValue ?? 0) + dw * c.wealth; r += dm + dw }
+      const s = d !== 0 ? d : r; return s > 0 ? { [EI]: -1 } : s < 0 ? { [EI]: 1 } : {} },
     impact: (ctx, a, key) => { const scope = a.params.scope ?? { kind: 'empire' }; if (!covers(scope, key, scopeCtx(ctx, a.actor.country))) return { cost: 0, relief: 0 }
       const cur = tax(ctx, key), c = cellsMap(ctx)[key], delta = (a.params.market - cur.market) * (c.salesValue ?? 0) + (a.params.wealth - cur.wealth) * c.wealth
       return { cost: clamp01(Math.max(0, delta) / scale(ctx, c)), relief: clamp01(Math.max(0, -delta) / scale(ctx, c)) } },
@@ -26,7 +35,9 @@ export function registerPolityActions(reg) {
     validate: (ctx, a) => (Array.isArray(a.params?.entries) ? { ok: true } : { ok: false, reasons: ['entries required'] }), costs: () => [],
     apply: (ctx, a) => { ctx.state.admin.governments[a.actor.country].spendingDial = { entries: a.params.entries, reserve: a.params.reserve ?? 0, sink: a.params.sink ?? 'keep' } } })
   reg.register({ id: 'placeRequisition', module: 'polity', class: 'event', gateDomain: () => 'market', defaultVisibility: 'public',
-    validate: (ctx, a) => (a.params?.good ? { ok: true } : { ok: false, reasons: ['good required'] }), costs: () => [], axisLoads: { extraction_investment: -1 },
+    validate: (ctx, a) => (a.params?.good ? { ok: true } : { ok: false, reasons: ['good required'] }), costs: () => [], axisLoads: { [EI]: -1 },
+    axisShift: (ctx, a) => { const prev = ctx.state.polity.law[a.actor.country]?.requisitions?.find(r => r.target.good === a.params.good)?.amount ?? 0, next = a.params.amount ?? 0
+      return next > prev ? { [EI]: -1 } : next < prev ? { [EI]: 1 } : {} },
     impact: (ctx, a, key) => { if (!covers(a.params.scope ?? { kind: 'empire' }, key, scopeCtx(ctx, a.actor.country))) return { cost: 0, relief: 0 }
       const c = cellsMap(ctx)[key]; return { cost: clamp01((a.params.amount ?? 0) * (c.salesValue ?? 0) / scale(ctx, c)), relief: 0 } },
     apply: (ctx, a) => { const law = ctx.state.polity.law[a.actor.country]; law.requisitions = [...law.requisitions.filter(r => r.target.good !== a.params.good),
@@ -37,7 +48,7 @@ export function registerPolityActions(reg) {
     propose: (ctx, key) => { const c = cellsMap(ctx)[key], need = Object.keys(c.grievance ?? {}).sort((a, b) => c.grievance[b] - c.grievance[a])[0]; return need && c.grievance[need] > 0 ? { need } : null },
     utility: (ctx, key, p) => ctx.T('petition.effect') * (cellsMap(ctx)[key].grievance?.[p.need] ?? 0) - 0.01,
     validate: () => ({ ok: true }), apply: (ctx, a) => { (ctx.state.polity.petitions ??= []).push({ cell: a.actor.key, need: a.params.need, turn: ctx.state.meta.turn }) } })
-  reg.register({ id: 'taxRefusal', module: 'polity', class: 'commitment', cellAvailability: 'defiance', minRung: 2, defaultVisibility: 'public', costs: () => [], axisLoads: { extraction_investment: 1 },
+  reg.register({ id: 'taxRefusal', module: 'polity', class: 'commitment', cellAvailability: 'defiance', minRung: 2, defaultVisibility: 'public', costs: () => [], axisLoads: { [EI]: 1 },
     propose: (ctx, key) => { const r = tax(ctx, key); return r.market > 0 || r.wealth > 0 ? {} : null },
     utility: (ctx, key) => { const c = cellsMap(ctx)[key], inv = ctx.derive.polity.compliance(key).involuntary, anger = maxGrievance(c, ['subsistence', 'fairness'])
       const r = tax(ctx, key), burden = clamp01((r.market * (c.salesValue ?? 0) + r.wealth * c.wealth) / scale(ctx, c)); return anger * (1 - inv) - ctx.T('defy.risk') * inv + 0.5 * burden },
@@ -45,7 +56,7 @@ export function registerPolityActions(reg) {
   reg.register({ id: 'hoard', module: 'polity', class: 'commitment', cellAvailability: 'permitted', minRung: 1, defaultVisibility: 'covert', costs: () => [], axisLoads: {},
     propose: () => ({}), utility: (ctx, key) => (cellsMap(ctx)[key].grievance?.subsistence ?? 0) * 0.5 - 0.05,
     validate: () => ({ ok: true }), apply: (ctx, a) => { cellsMap(ctx)[a.actor.key].hoardFrac = ctx.T('hoard.frac') * (a.params.scale ?? 1) } })
-  reg.register({ id: 'buildTradeInfra', module: 'economics', class: 'commitment', cellAvailability: 'permitted', minRung: 0, defaultVisibility: 'public', costs: () => [], axisLoads: { extraction_investment: 1 },
+  reg.register({ id: 'buildTradeInfra', module: 'economics', class: 'commitment', cellAvailability: 'permitted', minRung: 0, defaultVisibility: 'public', costs: () => [], axisLoads: { [EI]: 1 },
     propose: (ctx, key) => { const c = cellsMap(ctx)[key]; return ctx.derive.polity.right(key, 'TradeInfraConstruction') !== false && c.wealth > c.population * ctx.T('infra.richPerCap') ? {} : null },
     utility: (ctx, key) => { const c = cellsMap(ctx)[key], cost = Math.min(c.population * ctx.T('infra.costPerCap'), 0.1 * c.wealth); return clamp01(c.wealth / (c.population * ctx.T('infra.richPerCap'))) * 0.1 - cost / Math.max(1, c.wealth) },
     validate: () => ({ ok: true }), apply: (ctx, a) => { const c = cellsMap(ctx)[a.actor.key], cost = Math.min(c.population * ctx.T('infra.costPerCap'), 0.1 * c.wealth)

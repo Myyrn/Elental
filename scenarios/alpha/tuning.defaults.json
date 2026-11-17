@@ -111,6 +111,10 @@
   "value": 1,
   "status": "placeholder"
  },
+ "opinion.alignGain": {
+  "value": 0.5,
+  "status": "placeholder"
+ },
  "opinion.modDecay": {
   "value": 0.1,
   "status": "placeholder"
@@ -227,6 +231,10 @@
  },
  "edu.rate": {
   "value": 0.01,
+  "status": "placeholder"
+ },
+ "portrait.reinforce": {
+  "value": 0.05,
   "status": "placeholder"
  },
  "admin.routineOverhead": {
