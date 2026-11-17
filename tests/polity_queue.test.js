@@ -53,7 +53,7 @@ test('turn: without Control nothing is delivered, so there is no requisition hit
 test('turn: an obligation past the arrears limit defaults and hits the creditor', () => {
   const s = makeState({ labour: 0.2 }); const [a, b] = Object.keys(s.polity.cells)
   s.polity.cells[a].wealth = 1000; s.polity.cells[b].wealth = 0
-  s.economy.obligations = [{ id: 'o-test', creditor: a, debtor: b, principal: 100, arrears: 49.9 }]      // limit 0.5 x principal = 50; one turn of interest (2) crosses it
+  s.economy.obligations = [{ id: 'o-test', creditor: a, debtor: b, principal: 100, arrears: 60 }]      // already past the limit (0.5 x principal = 50): it defaults whether or not the debtor could pay this turn's interest
   const r = turn(s)
   assert.ok(!r.economy.obligations.some(o => o.id === 'o-test'), 'defaulted obligation removed')
   const c = r.polity.cells[a]; assert.equal(mods(c, 'default.').length, 1); assert.ok(mods(c, 'default.')[0].value < 0)
