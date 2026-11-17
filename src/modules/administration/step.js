@@ -1,0 +1,23 @@
+// administration/step.js — pipeline step 6: the Question active slate for NEXT turn (the slate lags one turn). Spec: administration__spec.md, Question Active Slate.
+// The slate is the Government's ATTENTION only: Questions exist independent of it (polity). Routine Questions have no slate commitment (kb): standing administration handles them for a continuous overhead.
+import { parseCellKey } from '../../kernel/ids.js'
+const TIER = { existential: 0, structural: 1, routine: 2 }
+// = polity propaganda.propagandaDraw(country); not imported because propaganda.js imports this module (scopeCtx)
+const propagandaDraw = (ctx, country) => ctx.state.commitments.filter(c => c.type === 'propaganda' && c.actor.kind === 'government' && c.actor.country === country).reduce((a, c) => a + c.params.amount, 0)
+/** Order of Questions inside a tier (spec decision, the instantiation of polity's queue_priority): gap x Weight of the cell, times the Petition multiplier when the cell holds the Petition Right. */
+export const questionPriority = (ctx, q) => q.gap * ctx.derive.polity.weight(q.cell) * (ctx.derive.polity.right(q.cell, 'Petition') ? ctx.T('queue.petitionMult') : 1)
+
+export function step6(ctx) {
+  const byCountry = {}
+  for (const q of ctx.derive.polity.questions()) (byCountry[ctx.derive.worldmap.regionOwner(parseCellKey(q.cell).region)] ??= []).push({ ...q, priority: questionPriority(ctx, q) })
+  const overhead = ctx.T('admin.routineOverhead')
+  for (const [country, g] of Object.entries(ctx.state.admin.governments)) {
+    const qs = (byCountry[country] ?? []).sort((a, b) => TIER[a.tier] - TIER[b.tier] || b.priority - a.priority || a.key.localeCompare(b.key))
+    let coord = ctx.derive.administration.coordinationSupply(country)
+    const routine = qs.filter(q => q.tier === 'routine'), handled = overhead > 0 ? Math.min(routine.length, Math.floor(coord / overhead + 1e-9)) : routine.length
+    g.standing = routine.slice(0, handled).map(q => q.key); coord -= overhead * handled      // the rest become unaddressed (never removed; their factions may escalate)
+    coord -= propagandaDraw(ctx, country)                                                    // the Government's propaganda is paid from the Coordination pool
+    g.attention = []
+    for (const q of qs) { if (q.tier === 'routine') continue
+      const th = ctx.T(`slate.${q.tier}`)                                                    // fixed Coordination threshold per tier: breadth, not depth
+      if (coord >= th) { g.attention.push({ questionKey: q.key, coordinationCommitted: th }); coord -= th } } } }
