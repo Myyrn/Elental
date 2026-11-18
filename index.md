@@ -78,14 +78,13 @@ layer: `kb/war__kb.md`, `doc/…`, `spec/…`.
 
 ## Changelog partitions (2026-11-14)
 
-The changelog is split in **half-month partitions** so that no session has to rewrite or read a huge file: days 1–15 of a month form one partition, day 16 to the end of the month the next.
+The changelog is split in next partition whenever its size exceeds 32 kb so that no session has to rewrite or read a huge file. Every partition is named according to the date of split.
 
 - **Files**: a partition is named by its first day. `changelog.md` (repo root) is the partition **2026-11-01** and also keeps every earlier entry; it is current until 2026-11-15. From 2026-11-16 new entries go to `changelog/2026-11-16.md`, then `changelog/2026-12-01.md`, `changelog/2026-12-16.md`, and so on. A finished partition is never edited again except to fix an error.
-- **Which partition a session writes to**: the one containing the day the session **started**. A session that runs past midnight into the 16th (or the 1st) stays in the earlier partition (e.g. a session finished late at night between the 15th and the 16th remains in the 1–15 partition).
+- **Which partition a session writes to**: the one containing the day the session **started**. If its size will exceed 32 kb, the last message is written into the current partition and the next one is started.
 - **Inside a partition**: newest entry first, one section per change with `## <title> — <date>`; the file opens with one line naming the partition and the rule.
 - **Reading**: task intake reads only the top entry of the latest partition; older partitions only when a question points at them.
 - **Creating a new partition**: add the file in the session that first needed it, update the layout above and the `changelog.md` header line (frozen: names its successor).
-- **Size note (2026-11-18)**: the 2026-11-16 partition reached 32 KB in two days of work (every entry re-sends the whole file); the half-month rule may need a size trigger (designer's decision, not changed here).
 
 ## Working mode (GitHub)
 
