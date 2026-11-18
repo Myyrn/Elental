@@ -211,5 +211,4 @@ Legend: ✅ populated/designed · 🟡 stub or outdated · ⬜ not created yet
 4. End of session: kb/spec/code committed on the session branch (see Working
    mode), `.outline/` regenerated, this file's status column and changelog
    updated; refresh the Project-knowledge copy of this file if it changed.
-  `infrastructure_level` vs. Economics' `trade_infrastructure_level` (now
-  explicitly distinct stocks).
+ 
