@@ -8,8 +8,8 @@ export function registerWorldmapActions(reg) {
     validate: (ctx, a) => { const r = applyReorg(ctx.state.world, a.actor.country, a.params?.ops); return r.ok ? { ok: true } : { ok: false, reasons: r.reasons } },
     costs: () => [], impact: () => ({ cost: 0, relief: 0 }),
     apply: (ctx, a) => { (ctx.state.world.pendingReorg ??= []).push({ country: a.actor.country, ops: structuredClone(a.params.ops) }) } })
-  // The capital is a stored administrative setting of a Region of the actor's Country; it must be a province of that Region.
-  reg.register({ id: 'setRegionCapital', module: 'worldmap', class: 'event', gateDomain: () => null, defaultVisibility: 'public',
+  // The capital is a stored administrative setting of a Region of the actor's Country (a dial: free to change, no gate, kb Lifecycle classes 2026-11-17); it must be a province of that Region.
+  reg.register({ id: 'setRegionCapital', module: 'worldmap', class: 'dial', gateDomain: () => null, defaultVisibility: 'public',
     validate: (ctx, a) => { const { region, province } = a.params ?? {}, w = ctx.state.world, ps = Object.entries(w.regionSnapshot.assignment).filter(([, r]) => r === region).map(([p]) => p)
       if (!ps.length) return { ok: false, reasons: ['unknown Region'] }
       if ((w.regionSnapshot.owners?.[region] ?? w.provinces[ps[0]]?.owner) !== a.actor.country) return { ok: false, reasons: ['not your Region'] }
