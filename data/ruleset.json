@@ -1750,6 +1750,10 @@
    "value": 1,
    "status": "placeholder"
   },
+  "queue.petitionMult": {
+   "value": 2,
+   "status": "placeholder"
+  },
   "observe.liveThresholdPerPop": {
    "value": 0.001,
    "status": "placeholder"
