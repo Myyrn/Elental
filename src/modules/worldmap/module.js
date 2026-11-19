@@ -1,9 +1,10 @@
-// worldmap/module.js — read services other modules use through ctx.derive.worldmap.*; step 8: the one end-of-turn Region pass.
+// worldmap/module.js — read services other modules use through ctx.derive.worldmap.*; step 8: growth, migration and queued moves, then the one end-of-turn Region pass.
 import { parseCellKey } from '../../kernel/ids.js'
 import { neighbors, parseId } from './hex.js'
 import { deriveRegions, splitCell, mergeCells } from './regions.js'
 import { applyReorg, retargetLaws, regionCapitalOf } from './reorg.js'
 import { stepPopulation } from './population.js'
+import { stepMigration, applyPendingMoves } from './migration.js'
 const sum = a => a.reduce((s, x) => s + x, 0)
 /** Re-key every polity cell when the province -> Region assignment changes (World Map Rule 7): per-cell stocks split/sum by the Nation's presence share over the old Region's provinces. */
 function rekeyCells(ctx, oldAssignment, newAssignment) {
@@ -22,9 +23,12 @@ function rekeyCells(ctx, oldAssignment, newAssignment) {
   for (const [k, v] of Object.entries(P.momentum)) { const [ck, need] = [k.split('|').slice(0, 3).join('|'), k.split('|')[3]]; for (const [nk] of moves[ck] ?? [[ck]]) { mom[`${nk}|${need}`] = Math.max(mom[`${nk}|${need}`] ?? 0, v); rung[`${nk}|${need}`] = Math.max(rung[`${nk}|${need}`] ?? 0, P.rung[k] ?? 0) } }
   P.cells = out; P.momentum = mom; P.rung = rung
 }
-/** step 8: ONE end-of-turn pass — natural growth, then queued Reorganization Events, then re-derivation of Regions after ownership change; per-cell stocks split/sum by Nations' population share (World Map Rule 7). */
+/** step 8: ONE end-of-turn pass — natural growth, gradual migration, queued settle / resettle / expel orders, then queued Reorganization Events, then re-derivation of Regions after ownership change;
+ *  per-cell stocks split/sum by Nations' population share (World Map Rule 7). Population moves run BEFORE the Region pass so it splits the current stocks. */
 export function step8(ctx) {
   stepPopulation(ctx)                                        // natural growth/decrease first, so the Region pass splits the current stocks
+  stepMigration(ctx)                                         // derived pull between Regions and toward unsettled land (World Map: Population dynamics)
+  applyPendingMoves(ctx)                                     // queued `settle`, `directResettlement` and `expel` orders, each re-validated
   const w = ctx.state.world
   for (const r of w.pendingReorg ?? []) {                    // each queued event applies once; one that no longer holds (re-validated against the current state) is dropped whole
     const res = applyReorg(w, r.country, r.ops); if (!res.ok) continue
