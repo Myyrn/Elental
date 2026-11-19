@@ -864,5 +864,41 @@
  "obs.defaultSpread": {
   "value": 1,
   "status": "placeholder"
+ },
+ "mig.rate": {
+  "value": 0.02,
+  "status": "placeholder"
+ },
+ "mig.frontierPull": {
+  "value": 0.1,
+  "status": "placeholder"
+ },
+ "settle.frontierMin": {
+  "value": 20,
+  "status": "placeholder"
+ },
+ "settle.settledMin": {
+  "value": 500,
+  "status": "placeholder"
+ },
+ "settle.cohort": {
+  "value": 0.05,
+  "status": "placeholder"
+ },
+ "settle.costPerCap": {
+  "value": 0.5,
+  "status": "placeholder"
+ },
+ "settle.crowdK": {
+  "value": 1,
+  "status": "placeholder"
+ },
+ "force.opinionHit": {
+  "value": 1.5,
+  "status": "placeholder"
+ },
+ "cb.mag.expel": {
+  "value": 1,
+  "status": "placeholder"
  }
 }
