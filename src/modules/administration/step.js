@@ -7,6 +7,14 @@ const propagandaDraw = (ctx, country) => ctx.state.commitments.filter(c => c.typ
 /** Order of Questions inside a tier (spec decision, the instantiation of polity's queue_priority): gap x Weight of the cell, times the Petition multiplier when the cell holds the Petition Right. */
 export const questionPriority = (ctx, q) => q.gap * ctx.derive.polity.weight(q.cell) * (ctx.derive.polity.right(q.cell, 'Petition') ? ctx.T('queue.petitionMult') : 1)
 
+/** Is the Question on the Government's slate (attention) or handled by standing administration? (what step 6 wrote last turn) */
+export const isListed = (q, g) => !!g && ((g.attention ?? []).some(a => a.questionKey === q.key) || (g.standing ?? []).includes(q.key))
+/** ADDRESSED = a debate is open: it starts the turn polity first sees the Question listed (`polity.debate[key] = {since}`) and lasts T('question.turns.region') turns; before polity has recorded it,
+ *  being listed counts. After the debate ends the Question is not addressed again until it stops being live (and a new one appears), however long it stays listed (kb 2026-11-19). */
+export function addressed(ctx, q, g) {
+  const d = ctx.state.polity.debate?.[q.key]
+  return d ? ctx.state.meta.turn - d.since < ctx.T('question.turns.region') : isListed(q, g) }
+
 export function step6(ctx) {
   const byCountry = {}
   for (const q of ctx.derive.polity.questions()) (byCountry[ctx.derive.worldmap.regionOwner(parseCellKey(q.cell).region)] ??= []).push({ ...q, priority: questionPriority(ctx, q) })

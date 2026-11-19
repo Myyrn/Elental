@@ -1,4 +1,4 @@
-// worldmap/actions.js — Region administration (the Reorganization Event and the Region capital setting) and population moves (the `settle` cell action, direct resettlement, Expulsion).
+// worldmap/actions.js — Region administration (the Reorganization Event and the Region capital setting) and population moves (the `settle` cell action, direct resettlement, Expulsion, free colonization).
 // kb World Map: Region, Population dynamics; spec: world_map__spec.md.
 import { covers } from '../../kernel/scope.js'
 import { applyReorg } from './reorg.js'
@@ -32,6 +32,15 @@ export function registerWorldmapActions(reg) {
   // Government: move the population of cells / a Nation / an Estate (any scope) into a province of the Country, or expel it across the border; both are previewed by planForcedMove.
   reg.register({ id: 'directResettlement', ...forced('resettle') })
   reg.register({ id: 'expel', ...forced('expel') })
+  // Free colonization (kb 2026-11-19): a STANDING commitment of the Government, no gate (it compels no one). `incentive` raises the pull toward unsettled provinces of the Country and is paid per arriving settler
+  // from the Government's ledger (migration.js `stepMigration`); it lapses while the ledger is empty. The Settlement / Movement autonomy Rights are its lifted restrictions (reformRightsDuties).
+  reg.register({ id: 'freeColonization', module: 'worldmap', class: 'commitment', gateDomain: () => null, defaultVisibility: 'public', costs: () => [], axisLoads: {},
+    validate: (ctx, a) => (a.actor.kind === 'government' && a.params?.incentive > 0 ? { ok: true } : { ok: false, reasons: ['a Government order with incentive > 0 is required'] }),
+    apply: (ctx, a) => { ctx.state.commitments.push({ id: a.id, actor: a.actor, type: 'freeColonization', claims: [], since: ctx.state.meta.turn, renew: true, params: { incentive: a.params.incentive } }) },
+    affectedCells: () => [] })
+  reg.register({ id: 'liftFreeColonization', module: 'worldmap', class: 'event', gateDomain: () => null, defaultVisibility: 'public', costs: () => [], axisLoads: {},
+    validate: (ctx, a) => (ctx.state.commitments.some(c => c.id === a.params?.id && c.type === 'freeColonization' && c.actor.country === a.actor.country) ? { ok: true } : { ok: false, reasons: ['no such commitment of yours'] }),
+    apply: (ctx, a) => { ctx.state.commitments = ctx.state.commitments.filter(c => c.id !== a.params.id) } })
   // Cell action (settlement route 2, kb): a crowded cell sends a cohort to an unsettled province of its own Country, paying from its Wealth; permitted unless the Settlement Right is false.
   reg.register({ id: 'settle', module: 'worldmap', class: 'event', cellAvailability: 'permitted', minRung: 1, defaultVisibility: 'public', costs: () => [], axisLoads: {},
     propose: (ctx, key) => settleProposal(ctx, key), utility: (ctx, key, p) => settleUtility(ctx, key, p),

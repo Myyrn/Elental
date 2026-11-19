@@ -64,9 +64,21 @@ export function moveCohort(ctx, cell, amount, q, { take = null, confiscate = 0, 
   shiftPresence(ctx, nation, alloc, q, moved); promote(ctx, q); ctx.bump?.()
   return { moved, from: cell.region, to } }
 
+// ---------------------------------------------------------------- free colonization (Government standing commitment; kb 2026-11-19)
+/** The incentive a Country's Government currently pays: the sum of its `freeColonization` commitments, 0 when its ledger is empty (the policy lapses when it cannot pay). */
+export function colonizeIncentive(ctx, country) {
+  const g = ctx.state.admin?.governments?.[country]; if (!g || !(g.ledger > 0)) return 0
+  return ctx.state.commitments.filter(c => c.type === 'freeColonization' && c.actor.kind === 'government' && c.actor.country === country).reduce((s, c) => s + (c.params.incentive ?? 0), 0) }
+/** Pay `amount` from the Government's ledger to the Nation's cells in the arrival Region, by population; false (nothing taken) when no cell can receive it. */
+function payArrivals(ctx, g, region, nation, amount) {
+  const cs = Object.values(ctx.state.polity.cells).filter(c => c.region === region && c.nation === nation), tot = sum(cs.map(c => c.population)); if (!(tot > 0)) return false
+  g.ledger -= amount; for (const c of cs) c.wealth += amount * c.population / tot
+  return true }
+
 // ---------------------------------------------------------------- gradual migration (derived; nothing stored)
-/** pull(p->q, n) = regionSat(q, n) + (q not Settled ? mig.frontierPull : 0) - regionSat(p, n);  flow = presence[p][n] x mig.rate x pull x autonomy(p's Region, n).
- *  A LaborMigrationBan between different owners blocks the pair. Computed from the state at the start of the pass, applied in sorted order. Returns the flows that happened. */
+/** pull(p->q, n) = regionSat(q, n) + (q not Settled ? mig.frontierPull + colonize.pullK x incentive(owner q) : 0) - regionSat(p, n);  flow = presence[p][n] x mig.rate x pull x autonomy(p's Region, n).
+ *  A LaborMigrationBan between different owners blocks the pair. Computed from the state at the start of the pass, applied in sorted order; arrivals in unsettled provinces are paid the incentive
+ *  from the Government's ledger (to the arriving Nation's cells there). Returns the flows that happened. */
 export function stepMigration(ctx) {
   const rate = ctx.T('mig.rate'); if (!(rate > 0)) return []
   const st = ctx.state, P = st.world.provinces, asg = st.world.regionSnapshot.assignment, pres = st.nations.presence ?? {}
@@ -76,13 +88,15 @@ export function stepMigration(ctx) {
     return tot > 0 ? sum(use.map(c => growthFactor(c) * c.population)) / tot : 0 })())
   const free = (r, n) => (memo[`a|${r}|${n}`] ??= (() => { const cs = cellsOf(r, n), tot = sum(cs.map(c => c.population))
     return tot > 0 ? sum(cs.filter(c => ctx.derive.polity?.right?.(c.key, 'MovementAutonomy') !== false).map(c => c.population)) / tot : 1 })())
+  const inc = o => (memo[`i|${o}`] ??= colonizeIncentive(ctx, o))
   const flows = []
   for (const p of Object.keys(pres).sort()) { const rp = asg[p]; if (!rp || !P[p]) continue
     for (const nation of Object.keys(pres[p]).sort()) { const here = pres[p][nation]; if (!(here > 0)) continue
       for (const q of nbrs(ctx, p)) { const rq = asg[q]; if (!rq || !canSettle(ctx, q)) continue
         if (P[p].owner !== P[q].owner && ctx.derive.diplomacy?.laborMigrationBanned?.(P[p].owner, P[q].owner)) continue
-        const pull = sat(rq, nation) + (P[q].habitability === 'Settled' ? 0 : ctx.T('mig.frontierPull')) - sat(rp, nation), amount = here * rate * pull * free(rp, nation)
-        if (amount > 1e-9) flows.push({ nation, from: p, to: q, amount }) } } }
+        const frontier = P[q].habitability !== 'Settled'
+        const pull = sat(rq, nation) + (frontier ? ctx.T('mig.frontierPull') + ctx.T('colonize.pullK') * inc(P[q].owner) : 0) - sat(rp, nation), amount = here * rate * pull * free(rp, nation)
+        if (amount > 1e-9) flows.push({ nation, from: p, to: q, amount, frontier }) } } }
   const byOrigin = {}; for (const f of flows) (byOrigin[`${f.from}|${f.nation}`] ??= []).push(f)
   for (const fs of Object.values(byOrigin)) { const tot = sum(fs.map(f => f.amount)), have = pres[fs[0].from][fs[0].nation]; if (tot > have) for (const f of fs) f.amount *= have / tot }      // a province never gives more than it has
   const done = []
@@ -92,6 +106,9 @@ export function stepMigration(ctx) {
     const cs = cellsOf(rp, f.nation).filter(c => c.population > 0).sort((a, b) => (a.key < b.key ? -1 : 1)), tot = sum(cs.map(c => c.population)); let moved = 0
     for (const c of cs) moved += moveCohort(ctx, c, a0 * c.population / tot, f.to, { take: { [f.from]: 1 } }).moved
     if (moved > 0) done.push({ ...f, amount: moved }) }
+  for (const f of done) { if (!f.frontier) continue                                                                                    // the standing commitment pays each settler who arrived in unsettled land
+    const owner = P[f.to].owner, g = st.admin?.governments?.[owner], incentive = colonizeIncentive(ctx, owner); if (!g || !(incentive > 0)) continue
+    const pay = Math.min(g.ledger, f.amount * incentive * ctx.T('colonize.costPerSettler')); if (pay > 0) payArrivals(ctx, g, asg[f.to], f.nation, pay) }
   if (done.length) ctx.bump?.()
   return done }
 
