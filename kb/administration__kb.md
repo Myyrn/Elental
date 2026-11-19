@@ -44,6 +44,8 @@ section lives here, beside the slate, rather than in the 51 KB Internal Politics
 its pointer in Internal Politics is still to be added when that file is split. Items
 tagged **(proposed)** await the designer's OK.
 
+**2026-11-19 designer input**: being addressed freezes a Question's escalation for the length of a debate (Question Active Slate); the order in which the slate's consumers are built is settled (see Status).
+
 ## Data Structures
 
 ### Control Allocation (settled; Allocation Dial semantics settled 2026-11-03)
@@ -128,6 +130,8 @@ Coordination overhead that scales with the number of live routine Questions.
 If Coordination runs short, routine Questions drop out of standing
 administration and become unaddressed (their factions may then escalate).
 
+**Addressed Questions do not escalate for the length of a debate (settled 2026-11-19)**: a Question is **addressed** while it is on the slate (attention) or, for a routine Question, in standing administration. Being addressed **freezes the rise** of its faction escalation momentum (momentum still decays); a Question the Government does not address keeps rising as above. The freeze lasts as long as the Question's debate (the resolution time, Assembly Queue below). If the debate ends and the Question is still pressing (nothing resolved it), it is no longer addressed and **tension and grievance build again**; a Question that has stopped being live and later returns starts afresh. The rule is read by Internal Politics' escalation momentum; the mechanic lives there, the slate and the debate are this module's.
+
 ### Assembly Queue and Question Resolution Time (2026-11-10)
 The slate is the Government's **attention**; the assembly queue is **debating capacity**. A Question exists whenever its grievance trigger holds; it occupies a queue slot only while it is **debated** (Internal Politics, handling `ignored | consulted | debated`).
 ```
@@ -197,7 +201,7 @@ The cost lands as the usual decaying Opinion/Fairness modifier. When crisis seve
 2. Reallocating Control carries no direct cost — only the resulting compliance-exposure shift.
 3. Handling a Question requires a fixed Coordination threshold per severity tier; existential Questions can displace lower tiers from the Government's attention — never from existence (Rule 5).
 4. Unmet Government upkeep degrades C/C/O output proportionally (cut order set by the player's standing spending priority), never spawns Questions; a deeply unmet pool's labour returns to its origin cells (leaderless defection).
-5. Questions exist independent of the slate; off-slate factions may escalate.
+5. Questions exist independent of the slate; unaddressed Questions' factions may escalate, while an addressed Question (on the slate, or routine and in standing administration) does not escalate for the length of its debate, after which, if it is still pressing, it escalates again (2026-11-19).
 6. Requisition scope (cell/Estate/Nation/Region/Empire) is enforced via Control Allocation, additively and per covered cell.
 7. The Government's propaganda is paid from the Coordination pool — it competes with the attention commitments above and other Coordination uses.
 8. Observation governs visibility of off-slate escalation; routine-severity Questions are handled by standing administration at a continuous Coordination overhead scaling with their number.
@@ -210,7 +214,7 @@ The cost lands as the usual decaying Opinion/Fairness modifier. When crisis seve
 15. The assembly queue and the active slate are independent limits (debating capacity vs. Government attention), both derived from Coordination (2026-11-10).
 
 ## Cross-references
-- **Internal Politics** — owns all Actor-cell/Grievance/compliance/Prestige state; this module only produces (via Economics) and targets (via Control Allocation) the Control/Coordination/Observation that feeds `involuntary_compliance`. Defines Government upkeep, Requisition Duty and acting issue-scoped Factions (2026-11-01); this module executes (Control Allocation of Requisition scope; slate = Government attention). Question handling (`ignored | consulted | debated`), the Council/Petition/Veto Rights and `queue_priority` are defined there; the Assembly Queue section above reads them (2026-11-10).
+- **Internal Politics** — owns all Actor-cell/Grievance/compliance/Prestige state; this module only produces (via Economics) and targets (via Control Allocation) the Control/Coordination/Observation that feeds `involuntary_compliance`. Defines Government upkeep, Requisition Duty and acting issue-scoped Factions (2026-11-01); this module executes (Control Allocation of Requisition scope; slate = Government attention). Question handling (`ignored | consulted | debated`), the Council/Petition/Veto Rights and `queue_priority` are defined there; the Assembly Queue section above reads them (2026-11-10). **Escalation momentum** (the rise that an addressed Question does not get, 2026-11-19) is Internal Politics' mechanic; its pointer line to the rule above is to be added when that file is split.
 - **Economics** — Administrative Capability Envelope production (`combined_envelope`) is defined there; this module consumes its output.
 - **Countries** — the Government Triangle is retired (2026-11-01); Institutional↔Personalistic is now a derived readout, so neither scales lever effectiveness or C/C/O cost (those follow Rights/Control configuration directly).
 - **World Map** — the administrative Region is the unit of a Region assembly (2026-11-10).
@@ -237,12 +241,13 @@ The cost lands as the usual decaying Opinion/Fairness modifier. When crisis seve
 - **2026-11-03 (dial pass) — settled**: Control and Observation Allocation are Allocation Dials (floor + priority + surplus ratio, optional cap and sink); per-cell default with aggregate filters and player-named groups as bulk shorthand; surplus auto-fill is free; priority orders floors only; standing spending priority replaces the per-turn re-chosen order. **Open**: a "total-split" mode for aggregate filters (a fixed total divided across covered cells) is not adopted — per-cell only; shortfall inside one entry is pro rata across its cells (numbers pass may refine).
 - **2026-11-03 — mechanical**: Control Allocation filters use the shared scope syntax (cell / Estate / Nation / Region / Empire), matching Requisition scope enforcement.
 - **2026-11-10 — designer input (settled as answered)**: queue = number of simultaneously open Questions per Region and per Empire assembly; agenda controlled by Council rights (Government absolute by default, Council/Petition holders get a share); cap derived from Coordination; Question resolution time 1 / 3 / 5 turns by scope (Region / more than one Region but not the whole Country / Country), quickened only by a majority with no strong veto, or by full consensus when a strong veto blocks. **Proposed (awaiting OK)**: the Coordination→cap mapping per assembly, the agenda-share formula (and Petition gaining an agenda share), and "strong veto" read as a covering Veto holder whose stance is against. **Open**: whether existential Questions bypass the cap; `g(Coordination)` shape and the Weight × right-strength split (numbers pass); the pointer line in `internal_politics__kb.md` (pending that file's split).
+- **2026-11-19 — designer input (settled as answered)**: an addressed Question (on the slate, or routine and in standing administration) freezes the rise of its escalation momentum for the length of its debate; when the debate ends and the Question is still pressing, tension and grievance build again. **Consumer order of the slate (settled as proposed)**: (1) a readout of the slate; (2) the escalation freeze above in Internal Politics' momentum; (3) Question handling (petition handling, Persuasion) on addressed Questions; (4) the assembly queue (cap, agenda shares, duration); (5) Emergency Powers (it changes the Coordination the slate is paid from); (6) AI Governments last (near-zero focus in alpha). **Open**: whether the length of the freeze is the Question's resolution time as soon as the queue exists (read so; until then the code uses one placeholder length); how a resolved Question differs from an expired debate.
 - **Rev:** (tracked = every `###` under Data Structures; `Rules` as one section while it has no `###`; bootstrap 2026-11-12)
   - Data Structures > Control Allocation (settled; Allocation Dial semantics settled 2026-11-03) = 1
   - Data Structures > Observation Allocation (settled 2026-11-01; detection settled 2026-11-02) = 1
-  - Data Structures > Question Active Slate (attention commitment — revised 2026-11-02) = 1
+  - Data Structures > Question Active Slate (attention commitment — revised 2026-11-02) = 2
   - Data Structures > Assembly Queue and Question Resolution Time (2026-11-10) = 1
   - Data Structures > Government upkeep (execution side — settled 2026-11-02) = 1
   - Data Structures > Emergency Powers (settled 2026-11-02) = 1
   - Data Structures > Administration actions (execution layer; classes per `actions__kb.md`) = 1
-  - Rules = 1
+  - Rules = 2
