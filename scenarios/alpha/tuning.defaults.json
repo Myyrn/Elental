@@ -900,5 +900,21 @@
  "cb.mag.expel": {
   "value": 1,
   "status": "placeholder"
+ },
+ "colonize.pullK": {
+  "value": 1,
+  "status": "placeholder"
+ },
+ "colonize.costPerSettler": {
+  "value": 1,
+  "status": "placeholder"
+ },
+ "slate.addressedRise": {
+  "value": 0,
+  "status": "placeholder"
+ },
+ "question.turns.region": {
+  "value": 1,
+  "status": "placeholder"
  }
 }
