@@ -4,6 +4,7 @@ import { tick, push, makeStack } from '../../kernel/modifiers.js'
 import { stepRemainingPolity } from './remaining.js'
 import { addOpinionMod } from './cellstate.js'
 import { tickPortrait, reinforcePortraitFromActs } from './portrait.js'
+import { isListed, addressed } from '../administration/step.js'
 const sum = a => a.reduce((s, x) => s + x, 0), clamp01 = x => Math.min(1, Math.max(0, x))
 
 export function updateGrievance(ctx, key) {
@@ -43,9 +44,14 @@ export function readPolityQueue(ctx) {
   if (Q.defaults) Q.defaults.length = 0 }
 const rungOf = (ctx, m, prev) => { const en = ctx.T('rung.enter'), ex = ctx.T('rung.exit'); let r = 0
   for (let i = 0; i < en.length; i++) if (m >= en[i] || (prev >= i + 1 && m >= ex[i])) r = i + 1; return r }
+/** Momentum of one Question. Being ADDRESSED freezes the rise (kb 2026-11-19, `slate.addressedRise`, 0 = frozen): the Question is addressed while a debate is open, i.e. for `question.turns.region` turns from the turn
+ *  polity first sees it on the Government's slate (attention) or in standing administration (a routine Question counts); the momentum still decays. When the debate ends and the Question is still live, the rise
+ *  resumes (tension and grievance build again) and it is not addressed again until it has stopped being live. Debates are recorded in `polity.debate[key] = {since}`. */
 export function updateMomentum(ctx, q) {
-  const P = ctx.state.polity, m0 = P.momentum[q.key] ?? 0
-  const m = m0 * (1 - ctx.T('mom.decay')) + ctx.T('mom.rise') * q.gap          // attention factor = 1 (single-Question default)
+  const P = ctx.state.polity, m0 = P.momentum[q.key] ?? 0, g = ctx.state.admin?.governments?.[ctx.derive.worldmap.regionOwner(parseCellKey(q.cell).region)]
+  if (g && isListed(q, g) && !P.debate?.[q.key]) (P.debate ??= {})[q.key] = { since: ctx.state.meta.turn }      // the Government took it up: a debate starts
+  const rise = ctx.T('mom.rise') * q.gap * (addressed(ctx, q, g) ? ctx.T('slate.addressedRise') : 1)
+  const m = m0 * (1 - ctx.T('mom.decay')) + rise
   P.momentum[q.key] = m; P.rung[q.key] = rungOf(ctx, m, P.rung[q.key] ?? 0) }
 export function step5(ctx) {
   const P = ctx.state.polity; P.rung ??= {}
@@ -61,4 +67,5 @@ export function step5(ctx) {
   ctx.bump()
   const qs = ctx.derive.polity.questions(), live = new Set(qs.map(q => q.key))
   for (const q of qs) updateMomentum(ctx, q)
+  for (const key of Object.keys(P.debate ?? {})) if (!live.has(key)) delete P.debate[key]      // a Question that stopped being live ends its debate record
   for (const key of Object.keys(P.momentum)) if (!live.has(key)) { P.momentum[key] *= 1 - ctx.T('mom.decay'); if (P.momentum[key] < ctx.T('eps.modifier')) { delete P.momentum[key]; delete P.rung[key] } else P.rung[key] = rungOf(ctx, P.momentum[key], P.rung[key] ?? 0) } }
