@@ -5,7 +5,7 @@ import { readPackage } from '../src/data/loaders/readPackage.js'
 import { EngineClient } from '../src/client/engineClient.js'
 import { stepAllowed, findPath } from '../src/modules/war/graph.js'
 const readJson = async path => JSON.parse(readFileSync(new URL('../' + path, import.meta.url)))
-const boot = async () => { const c = new EngineClient(); await c.init(await readPackage(readJson, 'scenarios/demo'), await readJson('data/ruleset.json')); return c }
+const boot = async () => { const c = new EngineClient(); await c.init(await readPackage(readJson, 'scenarios/demo'), await readJson('data/ruleset.json')); c.ruleset.tuning['mig.rate'] = { value: 0, status: 'test' }; return c }      // migration off: these tests assert exact stocks and casualties
 const V = { kind: 'government', country: 'vantiria' }, K = { kind: 'government', country: 'kerinia' }
 const cellIn = (c, country, province) => { const r = c.state.world.regionSnapshot.assignment[province]; return Object.values(c.state.polity.cells).find(x => x.region === r && x.estate === 'peasants' && x.nation === (country === 'vantiria' ? 'vantir' : 'kerin')) }
 async function war(c) { await c.submit({ actor: V, type: 'declareWar', params: { target: 'kerinia' } }); await c.endTurn(); await c.endTurn(); assert.ok(c.state.war.wars[0].active, 'war becomes active the turn after the declaration') }

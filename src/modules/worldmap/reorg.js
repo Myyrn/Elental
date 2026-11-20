@@ -17,7 +17,7 @@ export function regionCapitalOf(w, region) {
  *  {kind:'split', region, parts:[{provinces, capital}, ...>=2]}   the parts partition the Region exactly, each contiguous, capital inside its part; every part gets a new id
  *  {kind:'merge', regions:[a, b], capital}                         adjacent, same owner; one new id
  *  {kind:'move', province, to, fromCapital?, toCapital?}           the province leaves its Region for the adjacent Region `to`; the donor keeps >= 1 province and stays contiguous; ids unchanged
- *  Every Region touched must belong to `country`. Returns {ok, reasons} or {ok, assignment, next, owners, capitals, gone, targets}; targets(oldRegion) = the live Regions that took its place. */
+ *  Every Region touched must belong to `country`. Returns {ok, reasons} or {ok, assignment, next, owners, capitals, gone, targets}; targets(oldRegion) = the live Regions that took its place (each once). */
 export function applyReorg(w, country, ops) {
   if (!Array.isArray(ops) || !ops.length) return { ok: false, reasons: ['ops required'] }
   const adj = adjOf(w.grid), snap = w.regionSnapshot, assignment = { ...snap.assignment }, owners = { ...(snap.owners ?? {}) }, gone = {}, capitals = {}, reasons = []
@@ -61,7 +61,7 @@ export function applyReorg(w, country, ops) {
     } else no(`unknown op kind ${op?.kind}`)
   }
   if (reasons.length) return { ok: false, reasons }
-  const live = new Set(Object.values(assignment)), targets = rid => (live.has(rid) ? [rid] : (gone[rid] ?? []).flatMap(targets))
+  const live = new Set(Object.values(assignment)), targets = rid => [...new Set(live.has(rid) ? [rid] : (gone[rid] ?? []).flatMap(targets))]      // a chain split-then-merge reaches the same Region twice: each once
   return { ok: true, reasons: [], assignment, next, owners, capitals, gone, targets }
 }
 
