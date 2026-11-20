@@ -916,5 +916,13 @@
  "question.turns.region": {
   "value": 1,
   "status": "placeholder"
+ },
+ "debate.expiryGrievance": {
+  "value": 0.05,
+  "status": "placeholder"
+ },
+ "debate.extendBase": {
+  "value": 0.05,
+  "status": "placeholder"
  }
 }
