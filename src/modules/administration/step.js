@@ -9,11 +9,29 @@ export const questionPriority = (ctx, q) => q.gap * ctx.derive.polity.weight(q.c
 
 /** Is the Question on the Government's slate (attention) or handled by standing administration? (what step 6 wrote last turn) */
 export const isListed = (q, g) => !!g && ((g.attention ?? []).some(a => a.questionKey === q.key) || (g.standing ?? []).includes(q.key))
-/** ADDRESSED = a debate is open: it starts the turn polity first sees the Question listed (`polity.debate[key] = {since}`) and lasts T('question.turns.region') turns; before polity has recorded it,
- *  being listed counts. After the debate ends the Question is not addressed again until it stops being live (and a new one appears), however long it stays listed (kb 2026-11-19). */
+
+// ---------------------------------------------------------------- extending a debate (kb 2026-11-20; commitment `extendDebates`, see actions.js)
+/** The `extendDebates` commitments of a Country: {id, params: {questionKey}}. */
+export const extensions = (ctx, country) => (ctx.state.commitments ?? []).filter(c => c.type === 'extendDebates' && c.actor.kind === 'government' && c.actor.country === country)
+/** k = the turns a debate has been prolonged beyond its natural timespan: 0 during it, 1 on the first extra turn, 2 on the next ... */
+export function extensionTurns(ctx, key) {
+  const d = ctx.state.polity.debate?.[key]; if (!d) return 0
+  return Math.max(0, ctx.state.meta.turn - d.since - ctx.T('question.turns.region') + 1) }
+/** The share of produced Control and of produced Coordination the Country's extensions hold: min(1, Σ s0 × k²) over its extended Questions. Both supplies are multiplied by (1 − share). */
+export function extensionShare(ctx, country) {
+  let s = 0; for (const c of extensions(ctx, country)) { const k = extensionTurns(ctx, c.params.questionKey); s += ctx.T('debate.extendBase') * k * k }
+  return Math.min(1, s) }
+const countryOf = (ctx, q) => ctx.derive.worldmap.regionOwner(parseCellKey(q.cell).region)
+/** The Government pays to keep this Question discussed: an extension names it, a debate record exists and the share is still payable (< 1). */
+const extendedNow = (ctx, q) => { const country = countryOf(ctx, q)
+  return !!ctx.state.polity.debate?.[q.key] && extensions(ctx, country).some(c => c.params.questionKey === q.key) && extensionShare(ctx, country) < 1 }
+
+/** ADDRESSED = the Question is being discussed: a debate is open (it starts the turn polity first sees the Question listed, `polity.debate[key] = {since}`, and lasts T('question.turns.region') turns;
+ *  before polity has recorded it, being listed counts), or the Government extends it. After the debate ends the Question is not addressed again until it stops being live (kb 2026-11-19/20). */
 export function addressed(ctx, q, g) {
   const d = ctx.state.polity.debate?.[q.key]
-  return d ? ctx.state.meta.turn - d.since < ctx.T('question.turns.region') : isListed(q, g) }
+  const open = d ? ctx.state.meta.turn - d.since < ctx.T('question.turns.region') : isListed(q, g)
+  return open || extendedNow(ctx, q) }
 
 export function step6(ctx) {
   const byCountry = {}

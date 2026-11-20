@@ -44,13 +44,22 @@ export function readPolityQueue(ctx) {
   if (Q.defaults) Q.defaults.length = 0 }
 const rungOf = (ctx, m, prev) => { const en = ctx.T('rung.enter'), ex = ctx.T('rung.exit'); let r = 0
   for (let i = 0; i < en.length; i++) if (m >= en[i] || (prev >= i + 1 && m >= ex[i])) r = i + 1; return r }
-/** Momentum of one Question. Being ADDRESSED freezes the rise (kb 2026-11-19, `slate.addressedRise`, 0 = frozen): the Question is addressed while a debate is open, i.e. for `question.turns.region` turns from the turn
- *  polity first sees it on the Government's slate (attention) or in standing administration (a routine Question counts); the momentum still decays. When the debate ends and the Question is still live, the rise
- *  resumes (tension and grievance build again) and it is not addressed again until it has stopped being live. Debates are recorded in `polity.debate[key] = {since}`. */
+/** An expired debate (kb 2026-11-20): the Government's debate on a Question ended and the Question is still live, i.e. it was not solved in a way the involved actors accept. The estates that asked and were not
+ *  satisfied — the cells of the faction that raised it (every cell of the Country with a live Question on the same issue, the Question's own cell included) — take a minor, decaying Fairness-type grievance modifier. */
+function expiryModifier(ctx, q) {
+  const P = ctx.state.polity, issue = q.key.split('|').pop(), turn = ctx.state.meta.turn, ownerOf = x => ctx.derive.worldmap.regionOwner(parseCellKey(x.cell).region), owner = ownerOf(q)
+  const cells = new Set([q.cell, ...ctx.derive.polity.questions().filter(x => x.key.split('|').pop() === issue && ownerOf(x) === owner).map(x => x.cell)])
+  for (const k of [...cells].sort()) { const c = P.cells[k]; if (c) (c.fairnessMods ??= []).push({ id: `debate.${q.key}`, value: ctx.T('debate.expiryGrievance'), decay: { kind: 'exp', rateKey: 'opinion.modDecay' }, turn, source: 'debate' }) } }
+/** Momentum of one Question. Being ADDRESSED freezes the rise (kb 2026-11-19/20, `slate.addressedRise`, 0 = frozen): the Question is addressed only while it is DISCUSSED — a debate is open (it starts the turn polity first sees
+ *  the Question on the Government's slate (attention) or in standing administration, a routine Question counts, and lasts `question.turns.region` turns) or the Government extends it (`extendDebates`); the momentum
+ *  still decays. When the debate ends and the Question is still live, the rise resumes, the debate is marked `expired` and the faction's cells take the expiry modifier ONCE; it is not addressed again until it has
+ *  stopped being live. Debates are recorded in `polity.debate[key] = {since, expired?}`. */
 export function updateMomentum(ctx, q) {
   const P = ctx.state.polity, m0 = P.momentum[q.key] ?? 0, g = ctx.state.admin?.governments?.[ctx.derive.worldmap.regionOwner(parseCellKey(q.cell).region)]
   if (g && isListed(q, g) && !P.debate?.[q.key]) (P.debate ??= {})[q.key] = { since: ctx.state.meta.turn }      // the Government took it up: a debate starts
-  const rise = ctx.T('mom.rise') * q.gap * (addressed(ctx, q, g) ? ctx.T('slate.addressedRise') : 1)
+  const on = addressed(ctx, q, g), d = P.debate?.[q.key]
+  if (d && !d.expired && !on) { d.expired = true; expiryModifier(ctx, q) }                                         // the debate ended unresolved: once
+  const rise = ctx.T('mom.rise') * q.gap * (on ? ctx.T('slate.addressedRise') : 1)
   const m = m0 * (1 - ctx.T('mom.decay')) + rise
   P.momentum[q.key] = m; P.rung[q.key] = rungOf(ctx, m, P.rung[q.key] ?? 0) }
 export function step5(ctx) {
@@ -67,5 +76,6 @@ export function step5(ctx) {
   ctx.bump()
   const qs = ctx.derive.polity.questions(), live = new Set(qs.map(q => q.key))
   for (const q of qs) updateMomentum(ctx, q)
-  for (const key of Object.keys(P.debate ?? {})) if (!live.has(key)) delete P.debate[key]      // a Question that stopped being live ends its debate record
+  for (const key of Object.keys(P.debate ?? {})) if (!live.has(key)) delete P.debate[key]      // a Question that stopped being live ends its debate record (resolved or faded: no modifier) ...
+  ctx.state.commitments = ctx.state.commitments.filter(c => c.type !== 'extendDebates' || live.has(c.params.questionKey))      // ... and its extension lapses
   for (const key of Object.keys(P.momentum)) if (!live.has(key)) { P.momentum[key] *= 1 - ctx.T('mom.decay'); if (P.momentum[key] < ctx.T('eps.modifier')) { delete P.momentum[key]; delete P.rung[key] } else P.rung[key] = rungOf(ctx, P.momentum[key], P.rung[key] ?? 0) } }
