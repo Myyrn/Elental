@@ -10,8 +10,8 @@ export function registerAdministrationActions(reg) {
       if (a.actor.kind !== 'government') return no('a Government order is required')
       if (!q) return no('unknown Question, or it is no longer live')
       if (ctx.derive.worldmap.regionOwner(parseCellKey(q.cell).region) !== a.actor.country) return no('not a Question of your Country')
-      const d = ctx.state.polity.debate?.[key]
-      if (!(d ? !d.expired : isListed(q, ctx.state.admin?.governments?.[a.actor.country]))) return no('the Question is not being debated')
+      const P = ctx.state.polity, d = P.debate?.[key]
+      if (!(d ? !d.expired : (isListed(q, ctx.state.admin?.governments?.[a.actor.country]) && !P.waiting?.[key]))) return no('the Question is not being debated')
       if (extensions(ctx, a.actor.country).some(c => c.params.questionKey === key)) return no('this debate is already extended')
       return { ok: true } },
     apply: (ctx, a) => { ctx.state.commitments.push({ id: a.id, actor: a.actor, type: 'extendDebates', claims: [], since: ctx.state.meta.turn, renew: true, params: { questionKey: a.params.questionKey } }) },

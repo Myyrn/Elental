@@ -60,14 +60,18 @@ export const scarcity = (ctx, S, D) => Math.min(ctx.T('scar.max'), Math.max(ctx.
 export const priceLevel = ctx => { const e = ctx.state.economy.coinage; return ((e.supply / e.lastVolume) / e.ratio0) ** ctx.T('money.kappa') }
 
 // ---- administrative envelope: linear sum over committed pool units (kb rev 2: no division by total units), each pool degraded by its own upkeep shortfall
-export function produceCCO(ctx, country) {
+const envelopeOf = (ctx, country, cells) => {
   const out = { control: 0, coordination: 0, observation: 0 }
-  for (const [key, c] of Object.entries(ctx.state.polity.cells)) {
-    if (W(ctx).regionOwner(parseCellKey(key).region) !== country) continue
-    for (const [pool, units] of Object.entries(c.labourCommitted ?? {})) { const env = ctx.ruleset.pools[pool]?.envelope; if (!env) continue
-      const f = 1 - (ctx.state.admin.governments[country].poolUnmet?.[pool] ?? 0)
-      for (const ax of Object.keys(out)) out[ax] += units * (env[ax] ?? 0) * f } }
+  for (const c of cells) for (const [pool, units] of Object.entries(c.labourCommitted ?? {})) { const env = ctx.ruleset.pools[pool]?.envelope; if (!env) continue
+    const f = 1 - (ctx.state.admin.governments[country]?.poolUnmet?.[pool] ?? 0)
+    for (const ax of Object.keys(out)) out[ax] += units * (env[ax] ?? 0) * f }
   return out }
+export function produceCCO(ctx, country) {
+  return envelopeOf(ctx, country, Object.entries(ctx.state.polity.cells).filter(([key]) => W(ctx).regionOwner(parseCellKey(key).region) === country).map(([, c]) => c)) }
+/** The same envelope restricted to the pools staffed from ONE Region's cells (administration__kb: an assembly's debating capacity follows the Coordination produced by its Region); degraded by the owner's upkeep shortfall like the Country's.
+ *  Σ over a Country's Regions = produceCCO(country). */
+export function produceCCOByRegion(ctx, region) {
+  return envelopeOf(ctx, W(ctx).regionOwner(region), Object.entries(ctx.state.polity.cells).filter(([key]) => parseCellKey(key).region === region).map(([, c]) => c)) }
 
 // ---- contribution (supplies Fairness)
 export const poolScarcity = (ctx, pool) => { const cells = Object.values(ctx.state.polity.cells), tot = sum(cells.map(c => sum(Object.values(c.labour)))) || 1
@@ -75,4 +79,4 @@ export const poolScarcity = (ctx, pool) => { const cells = Object.values(ctx.sta
 export const contribution = (ctx, key) => { const c = ctx.state.polity.cells[key]; const main = Object.entries(c.labour).sort((a, b) => b[1] - a[1])[0]?.[0]
   return (c.salesValueBase ?? 0) * (main ? poolScarcity(ctx, main) : 1) + (c.reliefDelivered ?? 0) + ctx.T('teach.value') * (c.flow?.teaching ?? 0) }   // retraining counts as a FLOW (Economics §5)
 
-export const economicsDerive = { produceCCO, contribution, poolLabour, labourAt, extract, zoneOf, zones, cellZone, priceLevel }
+export const economicsDerive = { produceCCO, produceCCOByRegion, contribution, poolLabour, labourAt, extract, zoneOf, zones, cellZone, priceLevel }
