@@ -16,6 +16,7 @@ import { dockContent } from './views/dock.js'
 const params = new URLSearchParams(location.search), scn = params.get('scenario') ?? 'demo'
 const readJson = async url => { const r = await fetch(url); if (!r.ok) throw new Error(`${url}: ${r.status}`); return r.json() }
 export const WORKSPACES = { Map: mapView, Polity: polityView, Apparatus: apparatusView, Economy: economyView, World: worldView }
+const LIFT = { propaganda: 'liftPropaganda', freeColonization: 'liftFreeColonization', extendDebates: 'liftExtendDebates' }      // standing commitments the ledger can release, and the form that does it
 export const app = { client: new EngineClient(), ui: { workspace: 'Map', tab: {}, filter: {}, sliceOrder: 0, lens: 'owner', lensParam: null, mapMode: 'Map', selected: null, debug: false, country: null, report: null, trayOpen: false, ledgerOpen: false }, rules: null }
 app.q = (name, args = {}) => app.client.query(name, args)
 app.me = () => app.ui.country
@@ -89,18 +90,21 @@ async function renderTray() {
         h('button', { class: 'x', onclick: async () => { await app.client.removeOrder(o.id); await renderTray() } }, '✕'))) }
     if (orders.length) body.append(h('button', { onclick: async () => { await app.client.clearOrders(); await renderTray() } }, 'Clear all')) }
   const led = h('div', { class: 'trayBody' })
-  if (app.ui.ledgerOpen) { const cs = await app.q('commitments', { country: app.me() }); led.append(cs.length ? cs.map(c => h('div', { class: 'order' }, badge(c.kind), ' ', c.text, c.kind === 'propaganda' ? h('button', { onclick: () => openDraft('liftPropaganda') }, 'release') : null)) : h('p', { class: 'muted' }, 'No standing commitments.')) }
+  if (app.ui.ledgerOpen) { const cs = await app.q('commitments', { country: app.me() }); led.append(cs.length ? cs.map(c => h('div', { class: 'order' }, badge(c.kind), ' ', c.text, LIFT[c.kind] ? h('button', { onclick: () => openDraft(LIFT[c.kind], { id: c.id }) }, 'release') : null)) : h('p', { class: 'muted' }, 'No standing commitments.')) }
   t.querySelector('#trayBody')?.replaceChildren(body, led) }
 
 // ---- Event Draft sheet: choose fields -> Preview (validate + gating verdict) -> Queue
 async function draftOptions() {
-  const me = app.me(), [est, gov, mil, tre, rules, world, laws] = await Promise.all([app.q('estates', { country: me }), app.q('govCard', { country: me }), app.q('military', { country: me }), app.q('treaties', { country: me }), app.q('rules'), app.q('world', { country: me }), app.q('laws', { country: me })])
+  const me = app.me(), [est, gov, mil, tre, rules, world, laws, slate] = await Promise.all([app.q('estates', { country: me }), app.q('govCard', { country: me }), app.q('military', { country: me }), app.q('treaties', { country: me }), app.q('rules'), app.q('world', { country: me }), app.q('laws', { country: me }), app.q('slate', { country: me })])
   const sc = app.scope(), sel = app.ui.selected?.kind === 'province' ? app.ui.selected.id : null, map = await app.q('provinceCard', { id: sel ?? Object.keys(app.pkg ? {} : {})[0] ?? 'p:0,0' }).catch(() => null)
   return { me, scope: sc.scope, scopeError: sc.error, filter: app.ui.filter, gov, rights: rules.rights, duties: rules.duties, goods: rules.goods, armyPools: rules.armyPools, axes: rules.axes, axisNames: rules.axisNames,
     estates: [...new Set(est.flatMap(e => e.estate.split('+')))].sort(), myCells: est.map(e => e.key), armies: mil.mine.map(a => a.id), wars: mil.wars.filter(w => w.active && !w.ended).map(w => ({ v: w.id, l: `${w.a} vs ${w.b}${w.internal ? ' (internal)' : ''}` })),
     countries: world.others.map(o => ({ v: o.id, l: o.name })), counterparts: world.others.map(o => ({ v: o.id, l: o.name })), granteeIds: [...world.others.map(o => ({ v: o.id, l: o.name })), ...mil.blocs.filter(b => b.status === 'active').map(b => ({ v: b.id, l: `bloc ${b.id}` }))],
     treaties: tre.active.map(t => ({ v: t.id, l: `${t.kind}${t.tier ? ' ' + t.tier : ''} ${t.id}` })), proposals: tre.proposals.filter(p => p.incoming).map(p => ({ v: p.id, l: `${p.kind} ${p.tier ?? ''} from ${p.from}` })), blocs: mil.blocs.filter(b => b.status === 'active' && b.country !== me).map(b => ({ v: b.id, l: `${b.id} (vs ${b.country})` })),
-    propaganda: gov.propaganda.map(p => ({ v: p.id, l: `${p.id} (${p.amount})` })), selectedProvince: sel, provinceOwner: map?.owner } }
+    propaganda: gov.propaganda.map(p => ({ v: p.id, l: `${p.id} (${p.amount})` })),
+    colonization: slate.colonization.map(c => ({ v: c.id, l: `${c.id} (incentive ${c.incentive})` })), extensions: slate.extensions.map(e => ({ v: e.id, l: `${e.id} → ${e.questionKey} (+${e.turns} turns)` })),
+    debates: slate.questions.filter(q => q.status === 'slate' || q.status === 'debate' || q.status === 'standing').map(q => ({ v: q.key, l: `${q.tier} · ${q.need} · ${q.cell} (${q.status})` })), regions: [...new Set(est.map(e => e.region))].sort(),
+    selectedProvince: sel, provinceOwner: map?.owner } }
 
 export async function openDraft(type, preset = {}) {
   const f = FORMS[type], o = await draftOptions(), sheet = $('draft'), vals = { ...defaults(type, o), ...preset }, result = h('div', { class: 'verdict', id: 'verdict' })
