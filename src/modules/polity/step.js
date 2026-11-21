@@ -50,13 +50,13 @@ function expiryModifier(ctx, q) {
   const P = ctx.state.polity, issue = q.key.split('|').pop(), turn = ctx.state.meta.turn, ownerOf = x => ctx.derive.worldmap.regionOwner(parseCellKey(x.cell).region), owner = ownerOf(q)
   const cells = new Set([q.cell, ...ctx.derive.polity.questions().filter(x => x.key.split('|').pop() === issue && ownerOf(x) === owner).map(x => x.cell)])
   for (const k of [...cells].sort()) { const c = P.cells[k]; if (c) (c.fairnessMods ??= []).push({ id: `debate.${q.key}`, value: ctx.T('debate.expiryGrievance'), decay: { kind: 'exp', rateKey: 'opinion.modDecay' }, turn, source: 'debate' }) } }
-/** Momentum of one Question. Being ADDRESSED freezes the rise (kb 2026-11-19/20, `slate.addressedRise`, 0 = frozen): the Question is addressed only while it is DISCUSSED — a debate is open (it starts the turn polity first sees
- *  the Question on the Government's slate (attention) or in standing administration, a routine Question counts, and lasts `question.turns.region` turns) or the Government extends it (`extendDebates`); the momentum
- *  still decays. When the debate ends and the Question is still live, the rise resumes, the debate is marked `expired` and the faction's cells take the expiry modifier ONCE; it is not addressed again until it has
- *  stopped being live. Debates are recorded in `polity.debate[key] = {since, expired?}`. */
+/** Momentum of one Question. Being ADDRESSED freezes the rise (kb 2026-11-19/20, `slate.addressedRise`, 0 = frozen): the Question is addressed only while it is DISCUSSED — a debate is open (opened by the assembly queue
+ *  at step 6 for a Question on the slate, or here the turn polity first sees a routine Question in standing administration; it lasts its recorded length) or the Government extends it (`extendDebates`); a Question
+ *  on the slate that the queue has not given a slot (`polity.waiting`) is not addressed; the momentum still decays. When the debate ends and the Question is still live, the rise resumes, the debate is marked
+ *  `expired` and the faction's cells take the expiry modifier ONCE; it is not addressed again until it has stopped being live. Debates are recorded in `polity.debate[key] = {since, duration, assembly?, holder?, expired?}`. */
 export function updateMomentum(ctx, q) {
   const P = ctx.state.polity, m0 = P.momentum[q.key] ?? 0, g = ctx.state.admin?.governments?.[ctx.derive.worldmap.regionOwner(parseCellKey(q.cell).region)]
-  if (g && isListed(q, g) && !P.debate?.[q.key]) (P.debate ??= {})[q.key] = { since: ctx.state.meta.turn }      // the Government took it up: a debate starts
+  if (g && isListed(q, g) && !P.debate?.[q.key] && !P.waiting?.[q.key]) (P.debate ??= {})[q.key] = { since: ctx.state.meta.turn, duration: ctx.T('question.turns.region') }      // standing administration (or a direct call): a debate starts without a queue slot
   const on = addressed(ctx, q, g), d = P.debate?.[q.key]
   if (d && !d.expired && !on) { d.expired = true; expiryModifier(ctx, q) }                                         // the debate ended unresolved: once
   const rise = ctx.T('mom.rise') * q.gap * (on ? ctx.T('slate.addressedRise') : 1)
