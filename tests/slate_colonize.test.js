@@ -60,7 +60,7 @@ test('momentum: an unaddressed Question rises as before', () => {
 
 test('momentum: listed on the slate (attention) the rise is frozen and a debate starts; when the debate ends the rise resumes although it is still listed', () => {
   const { s, ctx, q } = pressed(); s.admin.governments.A.attention = [{ questionKey: q.key, coordinationCommitted: 10 }]
-  updateMomentum(ctx, q); close(s.polity.momentum[q.key], 0); assert.deepEqual(s.polity.debate[q.key], { since: s.meta.turn })
+  updateMomentum(ctx, q); close(s.polity.momentum[q.key], 0); assert.equal(s.polity.debate[q.key].since, s.meta.turn)
   assert.equal(ctx.derive.administration.slate('A').questions.find(x => x.key === q.key).status, 'slate')
   s.meta.turn += 1; ctx.bump()                                                                         // the debate (question.turns.region = 1) is over, nothing resolved it
   assert.equal(ctx.derive.administration.slate('A').questions.find(x => x.key === q.key).status, 'unaddressed')

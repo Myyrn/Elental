@@ -924,5 +924,13 @@
  "debate.extendBase": {
   "value": 0.05,
   "status": "placeholder"
+ },
+ "assembly.k": {
+  "value": 0.2,
+  "status": "placeholder"
+ },
+ "assembly.agendaK": {
+  "value": 1,
+  "status": "placeholder"
  }
 }
