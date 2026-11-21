@@ -6,6 +6,7 @@ const parseJson = (s, dflt) => { if (s == null || String(s).trim() === '') retur
 const parseValue = s => { const t = String(s).trim(); if (t === 'true') return true; if (t === 'false') return false; if (t === 'remove' || t === 'null') return null; if (t !== '' && !Number.isNaN(Number(t))) return Number(t); const j = parseJson(t); return j.error ? t : j.value }
 const axesFrom = (picked, termsJson) => { const t = parseJson(termsJson, {}); if (t.error) return t; return { axes: (picked ?? []).map(axis => ({ axis, terms: t.value?.[axis] ?? {} })) } }
 const AXES = o => ({ name: 'axes', label: 'Axes', type: 'multi', options: opts((o.axes ?? []).filter(a => !a.postAlpha).map(a => a.id)) }), TERMS = { name: 'terms', label: 'Terms (JSON keyed by axis)', type: 'json', default: '' }
+const PROVINCE = o => ({ name: 'province', label: 'Target province', type: 'text', default: o.selectedProvince ?? '' })
 
 export const FORMS = {
   setTaxLaw: { group: 'Government', title: 'Tax law', scoped: true, help: 'Market and wealth rates for the chosen Scope (most specific scope wins).',
@@ -14,11 +15,27 @@ export const FORMS = {
     fields: o => [sel('entry', 'Entry', [...(o.rights ?? []).map(r => opt(`rights:${r}`, `Right · ${r}`)), ...(o.duties ?? []).map(d => opt(`duties:${d}`, `Duty · ${d}`))]), { name: 'value', label: 'Value', type: 'text', default: 'true' }],
     build: (v, o) => { const [kind, id] = String(v.entry).split(':'); return { params: { entries: [{ kind, id, scope: o.scope, value: parseValue(v.value) }] } } } },
   placeRequisition: { group: 'Government', title: 'Requisition', scoped: true, fields: o => [sel('good', 'Good', o.goods), num('amount', 'Share', 0.1, { min: 0, max: 1, step: 0.05 })], build: (v, o) => ({ params: { good: v.good, amount: +v.amount, scope: o.scope } }) },
+  directResettlement: { group: 'Government', title: 'Resettle people (direct)', scoped: true, help: 'Moves the chosen Scope\'s people into a province of your Country, carrying their stocks. Overriding Movement autonomy is entitlement loss. Applied at the end of the turn; Preview shows the verdict.',
+    fields: o => [PROVINCE(o), num('share', 'Share of each cell', 1, { min: 0.01, max: 1, step: 0.05 })],
+    build: (v, o) => (v.province ? { params: { scope: o.scope, province: v.province, share: +v.share } } : { error: 'a target province is required' }) },
+  expel: { group: 'Government', title: 'Expel people', scoped: true, help: 'Removes the chosen Scope\'s people across the border into a province of another Country that borders yours (a LaborMigrationBan blocks it). The confiscated share of their stocks goes to the Government; kin Countries get a CB. Maximal entitlement loss for the cells.',
+    fields: o => [PROVINCE(o), num('share', 'Share of each cell', 1, { min: 0.01, max: 1, step: 0.05 }), num('confiscate', 'Confiscated share of their stocks', 0, { min: 0, max: 1, step: 0.05 })],
+    build: (v, o) => (v.province ? { params: { scope: o.scope, province: v.province, share: +v.share, confiscate: +v.confiscate } } : { error: 'a target province is required' }) },
+  freeColonization: { group: 'Government', title: 'Free colonization (standing)', help: 'A standing commitment: raises the pull toward unsettled provinces of your Country and pays each arriving settler from the Ledger; lapses while the Ledger is empty. It compels no one.',
+    fields: () => [num('incentive', 'Incentive per settler', 0.5, { min: 0.01, step: 0.05 })], build: v => (+v.incentive > 0 ? { params: { incentive: +v.incentive } } : { error: 'the incentive must be above 0' }) },
+  liftFreeColonization: { group: 'Government', title: 'Lift free colonization', fields: o => [sel('id', 'Commitment', o.colonization)], build: v => (v.id ? { params: { id: v.id } } : { error: 'no free-colonization commitment' }) },
+  setRegionCapital: { group: 'Government', title: 'Region capital', help: 'The capital is an administrative setting of a Region of your Country; it must be a province of that Region.',
+    fields: o => [sel('region', 'Region', o.regions), { name: 'province', label: 'Capital province', type: 'text', default: o.selectedProvince ?? '' }], build: v => (v.region && v.province ? { params: { region: v.region, province: v.province } } : { error: 'a Region and a province are required' }) },
+  reorganizeRegions: { group: 'Government', title: 'Reorganize Regions', help: 'JSON list of operations: {"kind":"split","region":"r1","parts":[{"provinces":[...],"capital":"p:.."},...]}, {"kind":"merge","regions":["r1","r2"],"capital":"p:.."}, {"kind":"move","province":"p:..","to":"r2"}. Gated by the administration Veto holders; applied at the end of the turn.',
+    fields: () => [{ name: 'ops', label: 'Operations (JSON)', type: 'json', default: '' }], build: v => { const j = parseJson(v.ops, []); if (j.error) return j; return Array.isArray(j.value) && j.value.length ? { params: { ops: j.value } } : { error: 'at least one operation is required' } } },
   setControlAllocation: { group: 'Apparatus', title: 'Control Allocation entry', scoped: true, help: 'One filter of the Allocation Dial: floor + priority + surplus weight. Added to (or replacing) the current dial.',
     fields: () => [num('floor', 'Floor', 0, { min: 0 }), num('priority', 'Priority', 1, { min: 0 }), num('surplusWeight', 'Surplus weight', 1, { min: 0 }), sel('mode', 'Mode', ['add', 'replace'])],
     build: (v, o) => { const e = { target: o.scope, floor: +v.floor, priority: +v.priority, surplusWeight: +v.surplusWeight }; return { params: { entries: v.mode === 'replace' ? [e] : [...(o.gov?.controlDial?.entries ?? []), e] } } } },
   setSpendingDial: { group: 'Apparatus', title: 'Spending reserve', fields: o => [num('reserve', 'Reserve floor', o.gov?.spendingDial?.reserve ?? 0, { min: 0 })],
     build: (v, o) => ({ params: { entries: o.gov?.spendingDial?.entries ?? [], reserve: +v.reserve, sink: o.gov?.spendingDial?.sink ?? 'keep' } }) },
+  extendDebates: { group: 'Apparatus', title: 'Extend a debate', help: 'Keeps a debated Question discussed beyond its natural length. Holds the same share of Control and Coordination, growing with the square of the turns of prolongation.',
+    fields: o => [sel('questionKey', 'Question', o.debates)], build: v => (v.questionKey ? { params: { questionKey: v.questionKey } } : { error: 'no Question is being debated' }) },
+  liftExtendDebates: { group: 'Apparatus', title: 'Lift a debate extension', fields: o => [sel('id', 'Extension', o.extensions)], build: v => (v.id ? { params: { id: v.id } } : { error: 'no extension' }) },
   setMobilityGap: { group: 'Government', title: 'Estate Mobility gap', fields: o => [sel('from', 'From Estate', o.estates), sel('to', 'To Estate', o.estates, o.estates?.[1] ?? o.estates?.[0]), num('gap', 'Max Prestige gap', 1, { step: 0.1 })],
     build: v => (v.from === v.to ? { error: 'pick two different Estates' } : { params: { from: v.from, to: v.to, gap: +v.gap } }) },
   declareConvergence: { group: 'Government', title: 'Declare Estate Convergence', help: 'Merges cell pairs whose Rights and Duties no longer differ (within the Nation/Region filter).', fields: () => [],
