@@ -34,7 +34,7 @@ test('cap 1: one listed Question is debated (a slot of the Government), the othe
   const { s, ctx, byKey } = world(0); assert.equal(queueCap(ctx, REGION), 1)
   const waiting = openDebates(ctx), keys = Object.keys(s.polity.debate); ctx.bump()
   assert.equal(keys.length, 1); assert.equal(waiting.length, 1); assert.notEqual(keys[0], waiting[0]); assert.deepEqual(Object.keys(s.polity.waiting), waiting)
-  assert.deepEqual({ ...s.polity.debate[keys[0]] }, { since: s.meta.turn + 1, duration: T('question.turns.region'), assembly: 'region:r1', holder: 'government' })
+  assert.deepEqual({ ...s.polity.debate[keys[0]] }, { since: s.meta.turn + 1, duration: T('question.turns.region'), assembly: 'region:r1', holder: 'government', scope: 'region' })
   const g = s.admin.governments.A; assert.equal(addressed(ctx, byKey[keys[0]], g), true); assert.equal(addressed(ctx, byKey[waiting[0]], g), false)
   updateMomentum(ctx, byKey[keys[0]]); close(s.polity.momentum[keys[0]], 0, 'debated: frozen'); updateMomentum(ctx, byKey[waiting[0]]); assert.ok(s.polity.momentum[waiting[0]] > 0, 'waiting: rises'); assert.equal(s.polity.debate[waiting[0]], undefined, 'waiting never gets a debate behind the queue\'s back')
   const sl = ctx.derive.administration.slate('A'); assert.deepEqual(sl.questions.map(q => q.status).sort(), ['slate', 'waiting']); assert.deepEqual(sl.waiting, waiting)
@@ -73,7 +73,7 @@ test('economics.produceCCOByRegion: the Regions of a Country add up to the Count
 test('the slate query: plain JSON, with statuses, assemblies, extensions and colonization; a real run keeps the books', async () => {
   const c = await boot(); await c.runTurns(6); const r = await c.query('slate', { country: 'vantiria' })
   assert.deepEqual(JSON.parse(JSON.stringify(r)), r); for (const k of ['attention', 'standing', 'questions', 'unaddressed', 'waiting', 'assemblies', 'extensions', 'colonization', 'heldShare', 'turn', 'coordinationSupply']) assert.ok(k in r, k)
-  for (const q of r.questions) assert.ok(['slate', 'standing', 'debate', 'waiting', 'unaddressed'].includes(q.status), q.status)
+  for (const q of r.questions) { assert.ok(['slate', 'standing', 'debate', 'waiting', 'unaddressed'].includes(q.status), q.status); assert.ok(['region', 'multi', 'empire'].includes(q.scope), q.scope); assert.ok(['ignored', 'consulted', 'debated'].includes(q.handling), q.handling) }
   for (const a of r.assemblies) { assert.ok(a.cap >= 1); assert.ok(a.open <= a.cap + Object.keys(a.slots).length, 'open debates stay within the agenda (a Petition holder may round up)') }
   const q = await c.query('questions', { country: 'vantiria' }); assert.match(q.note, /slate/)
 })
@@ -87,5 +87,5 @@ test('forms: resettlement, expulsion, free colonization, capital, reorganization
   assert.deepEqual(buildOrder('setRegionCapital', { region: 'r1', province: 'p:7,6' }, o).order.params, { region: 'r1', province: 'p:7,6' })
   assert.deepEqual(buildOrder('reorganizeRegions', { ops: '[{"kind":"move","province":"p:7,6","to":"r2"}]' }, o).order.params.ops, [{ kind: 'move', province: 'p:7,6', to: 'r2' }]); assert.match(buildOrder('reorganizeRegions', { ops: '{oops' }, o).error, /JSON/); assert.match(buildOrder('reorganizeRegions', { ops: '' }, o).error, /at least one/)
   assert.equal(buildOrder('extendDebates', defaults('extendDebates', {}), {}).error, 'no Question is being debated')
-  for (const t of ['directResettlement', 'expel', 'freeColonization', 'liftFreeColonization', 'setRegionCapital', 'reorganizeRegions', 'extendDebates', 'liftExtendDebates']) { assert.ok(FORMS[t], t); assert.ok(c.registry.types.has(t), `${t} is a registered Action type`) }
+  for (const t of ['directResettlement', 'expel', 'freeColonization', 'liftFreeColonization', 'setRegionCapital', 'reorganizeRegions', 'extendDebates', 'liftExtendDebates', 'persuade']) { assert.ok(FORMS[t], t); assert.ok(c.registry.types.has(t), `${t} is a registered Action type`) }
 })
