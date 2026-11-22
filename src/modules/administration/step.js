@@ -8,6 +8,24 @@ const propagandaDraw = (ctx, country) => ctx.state.commitments.filter(c => c.typ
 /** Order of Questions inside a tier (spec decision, the instantiation of polity's queue_priority): gap x Weight of the cell, times the Petition multiplier when the cell holds the Petition Right. */
 export const questionPriority = (ctx, q) => q.gap * ctx.derive.polity.weight(q.cell) * (ctx.derive.polity.right(q.cell, 'Petition') ? ctx.T('queue.petitionMult') : 1)
 
+export const regionOf = q => parseCellKey(q.cell).region
+export const needOf = q => q.key.split('|').pop()
+export const countryOf = (ctx, q) => ctx.derive.worldmap.regionOwner(regionOf(q))
+/** The faction that raised a Question (kb 2026-11-22): the cells of the Country that hold a live Question on the same issue (the Question's own cell included), and the Regions they sit in. */
+export function factionOf(ctx, q) {
+  const owner = countryOf(ctx, q), issue = needOf(q), cells = new Set([q.cell])
+  for (const x of ctx.derive.polity.questions()) if (needOf(x) === issue && countryOf(ctx, x) === owner) cells.add(x.cell)
+  const list = [...cells].sort(); return { owner, cells: list, regions: new Set(list.map(k => parseCellKey(k).region)) } }
+/** The scope of a Question is the scope of its faction (designer 2026-11-22): all its cells in one Region = 'region'; cells from more than half of the Country's Regions = 'empire' (country-wide); otherwise 'multi'. */
+export function questionScope(ctx, q) {
+  const f = factionOf(ctx, q); if (f.regions.size <= 1) return 'region'
+  const total = new Set(Object.values(ctx.state.world.regionSnapshot.assignment).filter(r => ctx.derive.worldmap.regionOwner(r) === f.owner)).size || f.regions.size
+  return f.regions.size > 0.5 * total ? 'empire' : 'multi' }
+/** Length of a debate by the scope of the Question: question.turns.region / multi / empire (1 / 3 / 5, placeholders). */
+export const durationOf = (ctx, scope) => ctx.T(`question.turns.${scope}`)
+/** A Question of one Region is debated in that Region's assembly; a multi-Region or country-wide one in the Country's. */
+export const assemblyOf = (ctx, q, scope) => (scope === 'region' ? `region:${regionOf(q)}` : `empire:${countryOf(ctx, q)}`)
+
 /** Is the Question on the Government's slate (attention) or handled by standing administration? (what step 6 wrote last turn) */
 export const isListed = (q, g) => !!g && ((g.attention ?? []).some(a => a.questionKey === q.key) || (g.standing ?? []).includes(q.key))
 
@@ -24,12 +42,11 @@ export function extensionTurns(ctx, key) {
 export function extensionShare(ctx, country) {
   let s = 0; for (const c of extensions(ctx, country)) { const k = extensionTurns(ctx, c.params.questionKey); s += ctx.T('debate.extendBase') * k * k }
   return Math.min(1, s) }
-const countryOf = (ctx, q) => ctx.derive.worldmap.regionOwner(parseCellKey(q.cell).region)
 /** The Government pays to keep this Question discussed: an extension names it, a debate record exists and the share is still payable (< 1). */
 export const extendedNow = (ctx, q) => { const country = countryOf(ctx, q)
   return !!ctx.state.polity.debate?.[q.key] && extensions(ctx, country).some(c => c.params.questionKey === q.key) && extensionShare(ctx, country) < 1 }
 
-/** ADDRESSED = the Question is being discussed: a debate is open (a record `polity.debate[key] = {since, duration, assembly?, holder?}`: opened by the assembly queue at step 6 for a Question on the slate, or by polity
+/** ADDRESSED = the Question is being discussed: a debate is open (a record `polity.debate[key] = {since, duration, assembly?, holder?, scope?}`: opened by the assembly queue at step 6 for a Question on the slate, or by polity
  *  the turn it first sees a routine Question in standing administration; it lasts its recorded length), or the Government extends it. A Question on the slate that the queue has not given a slot (`polity.waiting`)
  *  is NOT addressed. After the debate ends the Question is not addressed again until it stops being live (kb 2026-11-19/20). */
 export function addressed(ctx, q, g) {
