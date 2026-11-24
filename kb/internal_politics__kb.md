@@ -25,7 +25,9 @@ confirmed by the designer. See Status.
 
 **2026-11-09 designer input**: Region is now the stored administrative Region (World Map); laws are set per Region; the scope ladder (with a Precedence flag) fixes Rights/Duties precedence; Estate/Empire scopes exist only when technology enables them; Question handling gains consultation and petition. Items tagged **(proposed)** await the designer's OK.
 
-**2026-11-19/22 designer input**: a Question is discussed in a debate that freezes its escalation only while it lasts (settled: the mechanic is written here under Faction escalation state, the slate and the debate belong to `administration__kb.md`); an unresolved debate leaves a minor decaying grievance modifier on the faction that asked; the length of a debate follows the scope of the faction that raised the Question; Question handling (petition and Persuasion) is built next (Question handling — consultation and petition, below; items tagged **(proposed)** await the designer's OK).
+**2026-11-19/22 designer input**: a Question is discussed in a debate that freezes its escalation only while it lasts (settled: the mechanic is written here under Faction escalation state, the slate and the debate belong to `administration__kb.md`); an unresolved debate leaves a minor decaying grievance modifier on the faction that asked; the length of a debate follows the scope of the faction that raised the Question; Question handling (petition and Persuasion) is built next (Question handling — consultation and petition, below).
+
+**2026-11-24 designer input**: the alpha shape of Question handling and Persuasion is **confirmed** (handling derived; petition refusal clock; moderate and minor expiry modifiers; Persuasion as a Ledger-paid concession; a concession of comparable size leaves no modifier); **a Right granted during a debate counts as a concession**, and its size measure `entitlement_loss_size` is defined (Entitlement loss, below; the conversion to the concession's unit is **proposed**); the early resolution of a debate is settled in `administration__kb.md` (decision rule: two thirds of the voting Weight, nothing gating it).
 
 **Resolution note**: Actor resolution is `(Nation, Estate, Region)`, not
 per-Country. Estate Convergence/Mobility/Demotion Duty are written below
@@ -200,14 +202,23 @@ acceptance    = f(crisis_severity, faction_exposure, burden_share,
 - visible_alternatives — unspent Ledger Wealth / untouched cheaper levers
   the cell can see
 
-Acceptance is judged from the faction's own exposure, never from Government
-framing alone. A decision gravely unpopular in abundance is accepted almost
+Acceptance is judged from the faction's own exposure, never from
+Government framing alone. A decision gravely unpopular in abundance is accepted almost
 without resistance in disaster; the player may be forced to push an
 unpopular decision onto a key faction and the faction understands it as the
 lesser evil. Decay rate is read from the *current* crisis state (never from how long a
 crisis has lasted): faster when the crisis is no longer live and the
 entitlement is restored, slower while an emergency measure remains in force
 without a live crisis (cf. Administration's Emergency Powers).
+
+**The size measure (2026-11-24; confirmed that it is defined, the shape of the definition is proposed)**: `entitlement_loss_size` was the one undefined term here; it is **the act's own impact on the cell**, derived when the act is judged, never stored:
+```
+entitlement_loss_size(cell, act) = what the act takes from the cell's standing: Rights removed, Duties raised, the structural Prestige baseline cut   // the `cost` of the act's impact on the cell (Actions)
+entitlement_gain_size(cell, act) = what the act adds to it: a Right granted, a Duty lowered, the baseline raised                                   // the `relief` of the same impact
+both ≥ 0, in the unit of the act's impact; an act that both takes and gives has both
+```
+- The measure is the same one that sizes the loss modifier above (`cost × (1 − acceptance)`) and that the acceptance function's `burden_share` compares across cells, so a loss and a gain of one act are measured on one scale and a cell's loss is never judged on a different scale than another cell's.
+- **A Right as a concession** (Question handling, below) is the gain side: the concession a Rights/Duties act makes to a faction is `concession.rightK × mean over the faction's cells of entitlement_gain_size` (proposed: only the gain to the cells of the faction that raised the Question counts; a loss the same act imposes on them is not subtracted, it takes its own path as an entitlement loss).
 
 ### Government benefits (settled shape 2026-11-01)
 Two kinds: benefits that **alleviate pain** (relieve a Grievance bucket —
@@ -445,7 +456,7 @@ involuntary_compliance(cell) = Control allocated to cell (Administration)
 **Persuasion** raises `voluntary_compliance` (Opinion-toward-Government's
 modifier stack) — applied standing/proactive or Question-time. Never
 touches `involuntary_compliance`.
-**Alpha shape of Question-time Persuasion (2026-11-22, proposed)**: the Government Event `persuade {Question, amount}` pays from the Ledger a cost proportional to the amount and to the population of the faction that raised the Question, and adds a decaying positive modifier of that amount to Opinion-toward-Government on every cell of that faction; it needs the Question to be discussed. It is a benefit of the "joy" kind (Government benefits) and counts as a **concession** in the debate (Question handling). Standing/proactive Persuasion is not in the shape yet.
+**Alpha shape of Question-time Persuasion (2026-11-22; confirmed 2026-11-24)**: the Government Event `persuade {Question, amount}` pays from the Ledger a cost proportional to the amount and to the population of the faction that raised the Question, and adds a decaying positive modifier of that amount to Opinion-toward-Government on every cell of that faction; it needs the Question to be discussed. It is a benefit of the "joy" kind (Government benefits) and counts as a **concession** in the debate (Question handling). It is not an answer to vote on (`administration__kb.md`, Resolution by decision). Standing/proactive Persuasion is not in the shape yet.
 
 ### Pressure and Question queue
 ```
@@ -488,16 +499,17 @@ petition      (cells holding the Petition Right): the Question carries a standin
 consultation  (cells WITHOUT Petition, but an existential need): Government-opened hearing;
   free of refusal penalty; ignoring costs only the existing Outcome Asymmetry
 ```
-Debating spends the Government's slate attention (Administration). Both modifiers decay like entitlement loss and never become a stored currency. "Comparable weight" uses the same size measure as `entitlement_loss_size`. Sizes and decay: numbers pass.
+Debating spends the Government's slate attention (Administration). Both modifiers decay like entitlement loss and never become a stored currency. "Comparable weight" uses the same size measure as `entitlement_loss_size` (defined 2026-11-24, Entitlement loss). Sizes and decay: numbers pass. **(The heading keeps its 2026-11-09 wording because a heading is an address; the shape below is confirmed.)**
 
-**Alpha shape (2026-11-22; the faction scope rule is the designer's, the rest is proposed and awaits the OK)**
+**Alpha shape (2026-11-22; the faction scope rule is the designer's; the rest **confirmed 2026-11-24**)**
 - **handling is derived**, never stored: `debated` while the Question is discussed (a debate is open or extended) and its cell holds the Petition Right; `consulted` while it is discussed and the cell does not; `ignored` otherwise (not on the slate, waiting for a slot, or its debate ended).
 - **The length of a debate follows the scope of the faction that raised the Question (designer, 2026-11-22)**: the faction = the cells of the Country with a live Question on the same issue. All its cells in one Region → 1 turn, debated in that Region's assembly; cells from several Regions → 3 turns; cells from more than half of the Country's Regions → 5 turns (a country-wide Question); the last two are debated in the Country's assembly (`administration__kb.md`).
 - **Petition, refused to be heard**: a Question of a petitioning cell that is live and not discussed for `petition.grace` turns takes a **large, slowly decaying** Fairness modifier on that cell, **once**. Being discussed before the grace runs out clears the clock.
 - **Petition, debated and refused**: a debate that ends unresolved leaves the expired-debate modifier (Faction escalation state); on a petitioning cell it is multiplied (`petition.expiryMult`: **moderate** instead of minor), on the others it stays minor.
-- **Conceding comparable weight**: Persuasion during the debate counts as a concession; once the concession of a debate reaches `petition.comparable` (Opinion units) its expiry leaves **no** modifier at all, petitioning or not. A Right counts as a concession too, but granting one during a debate is **not in the alpha shape yet** (it needs the size measure of `entitlement_loss_size`).
+- **Conceding comparable weight**: Persuasion during the debate counts as a concession; once the concession of a debate reaches `petition.comparable` (Opinion units) its expiry leaves **no** modifier at all, petitioning or not.
+- **A Right as a concession (confirmed 2026-11-24)**: a Right granted during a debate also counts. Any Government act executed while the Question is discussed (a `reformRightsDuties` bundle, or an answer adopted by the holders, `administration__kb.md`) adds to the debate's concession `concession.rightK × mean over the cells of the faction of entitlement_gain_size` (Entitlement loss, size measure). **Proposed**: only the gain to the faction's own cells counts; the conversion key `concession.rightK` puts it in the unit of Persuasion's `amount` (Opinion units, numbers pass); a loss the act imposes on the faction is not subtracted.
 - **Consultation** carries no refusal penalty: a cell without Petition has no refusal clock.
-- **Not in the shape**: early resolution of a debate (majority or consensus, `administration__kb.md` Quickening) — it needs a decision to vote on; Persuasion does not provide one because it is applied at once.
+- **Early resolution of a debate (designer 2026-11-24)** is the decision rule in `administration__kb.md` (Assembly Queue, Resolution by decision): two thirds of the voting Weight in favour of the Government's answer and no refusing Veto holder. An answer adopted that way ends the debate **resolved**: no expiry modifier, whatever the concession. Persuasion alone does not end a debate (it is applied at once and gives nothing to vote on).
 
 ### Government Portrait (Country-level root trait bundle)
 ```
@@ -615,7 +627,7 @@ foreign-policy and Fervor↔Secular overlaps the open Faith/Cosmology bucket).
 16. Debt forgiveness via the Ledger costs the creditor Estate(s) Opinion/Grievance, not Ledger Wealth — nothing is actually paid out.
 17. An action only draws on the Ledger when it spends no other Actor's resources; any action touching another Actor's Wealth/Labor/goods is an ordinary Control/Duty/Rights interaction, not a Ledger action.
 18. **Fairness** is a Grievance bucket fed by the derived gap `contribution_share − entitlement_share` (normalized shares, never stored).
-19. Entitlement loss is a decaying modifier on Fairness; acceptance is judged from the faction's own exposure — Government framing alone never raises it.
+19. Entitlement loss is a decaying modifier on Fairness; acceptance is judged from the faction's own exposure — Government framing alone never raises it. The size of a loss (and of a gain) is the impact of the act on the cell, one measure for both (2026-11-24).
 20. Awareness is derived and gates attribution only; discontent follows causal provenance × awareness; intent is never modeled.
 21. Factions are issue-scoped, derived, never persisted, and active (they escalate on their own); lifetime = their Question's.
 22. Questions exist independent of Administration's active slate; the slate is the Government's attention only.
@@ -633,21 +645,21 @@ foreign-policy and Fervor↔Secular overlaps the open Faith/Cosmology bucket).
 34. The Government is not a will: an AI Government's values are the amalgam of the most powerful cells' preferences; Government-to-Government standing is derived from the same weights.
 35. Laws are set per administrative Region; the scope ladder fixes precedence; a Precedence flag may reverse it per entry (2026-11-09).
 36. Estate-wide and Empire-wide laws exist only when technology enables them (2026-11-09).
-37. Refusing a petition to be heard is penalized; refusing after a debate without comparable concessions is penalized less; consultation carries no refusal penalty (2026-11-09, proposed).
+37. Refusing a petition to be heard is penalized; refusing after a debate without comparable concessions is penalized less; consultation carries no refusal penalty (2026-11-09; alpha shape confirmed 2026-11-24).
 38. A Question's momentum does not rise while it is discussed (debated, in standing administration, or extended), and does rise while it waits or is ignored; an unresolved debate leaves a minor decaying Fairness modifier once on the faction that raised it (2026-11-19/20).
 39. The length and the assembly of a debate follow the scope of the faction that raised the Question: one Region 1 turn, several Regions 3, more than half of the Country's Regions 5 (2026-11-22).
-40. Question-time Persuasion is a Ledger-paid decaying Opinion benefit to the faction, and a concession in the debate (2026-11-22, proposed).
+40. Question-time Persuasion is a Ledger-paid decaying Opinion benefit to the faction, and a concession in the debate; a Right granted during the debate is a concession too, sized by `entitlement_gain_size` (2026-11-22, confirmed 2026-11-24).
 
 ## Cross-references
 - **World Map** — Region (administrative Region, stored partition, 2026-11-09) is the geographic-clustering source for Actor-cell resolution; fracture/merger/reorganization triggers proportional stock-split and sum (Rule above); Nations' population data is the divisor. `urbanization_rate` is an awareness input (2026-11-01).
 - **Economics** — Skilled Labor pool/Duty vocabulary; Estate Labor Profile reads it as ground truth; land ownership is a per-cell Land Right (Economics, 2026-11-01); Local Jurisdiction enables estate-tariffs. Supplies the contribution valuation (Fairness), pre-cascade Requisition resolution, and the Culture/Print/Teaching pools propaganda draws on. Ledger inflows read Economics' Taxation, State tariffs and minting (2026-11-02).
-- **Administration** — produces and targets Control/Coordination/Observation (Control Allocation lives there); gates Rights-enforcement and Duty-compliance. Active slate = Government attention only; Control Allocation enforces Requisition scope; unmet Government upkeep degrades C/C/O proportionally; leaderless defection rule (2026-11-02); debating a petitioned Question spends slate attention (2026-11-09). **The slate, the assembly queue, the debate and its extension (`extendDebates`) are `administration__kb.md` (2026-11-19/22)**; this file owns what they do to momentum, to the faction's Fairness bucket and to Opinion.
+- **Administration** — produces and targets Control/Coordination/Observation (Control Allocation lives there); gates Rights-enforcement and Duty-compliance. Active slate = Government attention only; Control Allocation enforces Requisition scope; unmet Government upkeep degrades C/C/O proportionally; leaderless defection rule (2026-11-02); debating a petitioned Question spends slate attention (2026-11-09). **The slate, the assembly queue, the debate and its extension (`extendDebates`) are `administration__kb.md` (2026-11-19/22)**; so is the decision rule that ends a debate early (2026-11-24); this file owns what they do to momentum, to the faction's Fairness bucket and to Opinion.
 - **Nations** — Nation tag on every actor; per-Country Sympathy feeds Foreign Standing; titular status survives dependency unless the culture/language axis is ceded. The Preference vector over Portrait axes is the first instance of the open political trait/mentality vocabulary; Reaction Temperament stays magnitude-only.
 - **Countries** — "Empire"="Country"; the Government Triangle is retired (an analogy, not a game rule) and Institutional↔Personalistic is a derived readout, not an input. Supporting another Country's Nation secession bid is CB-generating (bridges to War's escalation pathway).
 - **Diplomacy** — Foreign Standing is a direct input; Questions feed Diplomacy's execution layer. Foreign propaganda writes into cell Preference modifier stacks (Covert Faction Influence re-verified 2026-11-01); Observation vs. the sender's Espionage projection decides detection (2026-11-02).
 - **Characters** — Character-driven standing actions (post-alpha) move Prestige's modifier stack; the alpha Persuasion Event moves Opinion; Character-leaders attach to fractured sub-factions (deferred); acting factions plausibly need leaders (beyond alpha).
 - **War** — Occupation's Actor-cell consequences are recorded in `war__kb.md`, not here. Internal armed conflict (a faction's armed rung) is resolved by War.
-- **Actions** — every executed action writes the Decision Log through the Actions write path (`actions__kb.md`); Borrow/Default Events and the spending Allocation Dial (reserve floor) live there.
+- **Actions** — every executed action writes the Decision Log through the Actions write path (`actions__kb.md`); Borrow/Default Events and the spending Allocation Dial (reserve floor) live there. The `impact` hook of an action type (`cost`, `relief` on a covering cell) is the source of the entitlement size measure (2026-11-24).
 - **UI** — Laws tab columns follow the scope ladder (Estate/Empire columns hidden unless the technology flag enables them); the Value control is generated from ruleset-declared choices (`ui__kb.md`, 2026-11-09).
 - **Events** — causal provenance for attribution (beyond alpha; the Decision Log is the alpha mechanism).
 - **Economics (2026-11-15)** — Economics hands this file the requisition (what was taken, from which cell) and the credit default (creditor, principal) at step 3; the Opinion and Fairness hits are written here, in step 5 (Requisition Duty; Credit default consequences; `economics__kb.md`, Credit).
@@ -679,7 +691,8 @@ foreign-policy and Fervor↔Secular overlaps the open Faith/Cosmology bucket).
 - **2026-11-15 — settled (designer-confirmed implementation choices)**: the alpha shape of Requisition's direct Opinion hit (what was taken, as a share of the cell's own output; no hit when nothing was delivered) — Requisition Duty rev 2; the credit-default consequences for the creditor (Opinion-toward-Government hit and Fairness grievance by loss share; no extra debtor hit) — new section Credit default consequences rev 1. **Open**: essentialness weighting and crisis-acceptance softening of the direct hit; coefficients (numbers pass). (The structural hit, open on this date, is settled 2026-11-16 below.)
 - **2026-11-16 — settled (designer decisions and confirmed implementation proposals)**: the alignment channel — observed portrait from the public Government action record (awareness-scaled, saturating), salience-weighted match per axis; **an aligned cell also gains** (a minor-to-moderate modifier growing with how well the Government's behaviour matches the cell's ideal image; the loss grows with the mismatch) — Cell Preferences & Propaganda rev 3; **direction matters** (tax rise or bigger requisition = Extraction, tax cut or smaller/lifted requisition = Investment); **a standing law may fade** from the record; the stored Portrait (a missing baseline reads as the amalgam, decaying stack) with **reinforcement triggered by Government actions/behaviour** — Government Portrait rev 3; the structural requisition hit is this channel, not a separate stock — Requisition Duty rev 4. **Open**: the coefficients `opinion.align`, `opinion.alignGain`, `portrait.reinforce` and the record's memory rate (numbers pass); success/failure and stakes scaling of Portrait reinforcement; stance of Veto holders toward an act with a realized direction (gating still reads the static load).
 - **2026-11-19/20 — settled (designer; Administration kb is the owner of the slate and the debate)**: a discussed Question does not rise, a waiting or ignored one does; an unresolved debate leaves a minor decaying Fairness modifier once on the faction that raised it (Faction escalation state rev 2; Rule 38).
-- **2026-11-22 — designer input (settled as answered)**: the length (1 / 3 / 5 turns) and the assembly of a debate follow the scope of the faction that raised the Question — one Region; cells from several Regions; cells from more than half of the Country's Regions (Grouping / Faction computation rev 2, Question handling rev 2, Rule 39); Question handling is the next slice. **Proposed (awaiting OK)**: the alpha shape of Question handling and Persuasion (handling derived as debated / consulted / ignored; the petition refusal clock and its large slow modifier; the moderate expiry modifier for petitioners; Persuasion as a Ledger-paid concession; no modifier when the concession reaches the comparable size; Rights as a concession not yet in the shape) (Rule 40, Compliance rev 2). **Open**: sizes and decays (numbers pass); a Right as a concession (needs `entitlement_loss_size`); early resolution of a debate; standing Persuasion.
+- **2026-11-22 — designer input (settled as answered)**: the length (1 / 3 / 5 turns) and the assembly of a debate follow the scope of the faction that raised the Question — one Region; cells from several Regions; cells from more than half of the Country's Regions (Grouping / Faction computation rev 2, Question handling rev 2, Rule 39); Question handling is the next slice. The alpha shape of Question handling and Persuasion proposed that day (handling derived as debated / consulted / ignored; the petition refusal clock and its large slow modifier; the moderate expiry modifier for petitioners; Persuasion as a Ledger-paid concession; no modifier when the concession reaches the comparable size) (Rule 40, Compliance rev 2) was **confirmed 2026-11-24** (below).
+- **2026-11-24 — designer input (settled as answered)**: **confirmed** the alpha shape of Question handling and Persuasion above (Question handling rev 3, Compliance rev 3, Rules 37 and 40); **confirmed** that a Right granted during a debate counts as a concession and that `entitlement_loss_size` gets defined (Entitlement loss rev 2); **decided** — early resolution of a debate: any turn, two thirds of the voting Weight in favour, no refusing Veto holder (owner: `administration__kb.md`, Assembly Queue rev 5). **Proposed (awaiting OK)**: the definition of the size measure as the act's `impact` on the cell (`cost` = loss, `relief` = gain, one scale), the concession of a Right = `concession.rightK × mean gain` over the faction's cells with no subtraction of loss; a debate resolved by an adopted answer leaves no expiry modifier. **Open**: sizes and decays (numbers pass), including `concession.rightK`; standing Persuasion.
 - **Rev:** (tracked = every `###` under Data Structures; `Rules` as one section while it has no `###`; bootstrap 2026-11-13)
   - Data Structures > Actor (base unit) = 1
   - Data Structures > Government and Ledger (resource-holder, not a will — settled 2026-11-02) = 1
@@ -689,7 +702,7 @@ foreign-policy and Fervor↔Secular overlaps the open Faith/Cosmology bucket).
   - Data Structures > Scope syntax and Region-level Convergence/Mobility/Demotion (settled 2026-11-02; ladder 2026-11-09) = 1
   - Data Structures > Existential vs. Secondary needs = 1
   - Data Structures > Fairness bucket (contribution vs. entitlement — settled 2026-11-01) = 1
-  - Data Structures > Entitlement loss (decaying modifier on Fairness — settled shape) = 1
+  - Data Structures > Entitlement loss (decaying modifier on Fairness — settled shape) = 2
   - Data Structures > Government benefits (settled shape 2026-11-01) = 1
   - Data Structures > Awareness and attributed discontent (settled shape 2026-11-01) = 1
   - Data Structures > Decision Log (alpha causal-provenance mechanism — settled shape 2026-11-01) = 1
@@ -705,9 +718,9 @@ foreign-policy and Fervor↔Secular overlaps the open Faith/Cosmology bucket).
   - Data Structures > Subinfeudation = 1
   - Data Structures > Grouping / Faction computation (Question-time only, never persisted) = 2
   - Data Structures > Faction escalation state (settled 2026-11-02) = 2
-  - Data Structures > Compliance (per Actor cell, per need) = 2
+  - Data Structures > Compliance (per Actor cell, per need) = 3
   - Data Structures > Pressure and Question queue = 1
-  - Data Structures > Question handling — consultation and petition (2026-11-09, proposed: modifiers land on the Fairness bucket) = 2
+  - Data Structures > Question handling — consultation and petition (2026-11-09, proposed: modifiers land on the Fairness bucket) = 3
   - Data Structures > Government Portrait (Country-level root trait bundle) = 3
   - Data Structures > Cell Preferences & Propaganda (settled shape 2026-11-01; mechanics partly proposed) = 3
-  - Rules = 2
+  - Rules = 3
