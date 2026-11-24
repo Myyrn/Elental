@@ -2413,6 +2413,58 @@
   "question.turns.region": {
    "value": 1,
    "status": "placeholder"
+  },
+  "debate.expiryGrievance": {
+   "value": 0.05,
+   "status": "placeholder"
+  },
+  "debate.extendBase": {
+   "value": 0.05,
+   "status": "placeholder"
+  },
+  "assembly.k": {
+   "value": 0.2,
+   "status": "placeholder"
+  },
+  "assembly.agendaK": {
+   "value": 1,
+   "status": "placeholder"
+  },
+  "question.turns.multi": {
+   "value": 3,
+   "status": "placeholder"
+  },
+  "question.turns.empire": {
+   "value": 5,
+   "status": "placeholder"
+  },
+  "petition.grace": {
+   "value": 1,
+   "status": "placeholder"
+  },
+  "petition.refuseHit": {
+   "value": 0.3,
+   "status": "placeholder"
+  },
+  "petition.refuseDecay": {
+   "value": 0.03,
+   "status": "placeholder"
+  },
+  "petition.expiryMult": {
+   "value": 3,
+   "status": "placeholder"
+  },
+  "petition.comparable": {
+   "value": 1,
+   "status": "placeholder"
+  },
+  "persuade.costK": {
+   "value": 1,
+   "status": "placeholder"
+  },
+  "persuade.popUnit": {
+   "value": 1000,
+   "status": "placeholder"
   }
  }
 }
