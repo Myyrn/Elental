@@ -1,8 +1,9 @@
 // worldgen/terrain.js — slice 3c, stages 1-4 of worldgen__spec.md at the 10-terrain model (Sea incl. lakes).
 // Pure and deterministic: (seed, params) -> {provinces}. Every hex of the grid is a province, water included.
 // Stages: raw fields (157x114) -> land/sea mask -> terrain classification -> hex sampling (majority vote) -> water bodies -> forestation -> water source -> anchors.
-// Rivers, passes, sea lanes, Nations, Countries, fortresses and cell seeding are later stages (not here).
+// Rivers, passes, sea lanes, Nations, Countries, fortresses and cell seeding are later stages (not here). `worldgen/world.js` turns the result into the `world.json` document.
 import { neighbors, provId } from '../modules/worldmap/hex.js'
+import { terrain as TERRAIN_RULES } from '../data/terrainRules.js'
 
 export const TERRAINS = ['Mountain', 'Hill', 'Desert', 'Steppe', 'Grassland', 'Wetland', 'Jungle', 'Arctic', 'Taiga', 'Sea']
 
@@ -16,8 +17,8 @@ export const DEFAULTS = {
                   M_steppe: 0.42, M_jungle: 0.7, T_jungle: 0.6, M_wet: 0.68, T_lowland: 0.5 },
   // forestation ceilings from the kb table (percent); Grassland 10-70 is flagged open in the kb
   forest: { Desert: [0, 10], Arctic: [0, 15], Steppe: [0, 40], Mountain: [0, 40], Taiga: [50, 90], Wetland: [20, 70], Hill: [10, 70], Grassland: [10, 70], Jungle: [60, 100], Sea: [0, 0] },
-  // numeric stand-ins for the kb's qualitative density ceilings (very low ... high); only used to interpolate the starting anchors
-  densityCeiling: { Desert: 0.5, Arctic: 0.5, Steppe: 3, Mountain: 2, Taiga: 2, Wetland: 5, Hill: 4, Grassland: 8, Jungle: 3, Sea: 0 },
+  // the density ceilings are the RULESET's (src/data/terrainRules.js: Grassland 1.0, Taiga and Mountain 0.1 — Grassland carries 10x the people of Taiga, designer 2026-11-25); here they only interpolate the starting anchors
+  densityCeiling: Object.fromEntries(Object.entries(TERRAIN_RULES).map(([t, r]) => [t, r.popDensityCeiling])),
   anchors: { Grassland: 10000, low: 1000, floor: 250 },   // kb 2026-11-10: Grassland ~10,000; Taiga and Mountain ~1,000; others scaled by the density ceiling
   coastFraction: 0.001,
 }
