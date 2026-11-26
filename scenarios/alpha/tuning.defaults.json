@@ -968,5 +968,13 @@
  "persuade.popUnit": {
   "value": 1000,
   "status": "placeholder"
+ },
+ "decision.majority": {
+  "value": 0.6666666666666666,
+  "status": "authored"
+ },
+ "concession.rightK": {
+  "value": 1,
+  "status": "placeholder"
  }
 }
