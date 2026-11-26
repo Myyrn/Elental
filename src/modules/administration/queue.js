@@ -38,14 +38,14 @@ export function agendaOf(ctx, scope) {
   return { cap, shares: Object.fromEntries(shares), slots } }
 export const agenda = (ctx, region) => agendaOf(ctx, { kind: 'region', id: region })
 
-/** Step 6, after the slate: give the listed Questions their slots. Open debates keep theirs (a debate occupies its slot until its natural length is over, an extension keeps it, an expired one frees it);
- *  the others are taken in order (tier, priority, key) and either start a debate (`since` = next turn: the turn polity first sees it; its length and assembly follow the scope of the Question's faction) or wait.
- *  The holder is the Question's own cell when it holds an agenda share, else the Government. Returns the keys that wait. */
+/** Step 6, after the slate (and after `decideDebates`): give the listed Questions their slots. Open debates keep theirs (a debate occupies its slot until its natural length is over, an extension keeps it,
+ *  an expired or a decided one frees it); the others are taken in order (tier, priority, key) and either start a debate (`since` = next turn: the turn polity first sees it; its length and assembly follow the scope
+ *  of the Question's faction) or wait. The holder is the Question's own cell when it holds an agenda share, else the Government. Returns the keys that wait. */
 export function openDebates(ctx) {
   const P = ctx.state.polity, D = (P.debate ??= {}), turn = ctx.state.meta.turn, waiting = (P.waiting = {}), live = ctx.derive.polity.questions(), byKey = Object.fromEntries(live.map(q => [q.key, q]))
   const agendas = {}, used = {}
   for (const [key, d] of Object.entries(D)) { const q = byKey[key]
-    if (!q || !d.assembly || d.expired || !(turn + 1 - d.since < debateLength(ctx, d) || extendedNow(ctx, q))) continue
+    if (!q || !d.assembly || d.expired || d.decided || !(turn + 1 - d.since < debateLength(ctx, d) || extendedNow(ctx, q))) continue
     const u = (used[d.assembly] ??= {}); u[d.holder] = (u[d.holder] ?? 0) + 1 }
   for (const [country, g] of Object.entries(ctx.state.admin.governments)) {
     const listed = new Set((g.attention ?? []).map(a => a.questionKey))
