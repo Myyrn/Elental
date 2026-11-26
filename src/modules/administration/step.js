@@ -42,16 +42,16 @@ export function extensionTurns(ctx, key) {
 export function extensionShare(ctx, country) {
   let s = 0; for (const c of extensions(ctx, country)) { const k = extensionTurns(ctx, c.params.questionKey); s += ctx.T('debate.extendBase') * k * k }
   return Math.min(1, s) }
-/** The Government pays to keep this Question discussed: an extension names it, a debate record exists and the share is still payable (< 1). */
-export const extendedNow = (ctx, q) => { const country = countryOf(ctx, q)
-  return !!ctx.state.polity.debate?.[q.key] && extensions(ctx, country).some(c => c.params.questionKey === q.key) && extensionShare(ctx, country) < 1 }
+/** The Government pays to keep this Question discussed: an extension names it, a debate record exists (not decided: a decided debate is over) and the share is still payable (< 1). */
+export const extendedNow = (ctx, q) => { const country = countryOf(ctx, q), d = ctx.state.polity.debate?.[q.key]
+  return !!d && !d.decided && extensions(ctx, country).some(c => c.params.questionKey === q.key) && extensionShare(ctx, country) < 1 }
 
-/** ADDRESSED = the Question is being discussed: a debate is open (a record `polity.debate[key] = {since, duration, assembly?, holder?, scope?}`: opened by the assembly queue at step 6 for a Question on the slate, or by polity
- *  the turn it first sees a routine Question in standing administration; it lasts its recorded length), or the Government extends it. A Question on the slate that the queue has not given a slot (`polity.waiting`)
- *  is NOT addressed. After the debate ends the Question is not addressed again until it stops being live (kb 2026-11-19/20). */
+/** ADDRESSED = the Question is being discussed: a debate is open (a record `polity.debate[key] = {since, duration, assembly?, holder?, scope?, conceded?, expired?, proposal?, decided?}`: opened by the assembly queue at step 6
+ *  for a Question on the slate, or by polity the turn it first sees a routine Question in standing administration; it lasts its recorded length, or until it is DECIDED by the holders' vote, decision.js),
+ *  or the Government extends it. A Question on the slate that the queue has not given a slot (`polity.waiting`) is NOT addressed. After the debate ends the Question is not addressed again until it stops being live (kb 2026-11-19/20). */
 export function addressed(ctx, q, g) {
   const P = ctx.state.polity, d = P.debate?.[q.key]
-  const open = d ? ctx.state.meta.turn - d.since < debateLength(ctx, d) : (isListed(q, g) && !P.waiting?.[q.key])
+  const open = d ? !d.decided && ctx.state.meta.turn - d.since < debateLength(ctx, d) : (isListed(q, g) && !P.waiting?.[q.key])
   return open || extendedNow(ctx, q) }
 
 export function step6(ctx) {
