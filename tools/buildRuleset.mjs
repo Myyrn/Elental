@@ -1,18 +1,8 @@
 // tools/buildRuleset.mjs — generates data/ruleset.json (THE shared ruleset). All numbers are placeholders (status tracked per section).
 import { readFileSync, writeFileSync } from 'node:fs'
+import { terrain, capability, traversal, densityScale, hexArea } from '../src/data/terrainRules.js'      // the terrain table (ten types incl. Sea), water capability and traversal live in src/data/terrainRules.js
 const tuning = JSON.parse(readFileSync(new URL('../scenarios/alpha/tuning.defaults.json', import.meta.url)))
 
-const terrain = {   // kb: forestation ceilings + favor table; arable / density ceilings are placeholders from the qualitative kb levels
-  Mountain: { forestMin: 0, forestMax: 40, arableCeiling: 0.15, popDensityCeiling: 0.2, favor: { 'Iron Ore': 8, 'Precious Metal Ore': 8, Coal: 6, Stone: 8, Sulfur: 5 } },
-  Hill: { forestMin: 10, forestMax: 70, arableCeiling: 0.5, popDensityCeiling: 0.5, favor: { Stone: 4, 'Iron Ore': 3, Coal: 3, 'Fine Horses': 2, Wool: 2 } },
-  Desert: { forestMin: 0, forestMax: 10, arableCeiling: 0.05, popDensityCeiling: 0.05, favor: { Salt: 6, Sulfur: 4, 'Precious Metal Ore': 2 } },
-  Steppe: { forestMin: 0, forestMax: 40, arableCeiling: 0.5, popDensityCeiling: 0.3, favor: { 'Fine Horses': 8, Livestock: 5, Wool: 3 } },
-  Grassland: { forestMin: 10, forestMax: 70, arableCeiling: 0.9, popDensityCeiling: 1.0, favor: { Grain: 6, Livestock: 5, Wool: 2 } },   // forest ceiling: kb flags for correction
-  Wetland: { forestMin: 20, forestMax: 70, arableCeiling: 0.4, popDensityCeiling: 0.7, favor: { Fish: 5, Fiber: 5, Salt: 3, Herbs: 3, 'Iron Ore': 2 } },
-  Jungle: { forestMin: 60, forestMax: 100, arableCeiling: 0.2, popDensityCeiling: 0.4, favor: { Herbs: 8, 'Magical Reagents': 5, Fiber: 4 } },
-  Arctic: { forestMin: 0, forestMax: 15, arableCeiling: 0.02, popDensityCeiling: 0.05, favor: { Fish: 4, Hides: 3, 'Precious Metal Ore': 2 } },
-  Taiga: { forestMin: 50, forestMax: 90, arableCeiling: 0.2, popDensityCeiling: 0.25, favor: { Hides: 5, Fish: 3 } },
-}
 const raw = { Grain: 'Agriculture', Livestock: 'Agriculture', 'Fine Horses': 'Agriculture', Fiber: 'Agriculture', Wool: 'Agriculture', Hides: 'Agriculture', Herbs: 'Agriculture',
   Stone: 'Mining', 'Iron Ore': 'Mining', 'Precious Metal Ore': 'Mining', Coal: 'Mining', Sulfur: 'Mining', Salt: 'Mining',
   Timber: 'Woodcraft', Fish: 'Fishing', 'Magical Reagents': 'Reagent Gathering' }
@@ -74,10 +64,10 @@ const duties = {}; for (const d of ['Taxation', 'Levy', 'SkilledLabourDuty', 'Re
 const axes = {}; for (const a of ['CultureLanguageSovereignty', 'MilitaryCap', 'ForeignPolicy', 'TradeAccess', 'Fortification', 'ResourceExportBan', 'LaborMigrationBan', 'DomainVeto']) axes[a] = { symmetricAllowed: true }
 for (const a of ['Succession', 'CommonRuler']) axes[a] = { symmetricAllowed: true, postAlpha: true }
 
-const ruleset = { version: 1, status: 'placeholder numbers (numbers pass pending)', terrain, goods, pools, needs, consumption, rights, duties, axes,
+const ruleset = { version: 1, status: 'placeholder numbers (numbers pass pending)', terrain, capability, traversal, goods, pools, needs, consumption, rights, duties, axes,
   war,
   cb: { tiers: ['Grievance', 'Rights', 'Sovereignty', 'Existential'] }, rituals: {},
-  worldgen: { landFraction: 0.45, waterSourcePrecedence: ['river_adjacent', 'coastal'] },
+  worldgen: { landFraction: 0.45, waterSourcePrecedence: ['river_adjacent', 'coastal'], hexArea, densityScale },
   tuning }
 writeFileSync(new URL('../data/ruleset.json', import.meta.url), JSON.stringify(ruleset, null, 1))
-console.log('goods', Object.keys(goods).length, 'pools', Object.keys(pools).length, 'needs', Object.keys(needs).length, 'rights', Object.keys(rights).length)
+console.log('goods', Object.keys(goods).length, 'pools', Object.keys(pools).length, 'needs', Object.keys(needs).length, 'rights', Object.keys(rights).length, 'terrain', Object.keys(terrain).length)
