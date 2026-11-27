@@ -13,8 +13,8 @@ export const terrain = {
   Taiga: { forestMin: 50, forestMax: 90, arableCeiling: 0.2, popDensityCeiling: 0.1, favor: { Hides: 5, Fish: 3 } },    // designer 2026-11-25: Grassland carries 10x the people of Taiga (ceilings 1.0 vs 0.1; starting anchors 10,000 vs 1,000)
   Sea: { forestMin: 0, forestMax: 0, arableCeiling: 0, popDensityCeiling: 0, water: true, favor: { Fish: 4 } },           // Sea and lake hexes; Fish yield is open in the kb (placeholder)
 }
-// kb 2026-11-09/10: lakes are playable water provinces, open sea is not (alpha); `canSettle` (worldmap/migration.js) reads these. Spec decision (pending OK): settleLake true, settleSea false.
-export const capability = { settleSea: false, settleLake: true }
+// kb world_map 2026-11-09/10: in alpha no Nation can settle water — neither open sea nor lakes (post-alpha technologies); lakes are playable water provinces that simply stay unsettled. `canSettle` (worldmap/migration.js) reads these.
+export const capability = { settleSea: false, settleLake: false }
 // what may move through a water province. `land: false` = armies on foot cannot enter (war/graph.js); `sea: true` is for ships and sea lanes (naval movement is not in code yet).
 export const traversal = { Sea: { land: false, sea: true }, Lake: { land: false, sea: true } }
 export const hexArea = 100          // the area of one hex province (maxArea); the demo used 100
