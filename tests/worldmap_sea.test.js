@@ -17,7 +17,7 @@ const clone = () => structuredClone(world), firstOf = (w, f) => Object.entries(w
 test('the ruleset has ten terrains with Sea (a water terrain), water capability and traversal; Grassland carries 10x the people of Taiga', () => {
   assert.deepEqual(Object.keys(terrain).sort(), [...TERRAINS].sort())
   assert.equal(terrain.Sea.water, true); assert.equal(terrain.Sea.popDensityCeiling, 0); assert.equal(terrain.Sea.forestMax, 0)
-  assert.equal(capability.settleSea, false); assert.equal(capability.settleLake, true)
+  assert.equal(capability.settleSea, false); assert.equal(capability.settleLake, false)
   assert.equal(traversal.Sea.land, false); assert.equal(traversal.Lake.land, false); assert.equal(traversal.Sea.sea, true)
   assert.ok(Math.abs(terrain.Grassland.popDensityCeiling / terrain.Taiga.popDensityCeiling - 10) < 1e-9)
   const a = anchorsOf(T), by = {}; for (const [id, p] of Object.entries(T.provinces)) by[p.terrain] = a[id]
@@ -49,7 +49,8 @@ test('validators: a hex without a province, a wrong surface, a Sea province with
   w = clone(); delete w.provinces[seaId].waterBody; assert.ok(ids(w).includes('waterBody'))
   w = clone(); w.provinces[seaId].owner = 'x'; assert.ok(worldIssues(docs(w)).some(i => i.id === 'waterOwner' && i.severity === 'warn'))
   w = clone(); w.provinces[seaId].population = 10; assert.ok(ids(w).includes('waterPop'))
-  w = clone(); const [lakeId] = firstOf(w, p => p.waterBody === 'lake'); w.provinces[lakeId].population = 10; assert.equal(ids(w).includes('waterPop'), false, 'a lake may be settled (settleLake)')
+  w = clone(); const [lakeId] = firstOf(w, p => p.waterBody === 'lake'); w.provinces[lakeId].population = 10; assert.ok(ids(w).includes('waterPop'), 'a lake is not settled either in alpha (settleLake false)')
+  const settleable = docs(w); settleable.ruleset = { ...ruleset, capability: { settleSea: false, settleLake: true } }; assert.equal(worldIssues(settleable).some(i => i.id === 'waterPop'), false, 'unless the capability is granted')
   w = clone(); w.provinces[landId].waterBody = 'lake'; assert.ok(ids(w).includes('waterBodyLand'))
   const noSea = docs(); noSea.ruleset = { ...ruleset, terrain: Object.fromEntries(Object.entries(terrain).filter(([k]) => k !== 'Sea')) }; assert.ok(worldIssues(noSea).some(i => i.id === 'seaTerrain'))
 })
