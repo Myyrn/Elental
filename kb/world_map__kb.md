@@ -3,7 +3,7 @@
 Status: terrain/resource/edge/region model settled. Grid substrate merged in
 from former world_map_graphics__kb.md (rendering itself now lives in
 ui__kb.md — see that file). Exact worldgen pipeline,
-Grassland forestation ceiling value open. **2026-11-09 designer input**: Region is now a stored administrative partition with a Reorganization Event; resettlement widened and Expulsion added; every hex is a province and Sea becomes the 10th terrain type (see Status; items tagged **(proposed)** await the designer's OK). **2026-11-10 designer input**: lakes are playable water provinces too (unsettled without special technologies); starting population anchors raised (Grassland ≈ 10,000, Taiga/Mountain ≈ 1,000); each Region has a stored `capital_province`, set by the player/AI in the Region's administrative settings. **2026-11-19 designer input**: the migration, settlement, resettlement and Expulsion shapes below are settled as implemented; free colonization is a standing commitment.
+Grassland forestation ceiling value open. **2026-11-09 designer input**: Region is now a stored administrative partition with a Reorganization Event; resettlement widened and Expulsion added; every hex is a province and Sea becomes the 10th terrain type (see Status; items tagged **(proposed)** await the designer's OK). **2026-11-10 designer input**: lakes are playable water provinces too (unsettled without special technologies); starting population anchors raised (Grassland ≈ 10,000, Taiga/Mountain ≈ 1,000); each Region has a stored `capital_province`, set by the player/AI in the Region's administrative settings. **2026-11-19 designer input**: the migration, settlement, resettlement and Expulsion shapes below are settled as implemented; free colonization is a standing commitment. **2026-11-25 designer input**: Sea Lane edges stay and make sea travel faster along the coast; the density ceilings are left to my judgement with Grassland carrying ten times the people of Taiga.
 
 ## Data Structures
 
@@ -50,12 +50,12 @@ Independent 0-100% scalar, capped per terrain:
 *flagged for correction to a higher ceiling — exact value **open, unresolved**.
 
 ### Starting population (worldgen anchors, 2026-11-10)
-At worldgen `current_population` of a **Settled** province is seeded from a per-terrain anchor, raised from the earlier placeholder values. Afterwards population is derived dynamics only (see Population dynamics) — the anchor is a seed, not a stored rate.
+At worldgen `current_population` of a **Settled** province is seeded from a per-terrain anchor, raised from the earlier placeholder values. Afterwards population is derived dynamics only (see Population dynamics) — the anchor is a seed, not a stored rate. **(2026-11-25)** The population density ceilings of the terrains are numbers the designer leaves to the build, with one fixed ratio: **Grassland's ceiling is ten times Taiga's** (so the anchors are 10,000 and 1,000); Taiga and Mountain share a ceiling and an anchor.
 | Terrain | Anchor per Settled province |
 |---|---|
 | Grassland | ≈ 10,000 |
 | Taiga, Mountain | ≈ 1,000 |
-| other land terrains | scaled between those anchors by the terrain's `max_population_density` ceiling (values open — numbers pass) |
+| other land terrains | scaled between those anchors by the terrain's `max_population_density` ceiling (linear in the ceiling; the ceilings are placeholders — numbers pass; a terrain below Taiga's ceiling gets a small floor) |
 | Sea (incl. lake) | 0 (unsettled) |
 Frontier and Wasteland provinces seed lower (open). The split of a province's seed across Nations and Estate cells is Nations' data (unchanged).
 
@@ -83,7 +83,7 @@ edge = { hex_A, hex_B, type: river | mountain_pass | sea_lane, fortress: bool }
 ```
 - River — crossing costs extra supply/time/combat penalty; bridge removes it at that edge.
 - Mountain Pass — only interactive route through a Mountain Region's interior.
-- Sea Lane — connects coastal hexes; needs naval capability; landmass stays topologically contiguous regardless of routing. Sea Lane edges route through Sea provinces (2026-11-09).
+- Sea Lane — connects coastal hexes; needs naval capability; landmass stays topologically contiguous regardless of routing. Sea Lane edges route through Sea provinces (2026-11-09). **(2026-11-25) A sea lane speeds up sea travel — the near-coast route: a ship on a lane travels faster than through open sea provinces.** Sea Lane edges still exist with Sea provinces on the grid; their speed-up is a naval-movement number (open) and naval movement itself is not in alpha code.
 - Fortress — sits on a chokepoint edge, converts free passage into siege-required. Most edges are unfortified — porosity is intentional.
 
 
@@ -144,8 +144,9 @@ Water provinces (sea and lake) carry population, owner and warehouse fields like
 14. `water_source` is single-valued; when several apply, river-adjacent wins over coastal.
 15. Movement across Mountain edges is blocked unless the edge is a Mountain Pass — an edge between two Mountain hexes (the Region interior) is traversable only as `mountain_pass`; Mountain↔non-Mountain edges stay open (to confirm). Worldgen guarantees land connectivity.
 16. Land armies cannot enter Sea or lake provinces until the matching technology (`traversal.Sea`, `traversal.Lake`); they cannot be settled until a capability flag allows it (`capability.settleSea`, `capability.settleLake`).
-17. A Settled province's initial `current_population` is seeded from a per-terrain anchor (Grassland ≈ 10,000; Taiga and Mountain ≈ 1,000; other terrains scaled by density ceiling); afterwards population is derived dynamics only (2026-11-10).
+17. A Settled province's initial `current_population` is seeded from a per-terrain anchor (Grassland ≈ 10,000; Taiga and Mountain ≈ 1,000; other terrains scaled by density ceiling); afterwards population is derived dynamics only (2026-11-10). Grassland's density ceiling is ten times Taiga's (2026-11-25).
 18. A Region's `capital_province` is a stored administrative setting chosen by the player or AI when the Region is defined or redefined, always a province of that Region; it is never derived and has no gameplay effect yet (2026-11-10).
+19. Sea Lane edges exist with Sea provinces on the grid and speed up sea travel along the coast (2026-11-25); the size of the speed-up is a naval-movement number.
 
 
 ## Cross-references
@@ -170,16 +171,17 @@ Water provinces (sea and lake) carry population, owner and warehouse fields like
 - **2026-11-10 (later) — designer input (settled as worded)**: a Region's capital is a **stored administrative setting** chosen by the player or AI when the Region is defined or redefined (Rule 18; replaces the derived "most populous province" proposal in `ui__kb.md`). **Proposed (awaiting OK)**: the fallback when a split/merge leaves a Region without a valid capital. **Open**: gameplay effect of the capital (none yet); the AI's selection rule.
 - **2026-11-14 — structure only**: the orphaned water-province block that followed Megaregion without a heading now has its own heading `Water provinces and water source (substrate summary)` so it is a tracked section; no meaning changed.
 - **2026-11-18/19 — settled by the designer**: capitals are named inside the Reorganization ops (Region, Reorganization Event); the migration/settlement/resettlement/Expulsion details of Population dynamics (Region-level satisfaction, the frontier pull, Movement autonomy as a block, owned provinces only, density-ceiling cap, the kb Expulsion details formerly proposed: border requirement, confiscation to the Government's ledger and inventory, kin-state Rights CB, opinion hit on the source cells; moves applied once at end of turn); the free-colonization policy is a **standing commitment** (Rules 10, 11).
+- **2026-11-25 — designer input (settled as answered)**: the land fraction and the number and size of continents will be given manually later (worldgen parameters, not kb); the population density ceilings of the terrains are left to the build with **Grassland at ten times Taiga's** (Starting population, Rule 17); **Sea Lane edges still exist and speed up sea travel along the coast** (Edges, Rule 19). The proposed shapes of 2026-11-10 (the Sea terrain type with `water_body`, per-body capability and traversal flags, lake shore as `river_adjacent`, the interpolation of the other terrains' anchors by density ceiling) were **confirmed 2026-11-25** together with every other proposal of the build. **Open**: ownership of unsettled water (the build keeps it unowned); Fish yield; the naval speed-up number; whether Sea Lanes may cross lakes.
 - **Rev:** (tracked = every `###` under Data Structures; `Rules` as one section while it has no `###`; bootstrap 2026-11-14)
   - Data Structures > Grid = 1
   - Data Structures > Province (hex) = 1
   - Data Structures > Terrain Types (10) = 1
   - Data Structures > Forestation = 1
-  - Data Structures > Starting population (worldgen anchors, 2026-11-10) = 1
+  - Data Structures > Starting population (worldgen anchors, 2026-11-10) = 2
   - Data Structures > Resource Extraction = 1
-  - Data Structures > Edges (not hex attributes) = 1
+  - Data Structures > Edges (not hex attributes) = 2
   - Data Structures > Population dynamics (settled shape 2026-11-02) = 2
   - Data Structures > Region (administrative region, 2026-11-09) = 1
   - Data Structures > Megaregion (derived, scale-conditional) = 1
   - Data Structures > Water provinces and water source (substrate summary) = 1
-  - Rules = 2
+  - Rules = 3
