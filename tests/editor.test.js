@@ -35,18 +35,25 @@ test('validators catch broken data with a jump-to path', async () => {
   s.undo(); s.apply('numeraire', [{ op: 'replace', path: '/ruleset/goods/Refined Precious Metals/baseValue', value: 2 }]); assert.ok(s.errors.some(i => i.id === 'numeraireValue'))
   s.undo(); s.apply('cells', [{ op: 'replace', path: '/polity/cells', value: {} }]); assert.ok(s.errors.some(i => i.id === 'cellSum'))
   s.undo(); s.apply('forest', [{ op: 'replace', path: '/world/provinces/p:3,3/forestation', value: 99 }]); assert.ok(s.warnings.some(i => i.id === 'forestCeiling')); assert.ok(!hasErrors(s.issues))
-  s.undo(); s.apply('water province', [{ op: 'replace', path: '/world/hexes/h:3,3/surface', value: 'sea' }]); assert.ok(s.errors.some(i => i.id === 'waterProvince'))
+  s.undo(); s.apply('surface mismatch', [{ op: 'replace', path: '/world/hexes/h:3,3/surface', value: 'sea' }]); assert.ok(s.errors.some(i => i.id === 'surfaceMismatch'))      // the hex surface must match its province (every hex is a province)
 })
-test('setSurface to sea removes the province, its presence, warehouse and incident edges; the cell sums then need reseeding', async () => {
+test('setSurface to sea turns the province into an unowned, empty Sea province (every hex stays a province): presence, warehouse and river/pass edges go; the cell sums then need reseeding', async () => {
   const s = new EditorStore(await load()); s.apply('make sea', C.setSurface(s.docs, 9, 3, 'sea'))
-  assert.equal(s.docs.world.provinces['p:9,3'], undefined); assert.equal(s.docs.nations.presence['p:9,3'], undefined); assert.ok(!s.docs.world.edges.some(e => e.a === 'p:9,3' || e.b === 'p:9,3'))
-  assert.ok(!s.errors.some(i => i.id === 'waterProvince' || i.id === 'edgeEnds')); s.apply('reseed', seedCells(s.docs)); assert.deepEqual(s.errors, [])
-  s.undo(); s.undo(); assert.ok(s.docs.world.provinces['p:9,3'], 'undo restores the province')
+  const p = s.docs.world.provinces['p:9,3']; assert.equal(p.terrain, 'Sea'); assert.equal(p.waterBody, 'sea'); assert.equal(p.owner, null); assert.equal(p.population, 0); assert.equal(s.docs.world.hexes['h:9,3'].surface, 'sea')
+  assert.deepEqual(s.docs.nations.presence['p:9,3'] ?? {}, {}); assert.equal(s.docs.world.warehouses['p:9,3'], undefined); assert.ok(!s.docs.world.edges.some(e => e.type !== 'sea_lane' && (e.a === 'p:9,3' || e.b === 'p:9,3')))
+  assert.ok(!s.errors.some(i => i.id === 'hexNoProvince' || i.id === 'surfaceMismatch' || i.id === 'edgeEnds')); s.apply('reseed', seedCells(s.docs)); assert.deepEqual(s.errors, [])
+  s.undo(); s.undo(); assert.notEqual(s.docs.world.provinces['p:9,3'].terrain, 'Sea', 'undo restores the land province')
+})
+test('setSurface: sea <-> lake only changes waterBody; back to land makes a fresh Claimed/Frontier province', async () => {
+  const s = new EditorStore(await load()); s.apply('sea', C.setSurface(s.docs, 9, 3, 'sea')); s.apply('lake', C.setSurface(s.docs, 9, 3, 'lake'))
+  assert.equal(s.docs.world.provinces['p:9,3'].waterBody, 'lake'); assert.equal(s.docs.world.hexes['h:9,3'].surface, 'lake')
+  s.apply('land', C.setSurface(s.docs, 9, 3, 'land')); const p = s.docs.world.provinces['p:9,3']; assert.notEqual(p.terrain, 'Sea'); assert.equal(p.waterBody, undefined); assert.equal(p.habitability, 'Claimed/Frontier'); assert.equal(s.docs.world.hexes['h:9,3'].surface, 'land')
 })
 test('generators: seedCells satisfies the sum constraints; derivedWaterSource follows the precedence (river first); normalisePresence fixes sums', async () => {
   const s = new EditorStore(await load()); s.apply('seed', seedCells(s.docs, { noise: 0.1, seed: 7 })); assert.deepEqual(s.errors, []); assert.ok(Object.keys(s.docs.polity.cells).length > 50)
   s.apply('water', derivedWaterSource(s.docs)); const rivers = new Set(s.docs.world.edges.filter(e => e.type === 'river').flatMap(e => [e.a, e.b]))
   for (const id of rivers) assert.equal(s.docs.world.provinces[id].waterSource, 'river_adjacent'); assert.equal(s.docs.world.provinces['p:2,3'].waterSource, 'coastal')
+  for (const p of Object.values(s.docs.world.provinces)) if (p.terrain === 'Sea') assert.equal(p.waterSource, 'none', 'water provinces have no water source')
   s.apply('pop edit', C.setProvinceField(s.docs, 'p:3,3', 'population', 100)); s.apply('fix', normalisePresence(s.docs)); assert.ok(Math.abs(Object.values(s.docs.nations.presence['p:3,3']).reduce((a, b) => a + b, 0) - 100) <= 2)
 })
 test('editor -> game round trip: a blank scenario from the template is valid, can be edited, saved, bundled, loaded and played headless', async () => {
