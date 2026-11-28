@@ -13,7 +13,9 @@ export function typeValue(ctx, a, b, type, posture, S, W, rd = reads) {
   const aff = clamp01(affinity(ctx, a, b, S, rd)), ne = netEdge(ctx, a, b, S, W, rd)
   switch (type) {
     case 'Court': return aff
-    case 'Support': return underPressure(ctx, b, S, rd) && ['Ally', 'Partner'].includes(posture[b]) ? 1 : aff
+    // Support: the target is under pressure from OTHERS. The Country that decides does not count: its own CB or war against the target is a reason to strike or secure, not to support
+    // (found 2026-11-16 by tests/ai_diplomacy.test.js "a new CB bypasses the margin"; candidates.js 'Support' still uses the unfiltered check — fix there with the AI slice).
+    case 'Support': return underPressure(ctx, b, { ...S, countries: S.countries.filter(c => c !== a) }, rd) && ['Ally', 'Partner'].includes(posture[b]) ? 1 : aff
     case 'Secure': return clamp01(rd.tradeDep(ctx, a, b) / S.maxTrade)
     case 'Squeeze': return clamp01(ne + networkGain(ctx, a, b, posture, S, rd))
     case 'Provoke': return hasUsableCB(ctx, a, b, rd) ? 0 : clamp01(ne)

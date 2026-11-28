@@ -1,4 +1,5 @@
 // tools/makeDemo.mjs — generates scenarios/demo/*.json : 14x10 grid, west sea, a lake, 2 Countries, 3 Nations, 2 Estates.
+// Since slice 3c EVERY hex is a province (kb 2026-11-09/10): the sea and the lake are provinces of terrain Sea (waterBody 'sea' | 'lake'), unowned, Wasteland, no population.
 import { writeFileSync } from 'node:fs'
 import { hexId, provId, neighbors, edgeKey } from '../src/modules/worldmap/hex.js'
 import { deriveRegions } from '../src/modules/worldmap/regions.js'
@@ -10,22 +11,25 @@ const terrainAt = (x, y) => { if (y <= 0) return 'Taiga'; if ((x === 6 || x === 
 const FOREST = { Taiga: 70, Mountain: 20, Hill: 30, Steppe: 10, Wetland: 40, Grassland: 25 }
 for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
   const sea = x < 2, lake = (x === 7 && (y === 4 || y === 5)); hexes[hexId(x, y)] = { x, y, surface: sea ? 'sea' : lake ? 'lake' : 'land' }
-  if (sea || lake) continue
+  if (sea || lake) { provinces[provId(x, y)] = { x, y, terrain: 'Sea', waterBody: sea ? 'sea' : 'lake', forestation: 0, habitability: 'Wasteland', waterSource: 'none', maxArea: 100, maxArableArea: 0, maxPopulationDensity: 0,
+      population: 0, urbanization: 0, sanitation: 0, infrastructureLevel: 0, tradeInfrastructureLevel: 0, owner: null, provenance: 'generated' }; continue }
   const t = terrainAt(x, y), coastal = x === 2, near = (dx, dy) => hexes[hexId(x + dx, y + dy)]?.surface === 'lake'
   provinces[provId(x, y)] = { x, y, terrain: t, forestation: FOREST[t], habitability: t === 'Mountain' ? 'Claimed/Frontier' : 'Settled',
     waterSource: [[1,0],[-1,0],[0,1],[0,-1]].some(([dx, dy]) => near(dx, dy)) ? 'river_adjacent' : coastal ? 'coastal' : 'none',
     maxArea: 100, maxArableArea: 60, maxPopulationDensity: 6, population: t === 'Mountain' ? 40 : t === 'Taiga' ? 120 : 400, urbanization: 0.1, sanitation: 0.5,
     infrastructureLevel: 30, tradeInfrastructureLevel: 40, owner: x <= 7 ? 'vantiria' : 'kerinia', provenance: 'generated' }
 }
+const landProvinces = Object.fromEntries(Object.entries(provinces).filter(([, p]) => p.terrain !== 'Sea'))      // markets, warehouses and population exist only on land
 // lake hexes are not adjacent-checked above for diagonals; fine for demo. Edges: a river down column 9 and passes through the mountain pair.
 const edges = []
 for (let y = 1; y < H - 1; y++) if (provinces[provId(9, y)] && provinces[provId(9, y + 1)]) edges.push({ a: provId(9, y), b: provId(9, y + 1), type: 'river', fortress: false, bridge: false })
 edges.push({ a: provId(6, 1), b: provId(7, 1), type: 'mountain_pass', fortress: false, bridge: false })
-const warehouses = Object.fromEntries(Object.keys(provinces).map(p => [p, { capacity: null, stock: { 'Cold Weapons': 60, Bread: 200 } }]))
+const warehouses = Object.fromEntries(Object.keys(landProvinces).map(p => [p, { capacity: null, stock: { 'Cold Weapons': 60, Bread: 200 } }]))
 const world = { grid: { w: W, h: H, orientation: 'pointy-top-odd-r' }, hexes, provinces, edges, warehouses }
-// presence
+// presence (water provinces carry none: an empty record keeps every province keyed)
 const presence = {}
-for (const [p, pr] of Object.entries(provinces)) { const own = pr.owner === 'vantiria' ? 'vantir' : 'kerin', minority = 'dorn'
+for (const [p, pr] of Object.entries(provinces)) { if (pr.terrain === 'Sea') { presence[p] = {}; continue }
+  const own = pr.owner === 'vantiria' ? 'vantir' : 'kerin', minority = 'dorn'
   presence[p] = { [own]: Math.round(pr.population * 0.8), [minority]: Math.round(pr.population * 0.2) } }
 const nationsDef = { vantir: { name: 'Vantirians', color: '#c0392b', reactionTemperament: 0.6, poolAffinity: { Agriculture: 1.1 }, prefTraits: {} },
   kerin: { name: 'Kerin', color: '#2980b9', reactionTemperament: 0.5, poolAffinity: { Cavalry: 1.3 }, prefTraits: {} },
@@ -54,4 +58,4 @@ const scenario = { startTurn: 0, playerCountry: 'vantiria', options: { fogOfWar:
 const manifest = { schemaVersion: 1, id: 'demo', name: 'Demo — 2 Countries', description: 'Small launchable demo (14x10 grid)', seed: 20261104 }
 for (const [f, d] of Object.entries({ 'manifest.json': manifest, 'world.json': world, 'nations.json': nations, 'countries.json': countries, 'polity.json': polity, 'relations.json': relations, 'scenario.json': scenario }))
   writeFileSync(out(f), JSON.stringify(d, null, 1))
-console.log('provinces', Object.keys(provinces).length, 'regions', Object.keys(regs.regions).length, 'cells', Object.keys(cells).length)
+console.log('provinces', Object.keys(provinces).length, '(land', Object.keys(landProvinces).length + ')', 'regions', Object.keys(regs.regions).length, 'cells', Object.keys(cells).length)

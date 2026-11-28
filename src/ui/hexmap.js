@@ -1,6 +1,6 @@
 // ui/hexmap.js — shared hex geometry + drawing helpers (game debug shell and Editor use the SAME renderer so what you paint is what you play).
-export const TERRAIN = { Mountain: '#8d8d8d', Hill: '#b59b6a', Desert: '#e3cf8f', Steppe: '#c9c27a', Grassland: '#8fbf6a', Wetland: '#6fa88f', Jungle: '#3f8f4f', Arctic: '#e8f0f4', Taiga: '#5f7f5f' }
-export const SURFACE = { sea: '#3a6ea5', lake: '#6fa8dc' }
+export const TERRAIN = { Mountain: '#8d8d8d', Hill: '#b59b6a', Desert: '#e3cf8f', Steppe: '#c9c27a', Grassland: '#8fbf6a', Wetland: '#6fa88f', Jungle: '#3f8f4f', Arctic: '#e8f0f4', Taiga: '#5f7f5f', Sea: '#3a6ea5' }
+export const SURFACE = { sea: '#3a6ea5', lake: '#6fa8dc' }      // a water province is terrain Sea (since slice 3c); its hex `surface` ('sea' | 'lake') is derived from `province.waterBody`
 export function geometry(grid, s = 22) { const w = Math.sqrt(3) * s; return { s, w, W: Math.ceil(w * (grid.w + 0.5)) + 4, H: Math.ceil(s * (1.5 * grid.h + 0.5)) + 4, ctr: (x, y) => [w * (x + 0.5 * (y & 1)) + w / 2 + 2, s * 1.5 * y + s + 2] } }
 export function hexPath(ctx, cx, cy, s) { ctx.beginPath(); for (let i = 0; i < 6; i++) { const a = Math.PI / 180 * (60 * i - 30); ctx.lineTo(cx + s * Math.cos(a), cy + s * Math.sin(a)) } ctx.closePath() }
 export function pickHex(canvas, event, grid, hexes) { const r = canvas.getBoundingClientRect(), g = geometry(grid), mx = (event.clientX - r.left) * canvas.width / r.width, my = (event.clientY - r.top) * canvas.height / r.height; let best = null, bd = 1e9

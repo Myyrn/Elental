@@ -22,18 +22,20 @@ Action = { actor, type, owner_module, target, params,
 cell (see Cell actions). One envelope serves all three —
 AI parity — and every executed action writes the same Decision Log.
 
+**Direction (settled 2026-11-16)**: an action type may declare the **direction** its realized act takes on the Government Portrait axes — the signed position it moves toward (a tax rise is Extraction, a tax cut is Investment; a bigger Requisition is Extraction, a smaller or lifted one is Investment). The direction is read from the state **before** the act applies, because it compares the new setting with the one it replaces, and is stored with the act's Decision Log entry. Types that declare no direction fall back to the type's static signed load on the axes (data on the type). The record of the Government's visible acts (Internal Politics, Cell Preferences & Propaganda) and the reinforcement of its Portrait (Internal Politics, Government Portrait) read it from the log; no module reads another module's state to guess it.
+
 ### Lifecycle classes
 - **Dial** — persists until changed; changing it carries **no direct cost**
   (consequences come only from the resulting state shift, as with Control
   Allocation). Consent gating still applies where a Right covers the domain.
   Free dials: Control Allocation, Observation Allocation, planning posture,
   garrison priority, Army Tactics (per detachment), standing share (War),
-  border/customs policy (gated). War stances are not dials: stance is automatic per Contingent (`war__kb.md`, 2026-11-11).
+  border/customs policy (gated), a Region's capital setting (World Map, 2026-11-17). War stances are not dials: stance is automatic per Contingent (`war__kb.md`, 2026-11-11).
 - **Commitment** — a persistent claim on labour or stock until released, or
   renewed every turn (fielded units, Mobilization, army Merge/Split, garrisons, Emergency Powers, propaganda,
   Espionage). Releasable at will; renewal lapses it. Show of Force is not a commitment and not an action: it is derived from border deployment (`war__kb.md`, 2026-11-10; it replaced Troop Training).
 - **Event** — one-shot, irreversible (declare war, grant/revoke a Right, set
-  tax law, place/lift a Requisition Duty, ratify a treaty, Persuasion, audits).
+  tax law, place/lift a Requisition Duty, ratify a treaty, Persuasion, audits, a Region Reorganization).
 
 **Rights/Duties configuration and tax law are Events, not dials**: changing
 them is gated (Veto/Council), costs something real (IP Rule 9) and triggers
@@ -91,12 +93,14 @@ All actors plan against the same start-of-turn state, then resolve:
                           Government upkeep shortfall
 4 War                     movement, supply, battles, sieges; internal armed conflict
 5 Internal Politics       grievance update, Decision Log read (attribution),
-                          modifier decay, Question trigger, faction recompute,
-                          escalation rungs; compliance reads the upkeep-degraded
-                          C/C/O computed in step 3
+                          modifier decay, Government acts reinforce the Portrait,
+                          Question trigger, faction recompute, escalation rungs;
+                          compliance reads the upkeep-degraded C/C/O computed in step 3
 6 Administration          active-slate allocation for NEXT turn
 7 Diplomacy               proposal resolution, propaganda, Leverage
-8 Region re-derivation    single end-of-turn pass: splits/sums of per-cell state
+8 Region pass             single end-of-turn pass: population growth, queued Region
+                          Reorganizations, Region re-derivation after ownership
+                          change; splits/sums of per-cell state
 ```
 Rationale: Requisition precedes the cascade; reactions follow all state
 changes so attribution sees this turn's actions; faction decisions and the
@@ -128,11 +132,11 @@ Dual-claim pools (production vs. administrative C/C/O vs. Army) resolve by an **
 ### Decision Log write path
 Schema and ownership are Internal Politics' (`entry = {actor, action_type,
 visibility, turn, affected_cells}`). Actions owns **writing**: every executed
-action appends an entry with a default visibility by type:
+action appends an entry with a default visibility by type, and (settled 2026-11-16) two more fields written here: the **id of the action** (so a later harm hand-off can point at the entry that caused it) and the act's **direction** (the snapshot taken before it applied, see Action envelope; omitted for types that declare none):
 - **public**: laws, war declarations, requisitions, treaties, state-level acts
 - **covert**: Espionage, covert influence, covert propaganda
 
-Attribution reads `visibility` and recency (IP, Awareness). Deniability is not a log field (settled 2026-11-03). Attribution is derived **per observer at read time**: the observer's detection strength (Observation + counter-intelligence Espionage) against the action's concealment tier yields undetected / act detected (sender unknown) / sender revealed (Diplomacy). Deniability = low causal visibility for that observer. The log schema is unchanged.
+Attribution reads `visibility` and recency (IP, Awareness). Deniability is not a log field (settled 2026-11-03). Attribution is derived **per observer at read time**: the observer's detection strength (Observation + counter-intelligence Espionage) against the action's concealment tier yields undetected / act detected (sender unknown) / sender revealed (Diplomacy). Deniability = low causal visibility for that observer. The log schema is otherwise unchanged.
 
 ### Government spending: spending dial, Borrow, Default (settled 2026-11-02; dial revised 2026-11-03)
 - **Spending dial** (an Allocation Dial, standing, re-resolved every turn against the live balance; the player/AI may change it any time at no direct cost): upkeep items and discretionary actions take **floors by priority**, discretionary entries may also take a **surplus share**, and unspent balance is **kept by default** (sink = keep). Shortfall truncates the lowest priority (pipeline step 3).
@@ -159,6 +163,7 @@ are meant to surface). Commits are irreversible except dials and releasable comm
 | War | garrison priority, Army Tactics (per detachment), standing share | fielded units, Mobilization, army Merge/Split | declare war, peace |
 | Diplomacy | — | Espionage, foreign propaganda | Sanction/Dependency/Alliance, Facilitation Grant, Recognize a rebel polity |
 | Economics | — | construction (Builders + Wealth: trade infrastructure, roads, warehouses); free-colonization incentive spend | Mint/recoin (fineness parameter); direct resettlement of specific cells |
+| World Map | Region capital setting (a stored administrative setting of one of the Country's Regions) | — | Reorganize Regions (split, merge, move provinces: gated by every Veto holder of the Country, applied once at step 8); Expulsion |
 | Cells (actors) | — | hoarding, tax refusal, Duty-withholding, counter-propaganda, trade-infrastructure construction (own Wealth), lending (cleared by the derived credit market) | petition, settle, revolt/armed rung, kin-state appeal, international-recognition appeal |
 | Meteomancy (Government or any cell holding the pool) | — | Ritual: Meteomancy/Theurgy labour above a fixed threshold + Processed Reagents (consumed), sustained for the ritual's authored duration | on completion, an authored one-shot effect on a named crisis state (epidemic burden, harvest variance, ...) |
 
@@ -180,14 +185,15 @@ are meant to surface). Commits are irreversible except dials and releasable comm
 15. Spending priority is a standing dial re-resolved every turn; unmet upkeep truncates from the bottom; discretionary entries cannot draw below the reserve floor; unspent balance is kept by default.
 16. An Allocation Dial's default unit is the cell; aggregate filters and groups expand per covered cell; surplus auto-fill is free.
 17. Preflight warnings are advisory and derived from `preview`; End Turn is never blocked.
+18. An action's direction on the Portrait axes is read before it applies and stored with its Decision Log entry; consumers read it from the log (2026-11-16).
 
 ## Cross-references
-- **Internal Politics** — owns the Decision Log schema, Rights/Duties, faction action set, attribution, entitlement-loss, Outcome Asymmetry; Actions only writes and gates.
+- **Internal Politics** — owns the Decision Log schema, Rights/Duties, faction action set, attribution, entitlement-loss, Outcome Asymmetry; Actions only writes and gates. Reads the direction stored with each log entry for the Government's action record and for Portrait reinforcement (Cell Preferences & Propaganda; Government Portrait, 2026-11-16).
 - **Administration** — Control/Observation Allocation are the model dials; slate allocation is pipeline step 6; Emergency Powers, audits.
 - **Economics** — pipeline step 3 (Requisition pre-cascade, Taxation post-cascade); dual-claim pool resolution; exogenous shocks (harvest).
 - **War** — step 4; declare war, peace, per-detachment Army Tactics, standing share, garrison priority, Mobilization, Merge/Split; internal armed conflict; Show of Force is derived from deployment and is not an action (replaced Troop Training).
 - **Diplomacy** — step 7; Espionage/propaganda thresholds, treaties, Sanctions, Facilitation Grants; deniability = low causal visibility.
-- **World Map** — exogenous shocks (epidemic) in step 1; Region re-derivation in step 8; cataclysm is post-alpha.
+- **World Map** — exogenous shocks (epidemic) in step 1; the Region pass in step 8 (growth, queued Reorganization Events, re-derivation after ownership change); the Region capital setting and the Reorganization Event are World Map's actions (2026-11-17); cataclysm is post-alpha.
 - **Characters / Events** — beyond alpha; alpha uses the Decision Log and leaderless factions.
 - **AI modules** — consume this API; Leverage instrument selection and enumeration of action sets are deferred to them.
 
@@ -201,17 +207,18 @@ are meant to surface). Commits are irreversible except dials and releasable comm
 - **2026-11-03 (dial pass) — settled**: Allocation Dial subclass (floor + priority + surplus ratio, cap, sink); per-cell default with aggregate/group shorthand; Government spending dial is standing with a reserve floor and sink = keep (replaces "re-chosen every turn"); pool-claim splits use the same dial; End Turn Preflight (advisory warnings, incl. projected Ledger shortfall).
 - **2026-11-03 — settled**: cells are actors (actor classes Government / Country / cell) with permitted/granted/defiance action classes and default log visibility by act type; deniability as a per-observer read-time scaler; propaganda is directed output, not a labour claim; Government purchases funded from the start-of-turn Ledger; Rituals are commitments gated by the Meteomancy pool (population-scale only in alpha).
 - **2026-11-12 — settled (designer confirmation)**: Troop Training removed from the lifecycle classes and the War row (Show of Force replaces it); War actions follow `war__kb.md` 2026-11-10/11: per-detachment Army Tactics and the standing share are dials, Mobilization and army Merge/Split are commitments, stance is automatic per Contingent and no longer a dial.
+- **2026-11-16/17 — settled (designer decisions and confirmed implementation choices)**: an action's **direction** on the Portrait axes (a tax rise or bigger requisition is Extraction, a cut or smaller/lifted one is Investment) is declared by the action type, read before the act applies and stored with its Decision Log entry together with the action id (Action envelope rev 2; Decision Log write path rev 2; Rule 18); a Government act, public or covert, reinforces its own Portrait (Internal Politics); the Region capital setting is a dial and the Reorganization Event an Event, both World Map actions (the new World Map row, Existing actions by module rev 3); the Region pass at step 8 applies queued Reorganizations before the ownership re-derivation (Turn pipeline rev 2); pipeline step 5 includes the Portrait reinforcement. **Open**: which other action types declare a direction (only tax law and Requisition so far); whether Veto holders judge an act by its realized direction rather than the static load.
 - **Rev:** (tracked = every `###` under Data Structures; `Rules` as one section while it has no `###`; bootstrap 2026-11-12)
-  - Data Structures > Action envelope = 1
-  - Data Structures > Lifecycle classes = 2
+  - Data Structures > Action envelope = 2
+  - Data Structures > Lifecycle classes = 3
   - Data Structures > Allocation Dial (dial subclass — settled 2026-11-03) = 1
   - Data Structures > Cell actions (cells are actors — settled 2026-11-03) = 1
-  - Data Structures > Turn pipeline (simultaneous planning, fixed resolution order) = 1
+  - Data Structures > Turn pipeline (simultaneous planning, fixed resolution order) = 2
   - Data Structures > War declaration timing (settled 2026-11-02) = 1
   - Data Structures > Gating (derived, never stored) = 1
   - Data Structures > Shared pools = 1
-  - Data Structures > Decision Log write path = 1
+  - Data Structures > Decision Log write path = 2
   - Data Structures > Government spending: spending dial, Borrow, Default (settled 2026-11-02; dial revised 2026-11-03) = 1
   - Data Structures > Determinism and preview = 1
-  - Data Structures > Existing actions by module (class shown) = 2
-  - Rules = 1
+  - Data Structures > Existing actions by module (class shown) = 3
+  - Rules = 2

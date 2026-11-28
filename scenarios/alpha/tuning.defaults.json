@@ -111,6 +111,10 @@
   "value": 1,
   "status": "placeholder"
  },
+ "opinion.alignGain": {
+  "value": 0.5,
+  "status": "placeholder"
+ },
  "opinion.modDecay": {
   "value": 0.1,
   "status": "placeholder"
@@ -229,6 +233,10 @@
   "value": 0.01,
   "status": "placeholder"
  },
+ "portrait.reinforce": {
+  "value": 0.05,
+  "status": "placeholder"
+ },
  "admin.routineOverhead": {
   "value": 0.1,
   "status": "placeholder"
@@ -243,6 +251,10 @@
  },
  "slate.routine": {
   "value": 1,
+  "status": "placeholder"
+ },
+ "queue.petitionMult": {
+  "value": 2,
   "status": "placeholder"
  },
  "observe.liveThresholdPerPop": {
@@ -850,6 +862,118 @@
   "status": "placeholder"
  },
  "obs.defaultSpread": {
+  "value": 1,
+  "status": "placeholder"
+ },
+ "mig.rate": {
+  "value": 0.02,
+  "status": "placeholder"
+ },
+ "mig.frontierPull": {
+  "value": 0.1,
+  "status": "placeholder"
+ },
+ "settle.frontierMin": {
+  "value": 20,
+  "status": "placeholder"
+ },
+ "settle.settledMin": {
+  "value": 500,
+  "status": "placeholder"
+ },
+ "settle.cohort": {
+  "value": 0.05,
+  "status": "placeholder"
+ },
+ "settle.costPerCap": {
+  "value": 0.5,
+  "status": "placeholder"
+ },
+ "settle.crowdK": {
+  "value": 1,
+  "status": "placeholder"
+ },
+ "force.opinionHit": {
+  "value": 1.5,
+  "status": "placeholder"
+ },
+ "cb.mag.expel": {
+  "value": 1,
+  "status": "placeholder"
+ },
+ "colonize.pullK": {
+  "value": 1,
+  "status": "placeholder"
+ },
+ "colonize.costPerSettler": {
+  "value": 1,
+  "status": "placeholder"
+ },
+ "slate.addressedRise": {
+  "value": 0,
+  "status": "placeholder"
+ },
+ "question.turns.region": {
+  "value": 1,
+  "status": "placeholder"
+ },
+ "debate.expiryGrievance": {
+  "value": 0.05,
+  "status": "placeholder"
+ },
+ "debate.extendBase": {
+  "value": 0.05,
+  "status": "placeholder"
+ },
+ "assembly.k": {
+  "value": 0.2,
+  "status": "placeholder"
+ },
+ "assembly.agendaK": {
+  "value": 1,
+  "status": "placeholder"
+ },
+ "question.turns.multi": {
+  "value": 3,
+  "status": "placeholder"
+ },
+ "question.turns.empire": {
+  "value": 5,
+  "status": "placeholder"
+ },
+ "petition.grace": {
+  "value": 1,
+  "status": "placeholder"
+ },
+ "petition.refuseHit": {
+  "value": 0.3,
+  "status": "placeholder"
+ },
+ "petition.refuseDecay": {
+  "value": 0.03,
+  "status": "placeholder"
+ },
+ "petition.expiryMult": {
+  "value": 3,
+  "status": "placeholder"
+ },
+ "petition.comparable": {
+  "value": 1,
+  "status": "placeholder"
+ },
+ "persuade.costK": {
+  "value": 1,
+  "status": "placeholder"
+ },
+ "persuade.popUnit": {
+  "value": 1000,
+  "status": "placeholder"
+ },
+ "decision.majority": {
+  "value": 0.6666666666666666,
+  "status": "authored"
+ },
+ "concession.rightK": {
   "value": 1,
   "status": "placeholder"
  }

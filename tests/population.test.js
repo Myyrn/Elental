@@ -53,6 +53,13 @@ test('40 turns of the demo: density ceilings, presence <= population, and the Na
   assert.notEqual(sum(Object.values(c.state.polity.cells).map(x => x.population)), pop0, 'population actually moved')
 })
 test('pop.growth = 0 switches it off exactly', async () => {
-  const c = await boot(); c.ruleset.tuning['pop.growth'] = { value: 0, status: 'placeholder' }; const pop0 = sum(Object.values(c.state.polity.cells).map(x => x.population)); await c.runTurns(5)
+  const c = await boot(); c.ruleset.tuning['pop.growth'] = { value: 0, status: 'placeholder' }; c.ruleset.tuning['mig.rate'] = { value: 0, status: 'test' }      // migration moves people between provinces and its float sums differ in the last digits
+  const pop0 = sum(Object.values(c.state.polity.cells).map(x => x.population)); await c.runTurns(5)
   assert.equal(sum(Object.values(c.state.polity.cells).map(x => x.population)), pop0)
+})
+test('migration keeps the total: growth off, migration on, 20 turns of the demo', async () => {
+  const c = await boot(); c.ruleset.tuning['pop.growth'] = { value: 0, status: 'placeholder' }
+  const pop0 = sum(Object.values(c.state.polity.cells).map(x => x.population)), pres = () => sum(Object.values(c.state.nations.presence).flatMap(o => Object.values(o))); const p0 = pres(); await c.runTurns(20)
+  assert.ok(Math.abs(sum(Object.values(c.state.polity.cells).map(x => x.population)) - pop0) < 1e-6 * pop0, 'no person is created or lost by moving'); assert.ok(Math.abs(pres() - p0) < 1e-6 * (1 + p0))
+  assert.ok(c.state.economy.obligations.length < 5000, 'repeated transfers do not multiply the debt records')
 })

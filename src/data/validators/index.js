@@ -17,11 +17,21 @@ export function structural(docs, refs = refsOf(docs)) {
 export function regionsOf(docs) { const w = docs.world, owners = Object.fromEntries(Object.entries(w.provinces).map(([id, p]) => [id, p.owner ?? null])); return deriveRegions({ w: w.grid.w, h: w.grid.h }, owners) }
 export function invariants(docs, refs = refsOf(docs)) {
   const out = [], bad = (id, path, message, severity = 'error') => out.push({ id, severity, path, message }), w = docs.world, R = docs.ruleset, P = w.provinces
-  // ---- world
-  for (const [hid, h] of Object.entries(w.hexes)) { const isProv = !!P[`p:${h.x},${h.y}`]; if (h.surface === 'land' && !isProv) bad('landNoProvince', `/world/hexes/${hid}`, `land hex ${hid} has no province`); if (h.surface !== 'land' && isProv) bad('waterProvince', `/world/hexes/${hid}`, `${h.surface} hex ${hid} must not carry a province`) }
+  // ---- world: EVERY hex is a province, water included (kb 2026-11-09/10); the hex `surface` is derived from its province (terrain Sea -> its waterBody, else land)
+  for (const [hid, h] of Object.entries(w.hexes)) { const p = P[`p:${h.x},${h.y}`]
+    if (!p) { bad('hexNoProvince', `/world/hexes/${hid}`, `hex ${hid} has no province (every hex is a province, water included)`); continue }
+    const want = p.terrain === 'Sea' ? (p.waterBody ?? 'sea') : 'land'; if (h.surface !== want) bad('surfaceMismatch', `/world/hexes/${hid}`, `hex ${hid} surface "${h.surface}" does not match its province (${want})`) }
+  if (Object.keys(P).length !== w.grid.w * w.grid.h) bad('provinceCount', '/world/provinces', `${Object.keys(P).length} provinces for a ${w.grid.w}x${w.grid.h} grid: every hex must be a province`, 'warn')
   for (const [pid, p] of Object.entries(P)) {
     if (!w.hexes[`h:${p.x},${p.y}`]) bad('noHex', `/world/provinces/${pid}`, 'province without a hex')
     const t = R.terrain?.[p.terrain]; if (t && p.forestation !== undefined && (p.forestation < t.forestMin || p.forestation > t.forestMax)) bad('forestCeiling', `/world/provinces/${pid}/forestation`, `forestation ${p.forestation} outside ${p.terrain} range ${t.forestMin}-${t.forestMax}`, 'warn')
+    if (p.terrain === 'Sea') {                                                                                          // water provinces (open sea and lakes)
+      if (!['sea', 'lake'].includes(p.waterBody)) bad('waterBody', `/world/provinces/${pid}/waterBody`, 'a Sea province needs waterBody "sea" or "lake"')
+      if (p.owner) bad('waterOwner', `/world/provinces/${pid}/owner`, 'water provinces are not owned (kb open question: the default is unowned)', 'warn')
+      if (p.waterSource && p.waterSource !== 'none') bad('waterSource', `/world/provinces/${pid}/waterSource`, 'a water province has no water source', 'warn')
+      if (p.population > 0 && !(p.waterBody === 'lake' ? R.capability?.settleLake : R.capability?.settleSea)) bad('waterPop', `/world/provinces/${pid}/population`, 'people on a water province that ruleset.capability does not allow to be settled', 'warn')
+      if (p.waterBody === 'lake' && neighbors(p.x, p.y, w.grid.w, w.grid.h).length < 6) bad('lakeEdge', `/world/provinces/${pid}`, 'a lake should be enclosed: it touches the grid edge', 'warn') }
+    else if (p.waterBody) bad('waterBodyLand', `/world/provinces/${pid}/waterBody`, 'waterBody is only for terrain Sea')
     if (p.habitability === 'Wasteland' && p.population > 0) bad('wastelandPop', `/world/provinces/${pid}/population`, 'Wasteland must have zero population', 'warn')
     if (p.owner && !refs.countries.has(p.owner)) bad('ref', `/world/provinces/${pid}/owner`, `unknown country ${p.owner}`)
     if (p.maxPopulationDensity !== undefined && p.maxArea !== undefined && p.population > p.maxPopulationDensity * p.maxArea * 1.0001) bad('popOverDensity', `/world/provinces/${pid}/population`, 'population exceeds density × area', 'warn') }
@@ -30,7 +40,7 @@ export function invariants(docs, refs = refsOf(docs)) {
     const adj = neighbors(A.x, A.y, w.grid.w, w.grid.h).some(n => n.x === B.x && n.y === B.y)
     if (e.type !== 'sea_lane' && !adj) bad('edgeAdjacency', path, `${e.type} edge must join adjacent hexes`)
     if (e.type === 'mountain_pass' && !(A.terrain === 'Mountain' || B.terrain === 'Mountain')) bad('passTerrain', path, 'mountain pass must touch a Mountain hex', 'warn')
-    if (e.type === 'sea_lane') for (const [pid, p] of [[e.a, A], [e.b, B]]) if (p.waterSource !== 'coastal' && !neighbors(p.x, p.y, w.grid.w, w.grid.h).some(n => w.hexes[`h:${n.x},${n.y}`]?.surface === 'sea')) bad('seaLaneCoast', path, `sea lane endpoint ${pid} is not coastal`, 'warn') }
+    if (e.type === 'sea_lane') for (const [pid, p] of [[e.a, A], [e.b, B]]) if (p.terrain !== 'Sea' && p.waterSource !== 'coastal' && !neighbors(p.x, p.y, w.grid.w, w.grid.h).some(n => w.hexes[`h:${n.x},${n.y}`]?.surface === 'sea')) bad('seaLaneCoast', path, `sea lane endpoint ${pid} is not coastal`, 'warn') }
   // ---- nations / presence
   for (const [pid, pr] of Object.entries(docs.nations.presence ?? {})) { if (!P[pid]) { bad('presenceProv', `/nations/presence/${pid}`, 'presence for an unknown province'); continue }
     for (const n of Object.keys(pr)) if (!refs.nations.has(n)) bad('ref', `/nations/presence/${pid}/${n}`, `unknown nation ${n}`)
@@ -56,6 +66,7 @@ export function invariants(docs, refs = refsOf(docs)) {
   for (const g of goods.filter(([, d]) => d.tier === 'raw' && !d.extractPool).map(([g]) => g)) bad('extractPool', `/ruleset/goods/${g}/extractPool`, 'raw good without an extraction pool')
   for (const p of CORE_POOLS) if (!R.pools?.[p]) bad('corePool', `/ruleset/pools/${p}`, `core pool ${p} is missing`, 'warn')
   for (const c of Object.keys(R.consumption ?? {})) for (const [i, it] of R.consumption[c].entries()) for (const g of it.any) if (!refs.goods.has(g)) bad('ref', `/ruleset/consumption/${c}/${i}`, `unknown good ${g}`)
+  if (!R.terrain?.Sea) bad('seaTerrain', '/ruleset/terrain/Sea', 'the ruleset has no Sea terrain (ten terrain types, water provinces are provinces: kb 2026-11-09/10)')
   return out }
 export function tuningKeysMissing(ruleset, required) { return required.filter(k => !ruleset.tuning?.[k]).map(k => ({ id: 'tuningKey', severity: 'error', path: `/ruleset/tuning/${k}`, message: `missing tuning key ${k}` })) }
 export function validateAll(docs) { const refs = refsOf(docs), issues = structural(docs, refs); if (!issues.some(i => i.id === 'missingDoc')) issues.push(...invariants(docs, refs)); return issues }

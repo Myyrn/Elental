@@ -8,8 +8,9 @@ const scope = F('any', { doc: 'shared scope syntax (kernel/scope.js)' })
 export const manifestSchema = obj({ schemaVersion: int({ min: 1, required: true }), id: str({ required: true }), name: str({ required: true }), description: str(), seed: int({ required: true }) })
 export const worldSchema = obj({
   grid: obj({ w: int({ min: 1, required: true }), h: int({ min: 1, required: true }), orientation: str() }),
-  hexes: rec(obj({ x: int(), y: int(), surface: en(['land', 'sea', 'lake'], { required: true }) })),
-  provinces: rec(obj({ x: int(), y: int(), terrain: ref('terrain', { required: true }), forestation: int({ min: 0, max: 100, doc: 'within the terrain ceiling' }),
+  hexes: rec(obj({ x: int(), y: int(), surface: en(['land', 'sea', 'lake'], { required: true, doc: 'derived from the province: terrain Sea -> its waterBody, else land (every hex has a province, water included)' }) })),
+  provinces: rec(obj({ x: int(), y: int(), terrain: ref('terrain', { required: true }), waterBody: en(['sea', 'lake'], { doc: 'only for terrain Sea: a lake is a small enclosed Sea body' }),
+    forestation: int({ min: 0, max: 100, doc: 'within the terrain ceiling' }),
     habitability: en(['Wasteland', 'Claimed/Frontier', 'Settled'], { required: true }), waterSource: en(['river_adjacent', 'coastal', 'none']),
     maxArea: num({ min: 0 }), maxArableArea: num({ min: 0 }), maxPopulationDensity: num({ min: 0 }), population: num({ min: 0 }), urbanization: num({ min: 0, max: 1 }), sanitation: num({ min: 0, max: 1 }),
     infrastructureLevel: num({ min: 0, max: 100 }), tradeInfrastructureLevel: num({ min: 0, max: 100 }), owner: F('any'), provenance: en(['generated', 'manual']), resourceOverrides: rec(num({ min: 0 })) })),
@@ -28,7 +29,10 @@ export const relationsSchema = obj({ claims: list(F('any')), treaties: list(F('a
 export const scenarioSchema = obj({ startTurn: int({ min: 0 }), playerCountry: ref('countries', { required: true }), options: F('any') })
 export const rulesetSchema = obj({
   version: int(), status: str(),
-  terrain: rec(obj({ forestMin: int({ min: 0, max: 100 }), forestMax: int({ min: 0, max: 100 }), arableCeiling: num({ min: 0, max: 1, status: 'placeholder' }), popDensityCeiling: num({ min: 0, status: 'placeholder' }), favor: rec(num({ min: 0 })), combat: rec(num({ min: 0 })) })),
+  terrain: rec(obj({ forestMin: int({ min: 0, max: 100 }), forestMax: int({ min: 0, max: 100 }), arableCeiling: num({ min: 0, max: 1, status: 'placeholder' }), popDensityCeiling: num({ min: 0, status: 'placeholder' }), favor: rec(num({ min: 0 })), combat: rec(num({ min: 0 })),
+    water: bool({ doc: 'Sea: a water province (open sea or lake, see province.waterBody)' }) })),
+  capability: F('any', { doc: 'settleSea / settleLake: may people settle water provinces (worldmap/migration.js canSettle)' }),
+  traversal: F('any', { doc: 'per water kind (Sea, Lake): {land: false} = armies on foot cannot enter (war/graph.js); {sea: true} = ships and sea lanes' }),
   goods: rec(obj({ tier: en(['raw', 'semi', 'light', 'heavy', 'transport'], { required: true }), baseValue: num({ min: 0, status: 'placeholder', unit: 'numeraire', doc: 'Refined Precious Metals = 1' }), extractPool: ref('pools'),
     perishable: bool(), decayRate: num({ min: 0, max: 1, status: 'placeholder' }), numeraire: bool(), postAlpha: bool(),
     recipe: obj({ pool: ref('pools'), labourPerRun: num({ min: 0, status: 'placeholder' }), inputs: list(obj({ any: list(ref('goods')), qty: num({ min: 0 }) })), outQty: num({ min: 0 }) }) })),

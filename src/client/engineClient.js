@@ -6,7 +6,8 @@ import { effectiveRuleset } from '../data/loaders/readPackage.js'
 import * as D from '../modules/economics/derive.js'
 import { aiOrders } from '../modules/ai/index.js'
 import { readouts } from './readouts.js'
-const sum = a => a.reduce((s, x) => s + x, 0)
+import { adminReadouts } from './readoutsAdmin.js'
+const sum = a => a.reduce((s, x) => s + x, 0), READOUTS = { ...readouts, ...adminReadouts }
 export class EngineClient {
   constructor() { this.modules = createModules(); this.registry = createRegistry(); this.orders = []; this.history = [] }
   async init(pkg, baseRuleset) { this.version = 0; this.ruleset = effectiveRuleset(baseRuleset, pkg.overrides); this.state = buildState(pkg, this.ruleset); this.seq = 0; this.orders = []; return this.snapshotMeta() }
@@ -38,6 +39,6 @@ export class EngineClient {
     if (name === 'government') return structuredClone(this.state.admin.governments[args.country])
     if (name === 'law') return structuredClone(this.state.polity.law[args.country])
     if (name === 'history') return this.history
-    if (readouts[name]) return JSON.parse(JSON.stringify(readouts[name](this, this.viewCtx(), args) ?? null))      // plain JSON by construction (UI Rule 4: nothing live leaks out)
+    if (READOUTS[name]) return JSON.parse(JSON.stringify(READOUTS[name](this, this.viewCtx(), args) ?? null))      // plain JSON by construction (UI Rule 4: nothing live leaks out)
     throw new Error(`unknown query ${name}`) }
 }

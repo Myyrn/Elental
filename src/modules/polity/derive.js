@@ -27,8 +27,9 @@ export function fairnessGap(ctx, key) {                            // >0: under-
   const contribs = keys.map(k => ctx.derive.economics.contribution(k)), tc = sum(contribs) || 1
   const weights = keys.map(k => ctx.derive.polity.weight(k)), tw = sum(weights) || 1
   const i = keys.indexOf(key); return contribs[i] / tc - weights[i] / tw }
+/** Opinion-toward-Government = performance + opinion.align x alignment (portrait.js: -distance(effective_pref, observed_portrait) <= 0) + the modifier stack. */
 export const opinionGov = (ctx, key) => { const c = cell(ctx, key), sat = c.satisfaction ? (c.satisfaction.subsistence + c.satisfaction.comfort + c.satisfaction.luxury) / 3 : 1
-  return ctx.T('opinion.perf') * (sat - ctx.T('opinion.satNeutral')) + sum((c.opinionGovMods ?? []).map(m => m.value)) }
+  return ctx.T('opinion.perf') * (sat - ctx.T('opinion.satNeutral')) + ctx.T('opinion.align') * ctx.derive.polity.alignment(key) + sum((c.opinionGovMods ?? []).map(m => m.value)) }
 export function compliance(ctx, key) {
   const c = cell(ctx, key), vol = sigmoid(ctx.T('opinion.k') * ctx.derive.polity.opinionGov(key))
   const grant = ctx.derive.administration.controlGrant(key), inv = 1 - Math.exp(-grant / (ctx.T('compliance.controlPerCapita') * Math.max(1, c.population)))

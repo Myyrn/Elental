@@ -51,9 +51,13 @@ export function validate(ctx, a) {
   const t = ctx.registry.get(a.type), v = t.validate ? t.validate(ctx, a) : {ok: true}
   return v.ok === false ? v : {ok: true}
 }
-export function writeLog(ctx, a, t) {
-  ctx.state.polity.log.push({actor: a.actor, action_type: a.type, visibility: a.visibility ?? t.defaultVisibility ?? 'public',
-    turn: ctx.state.meta.turn, affected_cells: t.affectedCells ? t.affectedCells(ctx, a) : []})
+/** Decision Log entry. `id` is the action's own id (so harm hand-offs can point at it); `loads` is the act's realized direction on the Portrait axes, snapshotted by the caller BEFORE apply
+ *  (the action type's `axisShift`, else its static `axisLoads`); omitted when the type declares neither. */
+export function writeLog(ctx, a, t, loads) {
+  const e = {id: a.id, actor: a.actor, action_type: a.type, visibility: a.visibility ?? t.defaultVisibility ?? 'public',
+    turn: ctx.state.meta.turn, affected_cells: t.affectedCells ? t.affectedCells(ctx, a) : []}
+  if (loads) e.loads = {...loads}
+  ctx.state.polity.log.push(e)
 }
 
 function step2(ctx, planned) {
@@ -68,7 +72,9 @@ function step2(ctx, planned) {
     if (g.blocked && !a.forceThroughControl) { ctx.report.refuse(a, g); continue }
     if (g.blocked) { ctx.module('polity').entitlementLoss(ctx, g.holders, a); ctx.report.entitlementLosses.push({id: a.id, holders: g.holders}) }
     if (!ctx.claims.lockAll((t.costs?.(ctx, a) ?? []))) { ctx.report.reject(a, ['insufficient']); continue }
-    t.apply(ctx, a); writeLog(ctx, a, t); ctx.report.executed.push(a.id); ctx.bump()
+    const loads = typeof t.axisShift === 'function' ? t.axisShift(ctx, a) : t.axisLoads      // the act's direction, read from the state it is about to change
+    for (const m of ctx.modules) m.onAct?.(ctx, a, t)                                         // module hook, BEFORE apply (it reads the state the act is about to change): a Right granted during a debate is a concession
+    t.apply(ctx, a); writeLog(ctx, a, t, loads); ctx.report.executed.push(a.id); ctx.bump()
   }
 }
 
@@ -76,7 +82,8 @@ export function resolveTurn(state0, ruleset, orders, {modules, registry, viewer,
   const state = structuredClone(state0)
   const ctx = makeCtx(state, ruleset, {modules, registry, start: state0, viewer})
   ctx.report = new TurnReport()
-  const planned = [...orders, ...aiOrders(state0, ruleset)]
+  const answers = state.admin?.answers ?? []; if (state.admin) state.admin.answers = []           // answers adopted by the holders of an assembly last turn (administration/decision.js) run as ordinary Government actions now
+  const planned = [...orders, ...aiOrders(state0, ruleset), ...answers]
   for (let n = 1; n <= 8; n++) {
     ctx.bump(); runDue(ctx, n)
     if (n === 2) step2(ctx, planned)
