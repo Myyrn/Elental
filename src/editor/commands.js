@@ -16,13 +16,22 @@ export function setEdge(docs, a, b, type, extra = {}) {                      // 
   const i = edgeIndex(docs, a, b), out = []; if (i >= 0) out.push({ op: 'remove', path: ptr('world', 'edges', i) })
   if (type) out.push({ op: 'add', path: ptr('world', 'edges', '-'), value: { a, b, type, fortress: false, bridge: false, ...extra } }); return out }
 export function toggleEdgeFlag(docs, a, b, flag) { const i = edgeIndex(docs, a, b); return i < 0 ? [] : [{ op: 'replace', path: ptr('world', 'edges', i, flag), value: !docs.world.edges[i][flag] }] }
-export function setSurface(docs, x, y, surface) {                            // land <-> sea/lake; water hexes lose their province, presence, warehouse and incident edges
-  const hid = `h:${x},${y}`, pid = `p:${x},${y}`, out = [{ op: 'replace', path: ptr('world', 'hexes', hid, 'surface'), value: surface }]
-  if (surface === 'land' && !docs.world.provinces[pid]) { const t = Object.keys(docs.ruleset.terrain).includes('Grassland') ? 'Grassland' : Object.keys(docs.ruleset.terrain)[0], tr = docs.ruleset.terrain[t]
-    out.push({ op: 'add', path: ptr('world', 'provinces', pid), value: { x, y, terrain: t, forestation: tr.forestMin, habitability: 'Claimed/Frontier', waterSource: 'none', maxArea: 100, maxArableArea: 50, maxPopulationDensity: 6, population: 0, urbanization: 0, sanitation: 0.5, infrastructureLevel: 0, tradeInfrastructureLevel: 0, owner: null, provenance: 'manual' } }) }
-  if (surface !== 'land' && docs.world.provinces[pid]) { out.push({ op: 'remove', path: ptr('world', 'provinces', pid) })
-    if (docs.nations.presence?.[pid]) out.push({ op: 'remove', path: ptr('nations', 'presence', pid) }); if (docs.world.warehouses?.[pid]) out.push({ op: 'remove', path: ptr('world', 'warehouses', pid) })
-    docs.world.edges.map((e, i) => [e, i]).filter(([e]) => e.a === pid || e.b === pid).map(([, i]) => i).sort((a, b) => b - a).forEach(i => out.push({ op: 'remove', path: ptr('world', 'edges', i) })) }
+/** land <-> sea/lake. EVERY hex is a province (kb 2026-11-09/10): a water hex keeps a province (terrain Sea, `waterBody`), unowned, empty, no water source; it loses its presence, warehouse and river/pass edges
+ *  (sea lanes stay: they may end on water). Sea <-> lake only changes `waterBody`. Land from water makes a fresh Claimed/Frontier land province. */
+export function setSurface(docs, x, y, surface) {
+  const hid = `h:${x},${y}`, pid = `p:${x},${y}`, old = docs.world.provinces[pid], put = value => ({ op: old ? 'replace' : 'add', path: ptr('world', 'provinces', pid), value })
+  const out = [{ op: 'replace', path: ptr('world', 'hexes', hid, 'surface'), value: surface }]
+  if (surface === 'land') {
+    if (!old || old.terrain === 'Sea') { const t = Object.keys(docs.ruleset.terrain).includes('Grassland') ? 'Grassland' : Object.keys(docs.ruleset.terrain).find(k => !docs.ruleset.terrain[k].water), tr = docs.ruleset.terrain[t]
+      out.push(put({ x, y, terrain: t, forestation: tr.forestMin, habitability: 'Claimed/Frontier', waterSource: 'none', maxArea: 100, maxArableArea: 50, maxPopulationDensity: 6, population: 0, urbanization: 0, sanitation: 0.5, infrastructureLevel: 0, tradeInfrastructureLevel: 0, owner: null, provenance: 'manual' })) }
+    return out }
+  const body = surface === 'lake' ? 'lake' : 'sea'
+  if (old?.terrain === 'Sea') { if (old.waterBody !== body) out.push({ op: 'replace', path: ptr('world', 'provinces', pid, 'waterBody'), value: body }); return out }
+  out.push(put({ x, y, terrain: 'Sea', waterBody: body, forestation: 0, habitability: 'Wasteland', waterSource: 'none', maxArea: old?.maxArea ?? 100, maxArableArea: 0, maxPopulationDensity: 0, population: 0, urbanization: 0, sanitation: 0,
+    infrastructureLevel: 0, tradeInfrastructureLevel: 0, owner: null, provenance: 'manual' }))
+  if (Object.keys(docs.nations.presence?.[pid] ?? {}).length) out.push({ op: 'replace', path: ptr('nations', 'presence', pid), value: {} })
+  if (docs.world.warehouses?.[pid]) out.push({ op: 'remove', path: ptr('world', 'warehouses', pid) })
+  docs.world.edges.map((e, i) => [e, i]).filter(([e]) => e.type !== 'sea_lane' && (e.a === pid || e.b === pid)).map(([, i]) => i).sort((a, b) => b - a).forEach(i => out.push({ op: 'remove', path: ptr('world', 'edges', i) }))
   return out }
 export const setPresence = (docs, pid, nation, count) => (docs.nations.presence?.[pid] ? [{ op: 'add', path: ptr('nations', 'presence', pid, nation), value: count }] : [{ op: 'add', path: ptr('nations', 'presence', pid), value: { [nation]: count } }])
 export const setRulesetValue = (docs, path, value) => [{ op: 'replace', path, value }]
