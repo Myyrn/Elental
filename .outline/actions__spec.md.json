@@ -1,18 +1,18 @@
 {"file":"spec/actions__spec.md","headings":[
-  {"l":1,"t":"Actions — Specification","s":1,"e":356},
-  {"l":2,"t":"Data Structures","s":5,"e":305},
+  {"l":1,"t":"Actions — Specification","s":1,"e":361},
+  {"l":2,"t":"Data Structures","s":5,"e":308},
   {"l":3,"t":"Action envelope","s":7,"e":42},
   {"l":3,"t":"Lifecycle classes","s":43,"e":54},
   {"l":3,"t":"Allocation Dial (dial subclass — settled 2026-11-03)","s":55,"e":74},
   {"l":3,"t":"Cell actions (cells are actors — settled 2026-11-03)","s":75,"e":86},
   {"l":3,"t":"Turn pipeline (simultaneous planning, fixed resolution order)","s":87,"e":181},
   {"l":3,"t":"War declaration timing (settled 2026-11-02)","s":182,"e":190},
-  {"l":3,"t":"Gating (derived, never stored)","s":191,"e":205},
-  {"l":3,"t":"Shared pools","s":206,"e":211},
-  {"l":3,"t":"Decision Log write path","s":212,"e":226},
-  {"l":3,"t":"Government spending: spending dial, Borrow, Default (settled 2026-11-02; dial revised 2026-11-03)","s":227,"e":234},
-  {"l":3,"t":"Determinism and preview","s":235,"e":249},
-  {"l":3,"t":"Existing actions by module (class shown)","s":250,"e":305},
-  {"l":2,"t":"Rules","s":306,"e":326},
-  {"l":2,"t":"Status","s":327,"e":356}
+  {"l":3,"t":"Gating (derived, never stored)","s":191,"e":206},
+  {"l":3,"t":"Shared pools","s":207,"e":212},
+  {"l":3,"t":"Decision Log write path","s":213,"e":227},
+  {"l":3,"t":"Government spending: spending dial, Borrow, Default (settled 2026-11-02; dial revised 2026-11-03)","s":228,"e":235},
+  {"l":3,"t":"Determinism and preview","s":236,"e":250},
+  {"l":3,"t":"Existing actions by module (class shown)","s":251,"e":308},
+  {"l":2,"t":"Rules","s":309,"e":329},
+  {"l":2,"t":"Status","s":330,"e":361}
 ]}

@@ -6,7 +6,7 @@
    "forestMin": 0,
    "forestMax": 40,
    "arableCeiling": 0.15,
-   "popDensityCeiling": 0.2,
+   "popDensityCeiling": 0.1,
    "favor": {
     "Iron Ore": 8,
     "Precious Metal Ore": 8,
@@ -32,7 +32,7 @@
    "forestMin": 0,
    "forestMax": 10,
    "arableCeiling": 0.05,
-   "popDensityCeiling": 0.05,
+   "popDensityCeiling": 0.03,
    "favor": {
     "Salt": 6,
     "Sulfur": 4,
@@ -43,7 +43,7 @@
    "forestMin": 0,
    "forestMax": 40,
    "arableCeiling": 0.5,
-   "popDensityCeiling": 0.3,
+   "popDensityCeiling": 0.4,
    "favor": {
     "Fine Horses": 8,
     "Livestock": 5,
@@ -65,7 +65,7 @@
    "forestMin": 20,
    "forestMax": 70,
    "arableCeiling": 0.4,
-   "popDensityCeiling": 0.7,
+   "popDensityCeiling": 0.6,
    "favor": {
     "Fish": 5,
     "Fiber": 5,
@@ -78,7 +78,7 @@
    "forestMin": 60,
    "forestMax": 100,
    "arableCeiling": 0.2,
-   "popDensityCeiling": 0.4,
+   "popDensityCeiling": 0.3,
    "favor": {
     "Herbs": 8,
     "Magical Reagents": 5,
@@ -89,7 +89,7 @@
    "forestMin": 0,
    "forestMax": 15,
    "arableCeiling": 0.02,
-   "popDensityCeiling": 0.05,
+   "popDensityCeiling": 0.03,
    "favor": {
     "Fish": 4,
     "Hides": 3,
@@ -100,11 +100,35 @@
    "forestMin": 50,
    "forestMax": 90,
    "arableCeiling": 0.2,
-   "popDensityCeiling": 0.25,
+   "popDensityCeiling": 0.1,
    "favor": {
     "Hides": 5,
     "Fish": 3
    }
+  },
+  "Sea": {
+   "forestMin": 0,
+   "forestMax": 0,
+   "arableCeiling": 0,
+   "popDensityCeiling": 0,
+   "water": true,
+   "favor": {
+    "Fish": 4
+   }
+  }
+ },
+ "capability": {
+  "settleSea": false,
+  "settleLake": false
+ },
+ "traversal": {
+  "Sea": {
+   "land": false,
+   "sea": true
+  },
+  "Lake": {
+   "land": false,
+   "sea": true
   }
  },
  "goods": {
@@ -1493,7 +1517,9 @@
   "waterSourcePrecedence": [
    "river_adjacent",
    "coastal"
-  ]
+  ],
+  "hexArea": 100,
+  "densityScale": 200
  },
  "tuning": {
   "eps.modifier": {
@@ -2464,6 +2490,14 @@
   },
   "persuade.popUnit": {
    "value": 1000,
+   "status": "placeholder"
+  },
+  "decision.majority": {
+   "value": 0.6666666666666666,
+   "status": "authored"
+  },
+  "concession.rightK": {
+   "value": 1,
    "status": "placeholder"
   }
  }

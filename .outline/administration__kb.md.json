@@ -1,14 +1,14 @@
 {"file":"kb/administration__kb.md","headings":[
-  {"l":1,"t":"Administration — Knowledge Base","s":1,"e":273},
-  {"l":2,"t":"Data Structures","s":48,"e":212},
-  {"l":3,"t":"Control Allocation (settled; Allocation Dial semantics settled 2026-11-03)","s":50,"e":95},
-  {"l":3,"t":"Observation Allocation (settled 2026-11-01; detection settled 2026-11-02)","s":96,"e":104},
-  {"l":3,"t":"Question Active Slate (attention commitment — revised 2026-11-02)","s":105,"e":136},
-  {"l":3,"t":"Assembly Queue and Question Resolution Time (2026-11-10)","s":137,"e":168},
-  {"l":3,"t":"Government upkeep (execution side — settled 2026-11-02)","s":169,"e":184},
-  {"l":3,"t":"Emergency Powers (settled 2026-11-02)","s":185,"e":194},
-  {"l":3,"t":"Administration actions (execution layer; classes per `actions__kb.md`)","s":195,"e":212},
-  {"l":2,"t":"Rules","s":213,"e":231},
-  {"l":2,"t":"Cross-references","s":232,"e":241},
-  {"l":2,"t":"Status","s":242,"e":273}
+  {"l":1,"t":"Administration — Knowledge Base","s":1,"e":295},
+  {"l":2,"t":"Data Structures","s":50,"e":231},
+  {"l":3,"t":"Control Allocation (settled; Allocation Dial semantics settled 2026-11-03)","s":52,"e":97},
+  {"l":3,"t":"Observation Allocation (settled 2026-11-01; detection settled 2026-11-02)","s":98,"e":106},
+  {"l":3,"t":"Question Active Slate (attention commitment — revised 2026-11-02)","s":107,"e":138},
+  {"l":3,"t":"Assembly Queue and Question Resolution Time (2026-11-10)","s":139,"e":186},
+  {"l":3,"t":"Government upkeep (execution side — settled 2026-11-02)","s":187,"e":202},
+  {"l":3,"t":"Emergency Powers (settled 2026-11-02)","s":203,"e":212},
+  {"l":3,"t":"Administration actions (execution layer; classes per `actions__kb.md`)","s":213,"e":231},
+  {"l":2,"t":"Rules","s":232,"e":251},
+  {"l":2,"t":"Cross-references","s":252,"e":261},
+  {"l":2,"t":"Status","s":262,"e":295}
 ]}
