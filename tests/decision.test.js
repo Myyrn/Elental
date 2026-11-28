@@ -12,8 +12,8 @@ import { updateMomentum } from '../src/modules/polity/step.js'
 import { buildOrder } from '../src/ui/forms.js'
 import { tuning, ruleset, modules, registry, makeState } from './fixtures.js'
 registerAdministrationActions(registry)
-// a stub act: impact per Nation (`cost` / `relief` by the first part of the cell key); gated by `params.domain`
-registry.register({ id: 'testAct', module: 'test', class: 'event', gateDomain: a => a.params?.domain ?? null, defaultVisibility: 'public', costs: () => [], axisLoads: {},
+// a stub act: impact per Nation (`cost` / `relief` by the first part of the cell key); gated by `params.domain`. The engine calls `gateDomain(ctx, a)` (engine.gate, decision.votersOf)
+registry.register({ id: 'testAct', module: 'test', class: 'event', gateDomain: (ctx, a) => a.params?.domain ?? null, defaultVisibility: 'public', costs: () => [], axisLoads: {},
   validate: (ctx, a) => (a.params?.invalid ? { ok: false, reasons: ['nope'] } : { ok: true }),
   impact: (ctx, a, key) => ({ cost: a.params?.cost?.[key.split('|')[0]] ?? 0, relief: a.params?.relief?.[key.split('|')[0]] ?? 0 }),
   apply: (ctx, a) => { ctx.state.testApplied = (ctx.state.testApplied ?? 0) + 1 } })
