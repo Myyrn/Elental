@@ -6,10 +6,10 @@ import { EngineClient } from '../src/client/engineClient.js'
 const readJson = async path => JSON.parse(readFileSync(new URL('../' + path, import.meta.url)))
 const boot = async () => { const c = new EngineClient(); await c.init(await readPackage(readJson, 'scenarios/demo'), await readJson('data/ruleset.json')); return c }
 
-test('demo package loads: 118 provinces, sea/lake hexes are not provinces, regions 6-12 hexes, cells reference real regions', async () => {
+test('demo package loads: 140 provinces (every hex, water included), sea/lake hexes are unowned Sea provinces, regions 6-12 hexes, cells reference real regions', async () => {
   const c = await boot(), m = await c.query('map')
-  assert.equal(Object.keys(m.provinces).length, 118); assert.ok(Object.values(m.hexes).some(h => h.surface === 'sea') && Object.values(m.hexes).some(h => h.surface === 'lake'))
-  for (const h of Object.values(m.hexes)) assert.equal(!!m.provinces[`p:${h.x},${h.y}`], h.surface === 'land')
+  assert.equal(Object.keys(m.provinces).length, 140); assert.ok(Object.values(m.hexes).some(h => h.surface === 'sea') && Object.values(m.hexes).some(h => h.surface === 'lake'))
+  for (const h of Object.values(m.hexes)) assert.ok(m.provinces[`p:${h.x},${h.y}`], `hex ${h.x},${h.y} has no province`)
   const regionIds = new Set(Object.values(m.regions)); for (const cell of await c.query('cells')) assert.ok(regionIds.has(cell.key.split('|')[2]))
 })
 test('real Action pipeline: setTaxLaw changes the law, placeRequisition fills Government inventory, bad order is rejected not thrown', async () => {
